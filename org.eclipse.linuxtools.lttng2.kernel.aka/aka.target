@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+
+<target includeMode="feature" name="Running Platform" sequenceNumber="41">
+<locations>
+<location path="${workspace_loc}/target/delta.pack/eclipse" type="Directory"/>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.linuxtools.tmf.feature.group" version="1.0.0.201206120405"/>
+<repository location="http://download.eclipse.org/technology/linuxtools/updates-nightly"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.sdk.ide" version="4.2.1.M20120914-1800"/>
+<repository location="http://download.eclipse.org/releases/juno"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.antlr.runtime" version="3.2.0.v201101311130"/>
+<repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20120119162704/repository"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.zest.sdk.feature.group" version="1.5.0.201208201742"/>
+<repository location="http://download.eclipse.org/releases/juno"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.junit" version="4.8.2.v4_8_2_v20110321-1705"/>
+<repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20120119162704/repository"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.rse.feature.group" version="3.4.1.201209191030-7L7IFBY83omx__z0RFpKdWB-r5MS"/>
+<repository location="http://download.eclipse.org/releases/juno"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.linuxtools.ctf.feature.group" version="1.0.0.201206120405"/>
+<repository location="http://download.eclipse.org/technology/linuxtools/updates-nightly"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.rcp.sdk.id" version="4.2.1.M20120914-1800"/>
+<repository location="http://download.eclipse.org/releases/juno"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.emf.sdk.feature.group" version="2.8.1.v20120917-0436"/>
+<repository location="http://download.eclipse.org/releases/juno"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="com.google.guava.runtime.feature.feature.group" version="11.0.1"/>
+<unit id="com.google.guava.sdk.feature.feature.group" version="11.0.1"/>
+<repository location="http://guava-osgi.googlecode.com/svn/trunk/repository/"/>
+</location>
+</locations>
+<environment>
+<os>linux</os>
+<ws>gtk</ws>
+<arch>x86_64</arch>
+<nl>fr_CA</nl>
+</environment>
+<launcherArgs>
+<vmArgs>-Xms40m -Xmx384m</vmArgs>
+</launcherArgs>
+</target>
