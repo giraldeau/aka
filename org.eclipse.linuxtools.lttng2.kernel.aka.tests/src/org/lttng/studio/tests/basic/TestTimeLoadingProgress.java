@@ -4,11 +4,18 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.junit.Test;
+import org.lttng.studio.reader.AnalysisPhase;
+import org.lttng.studio.reader.AnalyzerThread;
 import org.lttng.studio.reader.TimeLoadingListener;
-import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.ITraceEventHandler;
+import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 
 public class TestTimeLoadingProgress {
 
@@ -17,7 +24,7 @@ public class TestTimeLoadingProgress {
 	@Test
 	public void testTimeListener() throws Exception {
 		res = new ArrayList<Integer>();
-		TimeLoadingListener listener = new TimeLoadingListener("default", new IProgressMonitor() {
+		TimeLoadingListener listener = new TimeLoadingListener("default", 2, new IProgressMonitor() {
 
 			@Override
 			public void beginTask(String name, int totalWork) {
@@ -68,12 +75,23 @@ public class TestTimeLoadingProgress {
 		});
 
 		File trace = TestTraceset.getKernelTrace("netcat-tcp-k");
-		TraceReader reader = new TraceReader();
-		reader.addTrace(trace);
-		reader.process(listener);
-		//System.out.println(res);
+
+		AnalyzerThread thread = new AnalyzerThread();
+		CtfTmfTrace ctfTmfTrace = new CtfTmfTrace();
+		ctfTmfTrace.initTrace(null, trace.getCanonicalPath(), CtfTmfEvent.class);
+
+		Collection<ITraceEventHandler> basic = TraceEventHandlerFactory.makeBasic();
+
+		thread.addTrace(ctfTmfTrace);
+		thread.addPhase(new AnalysisPhase("test", basic));
+		thread.addPhase(new AnalysisPhase("test", basic));
+		thread.setListener(listener);
+		thread.start();
+		thread.join();
+
 		assertTrue(res.size() > 100);
 		assertTrue(res.size() < max);
+		assertTrue(Collections.max(res) <= 1000);
 	}
 
 }

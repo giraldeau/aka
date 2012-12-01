@@ -15,4 +15,9 @@ public class DummyTimeListener implements TimeListener {
 	public void finished() {
 	}
 
+
+	@Override
+	public void phase(int phase) {
+	}
+
 }

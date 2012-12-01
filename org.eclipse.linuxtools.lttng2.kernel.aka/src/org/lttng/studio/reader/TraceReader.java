@@ -22,6 +22,11 @@ import org.lttng.studio.reader.handler.TraceEventHandlerBase;
 
 public class TraceReader {
 
+	class MinMax {
+		public long min;
+		public long max;
+	}
+
 	private final List<CTFTraceReader> readers;
 	private final Map<Class<?>, ITraceEventHandler> handlers;
 	private final Map<String, TreeSet<TraceHook>> eventHookMap;
@@ -120,9 +125,20 @@ public class TraceReader {
 			// reader.goToLastEvent()
 			// reader.seek(reader.getEndTime())
 			// reader.getCurrentEventDef() ---> returns null, shouldn't
+			// FIXME: other bug: start1 != start2
+			// FIXME: other bug: second call to goToLastEvent() returns null event
+			reader.seek(0);
+			//long start1 = reader.getStartTime() + reader.getTrace().getOffset();
+			long start2 = reader.getCurrentEventDef().getTimestamp() + reader.getTrace().getOffset();
+			//System.out.println(String.format("start t1=%d t2=%d diff=%d", start1, start2, start1 - start2));
+
 			reader.goToLastEvent();
-			min = Math.min(min, reader.getStartTime() + reader.getTrace().getOffset());
-			max = Math.max(max, reader.getEndTime());
+			long end1 = reader.getEndTime();
+			//long end2 = reader.getCurrentEventDef().getTimestamp() + reader.getTrace().getOffset();
+			//System.out.println(String.format("end t1=%d t2=%d diff=%d", end1, end2, end1 - end2));
+
+			min = Math.min(min, start2);
+			max = Math.max(max, end1);
 			reader.seek(0);
 		}
 		listener.begin(min, max);

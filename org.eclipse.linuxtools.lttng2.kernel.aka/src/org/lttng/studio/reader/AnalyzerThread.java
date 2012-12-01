@@ -5,27 +5,37 @@ import java.util.Collection;
 
 import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
-import org.lttng.studio.reader.handler.ITraceEventHandler;
 
 public class AnalyzerThread extends Thread {
 	private final ArrayList<CtfTmfTrace> traces;
 	private TimeListener listener;
-	private final Collection<ITraceEventHandler> handlers;
+	private final Collection<AnalysisPhase> phases;
 	private final TraceReader reader;
 
 	public AnalyzerThread() {
 		super();
+		setListener(null);
 		reader = new TraceReader();
 		traces = new ArrayList<CtfTmfTrace>();
-		handlers = new ArrayList<ITraceEventHandler>();
+		phases = new ArrayList<AnalysisPhase>();
 	}
 
 	@Override
 	public void run() {
+		int curr = 0;
 		for (CtfTmfTrace t: traces) {
 			reader.addReader(new CTFTraceReader(t.getCTFTrace()));
 		}
-		reader.registerAll(handlers);
+		for (AnalysisPhase phase: phases) {
+			listener.phase(curr);
+			processOnePhase(phase);
+			curr++;
+		}
+	}
+
+	private void processOnePhase(AnalysisPhase phase) {
+		reader.clearHandlers();
+		reader.registerAll(phase.getHandlers());
 		try {
 			reader.process(listener);
 		} catch (Exception e) {
@@ -66,10 +76,10 @@ public class AnalyzerThread extends Thread {
 		return reader;
 	}
 
-	public void addAllHandlers(Collection<ITraceEventHandler> handlers) {
-		if (handlers == null)
+	public void addPhase(AnalysisPhase phase) {
+		if (phase == null)
 			return;
-		this.handlers.addAll(handlers);
+		this.phases.add(phase);
 	}
 
 }
