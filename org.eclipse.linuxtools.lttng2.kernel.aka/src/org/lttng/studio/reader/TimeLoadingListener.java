@@ -82,4 +82,9 @@ public class TimeLoadingListener implements TimeListener {
 		this.phase = phase;
 	}
 
+	@Override
+	public boolean isCanceled() {
+		return this.monitor.isCanceled();
+	}
+
 }

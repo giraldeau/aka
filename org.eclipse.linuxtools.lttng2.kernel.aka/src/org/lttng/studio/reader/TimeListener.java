@@ -6,5 +6,6 @@ public interface TimeListener {
 	public void progress(long time);
 	public void phase(int phase);
 	public void finished();
+	public boolean isCanceled();
 
 }

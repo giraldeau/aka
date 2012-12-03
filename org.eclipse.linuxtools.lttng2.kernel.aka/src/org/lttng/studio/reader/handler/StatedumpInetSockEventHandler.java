@@ -6,7 +6,6 @@ import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
 import org.lttng.studio.model.kernel.Inet4Sock;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceHook;
@@ -24,7 +23,7 @@ public class StatedumpInetSockEventHandler extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		system = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 	}
 

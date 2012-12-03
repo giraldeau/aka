@@ -4,17 +4,10 @@ import java.util.HashMap;
 
 public class ModelRegistry {
 
-	private static ModelRegistry self = null;
 	HashMap<Object, HashMap<Class<?>, Object>> reg;
 
-	private ModelRegistry() {
+	public ModelRegistry() {
 		reg = new HashMap<Object, HashMap<Class<?>, Object>>();
-	}
-
-	public static ModelRegistry getInstance() {
-		if (self == null)
-			self = new ModelRegistry();
-		return self;
 	}
 
 	public HashMap<Class<?>, Object> getOrCreateContext(Object context) {

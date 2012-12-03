@@ -9,8 +9,8 @@ import java.io.IOException;
 import org.eclipse.linuxtools.ctf.core.trace.CTFReaderException;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.EventCounter;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.TraceEventHandlerCounter;
 
 /**
@@ -28,7 +28,7 @@ public class TestTraceReader {
 		TraceEventHandlerCounter handler = new TraceEventHandlerCounter();
 		reader.register(handler);
 		reader.process();
-		EventCounter counter = ModelRegistry.getInstance().getModel(reader, EventCounter.class);
+		EventCounter counter = reader.getRegistry().getModel(IModelKeys.SHARED, EventCounter.class);
 		assertTrue(counter.getCounter() > 0);
 	}
 
@@ -55,7 +55,7 @@ public class TestTraceReader {
 		reader.register(handler);
 		reader.addTrace(trace1);
 		reader.process();
-		counter = ModelRegistry.getInstance().getOrCreateModel(reader, EventCounter.class);
+		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
 		long cnt1 = counter.getCounter();
 
 		// trace 2
@@ -63,7 +63,7 @@ public class TestTraceReader {
 		reader.register(handler);
 		reader.addTrace(trace2);
 		reader.process();
-		counter = ModelRegistry.getInstance().getOrCreateModel(reader, EventCounter.class);
+		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
 		long cnt2 = counter.getCounter();
 
 		// trace 1 and 2
@@ -72,7 +72,7 @@ public class TestTraceReader {
 		reader.addTrace(trace1);
 		reader.addTrace(trace2);
 		reader.process();
-		counter = ModelRegistry.getInstance().getOrCreateModel(reader, EventCounter.class);
+		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
 		long cnt3 = counter.getCounter();
 
 		assertEquals(cnt1 + cnt2, cnt3);

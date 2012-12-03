@@ -17,6 +17,7 @@ import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
 import org.eclipse.linuxtools.ctf.core.trace.CTFReaderException;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTrace;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
+import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerBase;
 
@@ -27,6 +28,7 @@ public class TraceReader {
 		public long max;
 	}
 
+	private final ModelRegistry registry;
 	private final List<CTFTraceReader> readers;
 	private final Map<Class<?>, ITraceEventHandler> handlers;
 	private final Map<String, TreeSet<TraceHook>> eventHookMap;
@@ -44,6 +46,7 @@ public class TraceReader {
 		catchAllHook = new TreeSet<TraceHook>();
 		readers = new ArrayList<CTFTraceReader>();
 		timeKeeper = TimeKeeper.getInstance();
+		registry = new ModelRegistry();
 	}
 
 	public void loadTrace() throws CTFReaderException {
@@ -156,6 +159,9 @@ public class TraceReader {
 		prio.addAll(readers);
 		//while((event=getReader().getCurrentEventDef()) != null && cancel == false) {
 		while((setCurrentReader(prio.poll())) != null) {
+			if (listener.isCanceled()) {
+				break;
+			}
 			event = getCurrentCtfReader().getCurrentEventDef();
 			if (event == null)
 				continue;
@@ -289,5 +295,9 @@ public class TraceReader {
 							.getTrace()
 							.getClock()
 							.getProperty("offset") + event.getTimestamp();
+	}
+
+	public ModelRegistry getRegistry() {
+		return registry;
 	}
 }

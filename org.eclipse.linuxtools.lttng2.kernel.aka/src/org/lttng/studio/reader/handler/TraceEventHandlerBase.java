@@ -51,4 +51,10 @@ public class TraceEventHandlerBase extends Notifier implements ITraceEventHandle
 	public int compareTo(ITraceEventHandler other) {
 		return priority.compareTo(other.getPriority());
 	}
+
+	@Override
+	public String toString() {
+		String name = this.getClass().getSimpleName();
+		return "[" + name + "," + getPriority() + "]";
+	}
 }

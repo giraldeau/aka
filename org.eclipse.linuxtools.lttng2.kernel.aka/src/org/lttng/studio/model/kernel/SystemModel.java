@@ -29,6 +29,7 @@ public class SystemModel implements ITraceModel {
 	@Override
 	public void init(TraceReader reader) {
 		if (isInitialized == false){
+			// FIXME: should avoid the model coupling with tracing classes
 			numCpus = reader.getNumCpus();
 			tasks = new HashMap<Long, Task>();
 			taskFdSet = new HashMap<Task, FDSet>();

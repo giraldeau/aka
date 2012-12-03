@@ -1,4 +1,5 @@
 *.class
+traceset
 
 # Package Files #
 *.jar

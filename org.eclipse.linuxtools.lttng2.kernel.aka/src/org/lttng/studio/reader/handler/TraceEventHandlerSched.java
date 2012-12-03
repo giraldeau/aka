@@ -11,7 +11,6 @@ import org.eclipse.linuxtools.tmf.ui.views.histogram.HistogramUtils;
 import org.lttng.studio.model.kernel.CloneFlags;
 import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.FDSet;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.Task.execution_mode;
@@ -66,7 +65,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		system = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 		schedSwitchUnkownTask = 0;
 		evHistory = new HashMap<Long, EventData>();

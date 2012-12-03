@@ -8,7 +8,6 @@ import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.StringDefinition;
 import org.lttng.studio.model.kernel.FD;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceHook;
@@ -32,7 +31,7 @@ public class StatedumpEventHandler extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		system = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 	}
 

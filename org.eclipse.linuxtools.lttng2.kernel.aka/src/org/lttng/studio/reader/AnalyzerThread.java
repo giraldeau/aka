@@ -82,4 +82,10 @@ public class AnalyzerThread extends Thread {
 		this.phases.add(phase);
 	}
 
+	public int getNumPhases() {
+		if (this.phases != null)
+			return this.phases.size();
+		return 0;
+	}
+
 }

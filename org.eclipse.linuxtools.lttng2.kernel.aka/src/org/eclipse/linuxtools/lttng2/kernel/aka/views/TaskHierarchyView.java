@@ -1,6 +1,7 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
 
+import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -15,16 +16,18 @@ import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.signal.TmfExperimentSelectedSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.zest.core.viewers.AbstractZoomableViewer;
 import org.eclipse.zest.core.viewers.EntityConnectionData;
@@ -35,11 +38,19 @@ import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
 import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.core.widgets.ZestStyles;
 import org.eclipse.zest.layouts.LayoutAlgorithm;
+import org.eclipse.zest.layouts.algorithms.CompositeLayoutAlgorithm;
 import org.eclipse.zest.layouts.algorithms.SugiyamaLayoutAlgorithm;
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.lttng.studio.model.graph.TaskHierarchyGraph;
+import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.reader.AnalysisPhase;
+import org.lttng.studio.reader.AnalyzerThread;
+import org.lttng.studio.reader.TimeLoadingListener;
+import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.IModelKeys;
+import org.lttng.studio.reader.handler.ITraceEventHandler;
+import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 
 /**
  * Basic graph view
@@ -54,20 +65,18 @@ public class TaskHierarchyView extends TmfView implements IZoomableWorkbenchPart
 
 	private TmfExperiment<ITmfEvent> fSelectedExperiment;
 
-	private Label label;
-
 	private GraphViewer graphViewer;
 
 	private Composite content;
 
-	private DirectedGraph<String,DefaultEdge> stringGraph;
+	private TaskHierarchyGraph taskGraph;
 
 	public class ZestJGraphtNodeProvider extends ArrayContentProvider implements IGraphEntityContentProvider {
 		  @Override
 		  public Object[] getConnectedTo(Object entity) {
-		    if (entity instanceof String) {
-		      String node = (String) entity;
-		      List<String> neighbors = Graphs.successorListOf(stringGraph, node);
+		    if (entity instanceof Task) {
+		      Task node = (Task) entity;
+		      List<Task> neighbors = Graphs.successorListOf(taskGraph.getGraph(), node);
 		      return neighbors.toArray();
 		    }
 		    throw new RuntimeException("Type not supported");
@@ -77,9 +86,9 @@ public class TaskHierarchyView extends TmfView implements IZoomableWorkbenchPart
 	public class ZestJgraphTLabelProvider extends LabelProvider implements IConnectionStyleProvider {
 		  @Override
 		  public String getText(Object element) {
-		    if (element instanceof String) {
-		      String node = (String) element;
-		      return node;
+		    if (element instanceof Task) {
+		      Task node = (Task) element;
+		      return node.toString();
 		    }
 		    // Not called with the IGraphEntityContentProvider
 		    if (element instanceof DefaultEdge) {
@@ -150,50 +159,16 @@ public class TaskHierarchyView extends TmfView implements IZoomableWorkbenchPart
 		contributeToActionBars();
 	}
 
-    private static DirectedGraph<String, DefaultEdge> createStringGraph()
-    {
-        DirectedGraph<String, DefaultEdge> g =
-            new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-
-        String v1 = "v1";
-        String v2 = "v2";
-        String v22 = "v22";
-        String v3 = "v3";
-        String v4 = "v4";
-        String v5 = "v5";
-        String v6 = "v6";
-
-        // add the vertices
-        g.addVertex(v1);
-        g.addVertex(v2);
-        g.addVertex(v22);
-        g.addVertex(v3);
-        g.addVertex(v4);
-        g.addVertex(v5);
-        g.addVertex(v6);
-
-        // add edges to create a circuit
-        g.addEdge(v1, v2);
-        g.addEdge(v2, v22);
-        g.addEdge(v22, v3);
-        g.addEdge(v3, v4);
-        g.addEdge(v2, v5);
-        g.addEdge(v5, v6);
-        g.addEdge(v6, v3);
-
-        return g;
-    }
-
-
 	private void makeFakeGraph() {
-		stringGraph = createStringGraph();
 		graphViewer.setContentProvider(new ZestJGraphtNodeProvider());
 		graphViewer.setLabelProvider(new ZestJgraphTLabelProvider());
-		graphViewer.setInput(stringGraph.vertexSet());
-		LayoutAlgorithm layout4 = new SugiyamaLayoutAlgorithm(SugiyamaLayoutAlgorithm.HORIZONTAL);
-		graphViewer.setLayoutAlgorithm(layout4, true);
+		//LayoutAlgorithm layout4 = new SugiyamaLayoutAlgorithm(SugiyamaLayoutAlgorithm.HORIZONTAL);
+
+		CompositeLayoutAlgorithm compositeLayoutAlgorithm = new CompositeLayoutAlgorithm(
+				new LayoutAlgorithm[] { new SugiyamaLayoutAlgorithm(SugiyamaLayoutAlgorithm.HORIZONTAL) });
+		graphViewer.setLayoutAlgorithm(compositeLayoutAlgorithm, true);
 		graphViewer.applyLayout();
-		layout4.applyLayout(true);
+		compositeLayoutAlgorithm.applyLayout(true);
 		ZoomContributionViewItem toolbar = new ZoomContributionViewItem(this);
 		IActionBars bars = getViewSite().getActionBars();
 		bars.getMenuManager().add(toolbar);
@@ -216,30 +191,61 @@ public class TaskHierarchyView extends TmfView implements IZoomableWorkbenchPart
         thread.start();
 	}
 
+
 	private void selectExperiment(final
 			TmfExperiment<? extends ITmfEvent> experiment) {
 		if (experiment == null)
 			return;
+
+		// Our analyzer only accepts CtfTmfTrace
+		final AnalyzerThread thread = new AnalyzerThread();
+		ITmfTrace<? extends ITmfEvent>[] traces = experiment.getTraces();
+		for (ITmfTrace<? extends ITmfEvent> trace: traces) {
+			if (trace instanceof CtfTmfTrace) {
+				thread.addTrace((CtfTmfTrace)trace);
+			}
+		}
+
+		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
+		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeFull();
+		thread.addPhase(new AnalysisPhase("Statedump", phase1));
+		thread.addPhase(new AnalysisPhase("Model recovery", phase2));
+
 		Job job = new Job("long running action") {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
-				monitor.beginTask("Long running action", 100);
-				for (int i = 0; i < 100; i++) {
-					try {
-						Thread.sleep(100);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					if (monitor.isCanceled())
-						break;
-					monitor.worked(i);
+				TimeLoadingListener listener = new TimeLoadingListener("Trace processing",
+						thread.getNumPhases(), monitor);
+				thread.setListener(listener);
+				thread.start();
+				try {
+					thread.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					return Status.CANCEL_STATUS;
 				}
-				monitor.done();
+				TraceReader reader = thread.getReader();
+				TaskHierarchyGraph graph = reader.getRegistry().getModel(IModelKeys.SHARED, TaskHierarchyGraph.class);
+				setTaskGraph(graph);
 				return Status.OK_STATUS;
 			}
 		};
 		job.setUser(true);
 		job.schedule();
+	}
+
+	protected void setTaskGraph(TaskHierarchyGraph graph) {
+		if (graph == null) {
+			graph = new TaskHierarchyGraph();
+		}
+		this.taskGraph = graph;
+		System.out.println("setTaskGraph() --> vertexSet.size() = " + taskGraph.getGraph().vertexSet().size());
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				graphViewer.setInput(taskGraph.getGraph().vertexSet());
+			}
+		});
 	}
 
 	private void hookContextMenu() {

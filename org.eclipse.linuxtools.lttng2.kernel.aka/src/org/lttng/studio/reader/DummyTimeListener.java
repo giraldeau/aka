@@ -20,4 +20,10 @@ public class DummyTimeListener implements TimeListener {
 	public void phase(int phase) {
 	}
 
+
+	@Override
+	public boolean isCanceled() {
+		return false;
+	}
+
 }

@@ -9,10 +9,10 @@ import java.util.Collection;
 
 import org.junit.Test;
 import org.lttng.studio.model.kernel.FD;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.StatedumpEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFD;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
@@ -28,7 +28,7 @@ public class TestState {
 		StatedumpEventHandler handler = new StatedumpEventHandler();
 		reader.register(handler);
 		reader.process();
-		SystemModel system = ModelRegistry.getInstance().getModel(reader, SystemModel.class);
+		SystemModel system = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Collection<Task> tasks = system.getTasks();
 		assertTrue(tasks.size() > 0);
 	}
@@ -41,7 +41,7 @@ public class TestState {
 		StatedumpEventHandler handler = new StatedumpEventHandler();
 		reader.register(handler);
 		reader.process();
-		SystemModel system = ModelRegistry.getInstance().getModel(reader, SystemModel.class);
+		SystemModel system = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Collection<FD> fds = system.getFDs();
 		assertTrue(fds.size() > 0);
 	}
@@ -54,7 +54,7 @@ public class TestState {
 		TraceEventHandlerSched handler = new TraceEventHandlerSched();
 		reader.register(handler);
 		reader.process();
-		SystemModel model = ModelRegistry.getInstance().getModel(reader, SystemModel.class);
+		SystemModel model = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		assertTrue(model.getCurrentTid(0) >= 0);
 	}
 
@@ -64,7 +64,7 @@ public class TestState {
 		TraceReader reader = new TraceReader();
 		reader.addTrace(traceDir);
 
-		SystemModel model1 = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		SystemModel model1 = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		// Phase 1: build initial state
 		StatedumpEventHandler h0 = new StatedumpEventHandler();
 		reader.register(h0);
@@ -78,7 +78,7 @@ public class TestState {
 		reader.register(h2);
 		reader.process();
 
-		SystemModel model2 = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		SystemModel model2 = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		assertSame(model1, model2);
 		assertEquals(0, h1.getSchedSwitchUnkownTask());
 	}

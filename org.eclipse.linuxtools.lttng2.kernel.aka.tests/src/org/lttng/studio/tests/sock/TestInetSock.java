@@ -9,10 +9,10 @@ import org.eclipse.linuxtools.ctf.core.trace.CTFTrace;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.Inet4Sock;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.StatedumpInetSockEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
 import org.lttng.studio.reader.handler.TraceEventHandlerSock;
@@ -29,7 +29,7 @@ public class TestInetSock {
 		reader.addReader(new CTFTraceReader(new CTFTrace(trace)));
 		reader.register(new StatedumpInetSockEventHandler());
 		reader.process();
-		SystemModel model = ModelRegistry.getInstance().getModel(reader, SystemModel.class);
+		SystemModel model = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		assertTrue(model.getInetSocks().size() > 0);
 	}
 
@@ -41,7 +41,7 @@ public class TestInetSock {
 		reader.register(new TraceEventHandlerSched());
 		reader.register(new TraceEventHandlerSock());
 		reader.process();
-		SystemModel model = ModelRegistry.getInstance().getModel(reader, SystemModel.class);
+		SystemModel model = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		BiMap<Inet4Sock, Inet4Sock> socks = model.getInetSockIndex();
 		//System.out.println(socks);
 		assertEquals(1, socks.size());

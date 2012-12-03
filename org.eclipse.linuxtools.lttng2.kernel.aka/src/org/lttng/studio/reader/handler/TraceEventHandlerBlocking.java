@@ -12,7 +12,6 @@ import org.lttng.studio.fsa.Transition;
 import org.lttng.studio.fsa.pattern.BlockingAutomaton;
 import org.lttng.studio.model.kernel.BlockingItem;
 import org.lttng.studio.model.kernel.ModelEvent;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.WakeupInfo;
@@ -44,7 +43,7 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		system = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 		automatMap = new HashMap<Task, AutomatonRecorder<EventDefinition>>();
 		wakeup = new WakeupInfo[reader.getNumCpus()];

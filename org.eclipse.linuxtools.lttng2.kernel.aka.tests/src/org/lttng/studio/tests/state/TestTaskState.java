@@ -5,10 +5,10 @@ import java.util.Collection;
 import java.util.HashSet;
 
 import org.junit.Test;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.StatedumpEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
 import org.lttng.studio.tests.basic.TestTraceset;
@@ -21,7 +21,7 @@ public class TestTaskState {
 		TraceReader reader = new TraceReader();
 		reader.addTrace(traceDir);
 
-		SystemModel model = ModelRegistry.getInstance().getOrCreateModel(reader, SystemModel.class);
+		SystemModel model = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		// Phase 1: build initial state
 		StatedumpEventHandler h0 = new StatedumpEventHandler();
 		reader.register(h0);
