@@ -31,7 +31,6 @@ public class TraceEventHandlerTaskHierarchy  extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_process_fork(TraceReader reader, EventDefinition event) {
-		System.out.println("TaskHierarchy handler");
 		// TODO: add child to parent's children list
 		HashMap<String, Definition> def = event.getFields().getDefinitions();
 		IntegerDefinition parentTidDef = (IntegerDefinition) def.get("_parent_tid");

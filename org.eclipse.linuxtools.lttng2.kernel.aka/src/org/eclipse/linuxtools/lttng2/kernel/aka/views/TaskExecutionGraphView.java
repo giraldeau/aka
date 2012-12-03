@@ -10,9 +10,7 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.viewers.ArrayContentProvider;
-import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.swt.graphics.Color;
@@ -23,58 +21,61 @@ import org.eclipse.zest.core.viewers.EntityConnectionData;
 import org.eclipse.zest.core.viewers.IConnectionStyleProvider;
 import org.eclipse.zest.core.viewers.IGraphEntityContentProvider;
 import org.eclipse.zest.core.widgets.ZestStyles;
+import org.eclipse.zest.layouts.LayoutAlgorithm;
+import org.eclipse.zest.layouts.algorithms.CompositeLayoutAlgorithm;
+import org.eclipse.zest.layouts.algorithms.SugiyamaLayoutAlgorithm;
 import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultEdge;
-import org.lttng.studio.model.graph.TaskHierarchyGraph;
+import org.lttng.studio.model.graph.ExecEdge;
+import org.lttng.studio.model.graph.ExecVertex;
+import org.lttng.studio.model.graph.TaskExecutionGraph;
 import org.lttng.studio.model.kernel.ModelRegistry;
-import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.handler.IModelKeys;
 
 /**
  * Basic graph view
  */
 
-public class TaskHierarchyView extends AbstractGraphView {
+public class TaskExecutionGraphView extends AbstractGraphView {
 
 	/**
 	 * The ID of the view as specified by the extension.
 	 */
-	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView";
+	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView";
 
-	private TaskHierarchyGraph taskGraph;
+	private TaskExecutionGraph exeGraph;
 
-	public class TaskNodeProvider extends ArrayContentProvider implements IGraphEntityContentProvider {
+	public class ExecVertexNodeProvider extends ArrayContentProvider implements IGraphEntityContentProvider {
 		  @Override
 		  public Object[] getConnectedTo(Object entity) {
-		    if (entity instanceof Task) {
-		      Task node = (Task) entity;
-		      List<Task> neighbors = Graphs.successorListOf(taskGraph.getGraph(), node);
+		    if (entity instanceof ExecVertex) {
+		      ExecVertex node = (ExecVertex) entity;
+		      List<ExecVertex> neighbors = Graphs.successorListOf(exeGraph.getGraph(), node);
 		      return neighbors.toArray();
 		    }
 		    throw new RuntimeException("Type not supported");
 		  }
 	}
 
-	public class TaskLabelProvider extends LabelProvider implements IConnectionStyleProvider {
-		  @Override
-		  public String getText(Object element) {
-		    if (element instanceof Task) {
-		      Task node = (Task) element;
-		      return node.toString();
-		    }
-		    // Not called with the IGraphEntityContentProvider
-		    if (element instanceof DefaultEdge) {
-		      DefaultEdge edge = (DefaultEdge) element;
-		      return edge.toString();
-		    }
+	public class ExecEdgeLabelProvider extends LabelProvider implements IConnectionStyleProvider {
+		@Override
+		public String getText(Object element) {
+			if (element instanceof ExecVertex) {
+				ExecVertex node = (ExecVertex) element;
+				return node.toString();
+			}
+			// Not called with the IGraphEntityContentProvider
+			if (element instanceof ExecEdge) {
+				ExecEdge edge = (ExecEdge) element;
+				return edge.toString();
+			}
 
-		    if (element instanceof EntityConnectionData) {
-		      EntityConnectionData test = (EntityConnectionData) element;
-		      return "";
-		    }
-		    throw new RuntimeException("Wrong type: "
-		        + element.getClass().toString());
-		  }
+			if (element instanceof EntityConnectionData) {
+				EntityConnectionData test = (EntityConnectionData) element;
+				return "";
+			}
+			throw new RuntimeException("Wrong type: "
+					+ element.getClass().toString());
+		}
 
 		@Override
 		public int getConnectionStyle(Object rel) {
@@ -110,8 +111,8 @@ public class TaskHierarchyView extends AbstractGraphView {
 	/**
 	 * The constructor.
 	 */
-	public TaskHierarchyView() {
-		super("Task Hierarchy View");
+	public TaskExecutionGraphView() {
+		super("Task Execution View");
 	}
 
 	/**
@@ -121,16 +122,13 @@ public class TaskHierarchyView extends AbstractGraphView {
 	@Override
 	public void createPartControl(Composite parent) {
 		super.createPartControl(parent);
-		graphViewer.setContentProvider(new TaskNodeProvider());
-		graphViewer.setLabelProvider(new TaskLabelProvider());
-
-		graphViewer.addSelectionChangedListener(new ISelectionChangedListener() {
-			@Override
-			public void selectionChanged(SelectionChangedEvent event) {
-				// FIXME: Open a new view based on the selection
-				System.out.println("Selection changed: " + (event.getSelection()));
-			}
+		graphViewer.setContentProvider(new ExecVertexNodeProvider());
+		graphViewer.setLabelProvider(new ExecEdgeLabelProvider());
+		LayoutAlgorithm compositeLayout = new CompositeLayoutAlgorithm(new LayoutAlgorithm[] {
+				new SugiyamaLayoutAlgorithm(SugiyamaLayoutAlgorithm.HORIZONTAL),
+		//		new SpringLayoutAlgorithm(),
 		});
+		graphViewer.setLayoutAlgorithm(compositeLayout, true);
 
 		makeActions();
 		hookContextMenu();
@@ -140,19 +138,19 @@ public class TaskHierarchyView extends AbstractGraphView {
 	@Override
 	public void ready(TmfExperiment<?> experiment) {
 		ModelRegistry registry = JobManager.getInstance().getRegistry(experiment);
-		TaskHierarchyGraph graph = registry.getModel(IModelKeys.SHARED, TaskHierarchyGraph.class);
-		setTaskHierarchyGraph(graph);
+		TaskExecutionGraph graph = registry.getModel(IModelKeys.SHARED, TaskExecutionGraph.class);
+		setTaskExecutionGraph(graph);
 	}
 
-	private void setTaskHierarchyGraph(TaskHierarchyGraph graph) {
+	private void setTaskExecutionGraph(TaskExecutionGraph graph) {
 		if (graph == null) {
-			graph = new TaskHierarchyGraph();
+			graph = new TaskExecutionGraph();
 		}
-		this.taskGraph = graph;
+		this.exeGraph = graph;
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				graphViewer.setInput(taskGraph.getGraph().vertexSet());
+				graphViewer.setInput(exeGraph.getGraph().vertexSet());
 			}
 		});
 	}
@@ -163,7 +161,7 @@ public class TaskHierarchyView extends AbstractGraphView {
 		menuMgr.addMenuListener(new IMenuListener() {
 			@Override
 			public void menuAboutToShow(IMenuManager manager) {
-				TaskHierarchyView.this.fillContextMenu(manager);
+				TaskExecutionGraphView.this.fillContextMenu(manager);
 			}
 		});
 	}
@@ -184,14 +182,6 @@ public class TaskHierarchyView extends AbstractGraphView {
 	}
 
 	private void makeActions() {
-	}
-
-	/**
-	 * Passing the focus request to the viewer's control.
-	 */
-	@Override
-	public void setFocus() {
-		content.setFocus();
 	}
 
 }

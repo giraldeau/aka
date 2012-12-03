@@ -16,6 +16,13 @@
             id="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView"
             name="Task Hierarchy View">
       </view>
+      <view
+            category="org.eclipse.linuxtools.lttng2.kernel.aka"
+            class="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView"
+            id="org.eclipse.linuxtools.lttng2.kernel.aka.TaskExecutionGraphView"
+            name="Execution Graph"
+            restorable="true">
+      </view>
    </extension>
    <extension
          point="org.eclipse.ui.perspectiveExtensions">
