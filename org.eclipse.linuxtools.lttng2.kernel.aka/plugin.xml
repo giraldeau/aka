@@ -10,11 +10,11 @@
             parentCategory="org.eclipse.linuxtools.lttng2.ui.views.category">
       </category>
       <view
-            name="Task Hierarchy View"
-            icon="icons/sample.gif"
             category="org.eclipse.linuxtools.lttng2.kernel.aka"
             class="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView"
-            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView">
+            icon="icons/sample.gif"
+            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView"
+            name="Task Hierarchy View">
       </view>
    </extension>
    <extension

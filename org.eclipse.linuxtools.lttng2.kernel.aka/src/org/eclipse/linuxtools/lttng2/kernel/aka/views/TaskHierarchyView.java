@@ -1,40 +1,51 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
 
+import java.util.List;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.draw2d.ConnectionRouter;
+import org.eclipse.draw2d.IFigure;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.signal.TmfExperimentSelectedSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IActionBars;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.zest.core.widgets.Graph;
-import org.eclipse.zest.core.widgets.GraphConnection;
-import org.eclipse.zest.core.widgets.GraphNode;
+import org.eclipse.zest.core.viewers.AbstractZoomableViewer;
+import org.eclipse.zest.core.viewers.EntityConnectionData;
+import org.eclipse.zest.core.viewers.GraphViewer;
+import org.eclipse.zest.core.viewers.IConnectionStyleProvider;
+import org.eclipse.zest.core.viewers.IGraphEntityContentProvider;
+import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
+import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.core.widgets.ZestStyles;
-import org.eclipse.zest.layouts.LayoutStyles;
-import org.eclipse.zest.layouts.algorithms.SpringLayoutAlgorithm;
+import org.eclipse.zest.layouts.LayoutAlgorithm;
+import org.eclipse.zest.layouts.algorithms.SugiyamaLayoutAlgorithm;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 
 /**
  * Basic graph view
  */
 
-public class TaskHierarchyView extends TmfView {
+public class TaskHierarchyView extends TmfView implements IZoomableWorkbenchPart {
 
 	/**
 	 * The ID of the view as specified by the extension.
@@ -45,9 +56,75 @@ public class TaskHierarchyView extends TmfView {
 
 	private Label label;
 
-	private Graph graph;
+	private GraphViewer graphViewer;
 
 	private Composite content;
+
+	private DirectedGraph<String,DefaultEdge> stringGraph;
+
+	public class ZestJGraphtNodeProvider extends ArrayContentProvider implements IGraphEntityContentProvider {
+		  @Override
+		  public Object[] getConnectedTo(Object entity) {
+		    if (entity instanceof String) {
+		      String node = (String) entity;
+		      List<String> neighbors = Graphs.successorListOf(stringGraph, node);
+		      return neighbors.toArray();
+		    }
+		    throw new RuntimeException("Type not supported");
+		  }
+	}
+
+	public class ZestJgraphTLabelProvider extends LabelProvider implements IConnectionStyleProvider {
+		  @Override
+		  public String getText(Object element) {
+		    if (element instanceof String) {
+		      String node = (String) element;
+		      return node;
+		    }
+		    // Not called with the IGraphEntityContentProvider
+		    if (element instanceof DefaultEdge) {
+		      DefaultEdge edge = (DefaultEdge) element;
+		      return edge.toString();
+		    }
+
+		    if (element instanceof EntityConnectionData) {
+		      EntityConnectionData test = (EntityConnectionData) element;
+		      return "";
+		    }
+		    throw new RuntimeException("Wrong type: "
+		        + element.getClass().toString());
+		  }
+
+		@Override
+		public int getConnectionStyle(Object rel) {
+			return ZestStyles.CONNECTIONS_DIRECTED;
+		}
+
+		@Override
+		public Color getColor(Object rel) {
+			return null;
+		}
+
+		@Override
+		public Color getHighlightColor(Object rel) {
+			return null;
+		}
+
+		@Override
+		public int getLineWidth(Object rel) {
+			return -1;
+		}
+
+		@Override
+		public IFigure getTooltip(Object entity) {
+			return null;
+		}
+
+		@Override
+		public ConnectionRouter getRouter(Object rel) {
+			return null;
+		}
+		}
 
 	/**
 	 * The constructor.
@@ -63,57 +140,63 @@ public class TaskHierarchyView extends TmfView {
 	@Override
 	public void createPartControl(Composite parent) {
 		content = new Composite(parent, SWT.NONE);
-		content.setLayout(new GridLayout(1, false));
-		label = new Label(content, SWT.NONE);
-		label.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		label.setText("BIDON");
-
-		graph = new Graph(content, SWT.NONE);
-		graph.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
+		content.setLayout(new FillLayout());
+		graphViewer = new GraphViewer(content, SWT.NONE);
 
 		makeFakeGraph();
-
-		// Create the help context id for the viewer's control
-		PlatformUI.getWorkbench().getHelpSystem().setHelp(label, "org.eclipse.linuxtools.lttng2.kernel.aka.viewer");
 
 		makeActions();
 		hookContextMenu();
 		contributeToActionBars();
 	}
 
+    private static DirectedGraph<String, DefaultEdge> createStringGraph()
+    {
+        DirectedGraph<String, DefaultEdge> g =
+            new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+
+        String v1 = "v1";
+        String v2 = "v2";
+        String v22 = "v22";
+        String v3 = "v3";
+        String v4 = "v4";
+        String v5 = "v5";
+        String v6 = "v6";
+
+        // add the vertices
+        g.addVertex(v1);
+        g.addVertex(v2);
+        g.addVertex(v22);
+        g.addVertex(v3);
+        g.addVertex(v4);
+        g.addVertex(v5);
+        g.addVertex(v6);
+
+        // add edges to create a circuit
+        g.addEdge(v1, v2);
+        g.addEdge(v2, v22);
+        g.addEdge(v22, v3);
+        g.addEdge(v3, v4);
+        g.addEdge(v2, v5);
+        g.addEdge(v5, v6);
+        g.addEdge(v6, v3);
+
+        return g;
+    }
+
+
 	private void makeFakeGraph() {
-		GraphNode node1 = new GraphNode(graph, SWT.NONE, "Jim");
-		GraphNode node2 = new GraphNode(graph, SWT.NONE, "Jack");
-		GraphNode node3 = new GraphNode(graph, SWT.NONE, "Joe");
-		GraphNode node4 = new GraphNode(graph, SWT.NONE, "Bill");
-		new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, node1,
-				node2);
-		// Lets have a dotted graph connection
-		new GraphConnection(graph, ZestStyles.CONNECTIONS_DOT, node2, node3);
-		// Standard connection
-		new GraphConnection(graph, SWT.NONE, node3, node1);
-		// Change line color and line width
-		GraphConnection graphConnection = new GraphConnection(graph, SWT.NONE,
-				node1, node4);
-		graphConnection.changeLineColor(content.getDisplay().getSystemColor(
-				SWT.COLOR_GREEN));
-		// Also set a text
-		graphConnection.setText("This is a text");
-		graphConnection.setHighlightColor(content.getDisplay().getSystemColor(
-				SWT.COLOR_RED));
-		graphConnection.setLineWidth(3);
-
-		graph.setLayoutAlgorithm(new SpringLayoutAlgorithm(
-				LayoutStyles.NO_LAYOUT_NODE_RESIZING), true);
-		// Selection listener on graphConnect or GraphNode is not supported
-		// see https://bugs.eclipse.org/bugs/show_bug.cgi?id=236528
-		graph.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				System.out.println(e);
-			}
-
-		});
+		stringGraph = createStringGraph();
+		graphViewer.setContentProvider(new ZestJGraphtNodeProvider());
+		graphViewer.setLabelProvider(new ZestJgraphTLabelProvider());
+		graphViewer.setInput(stringGraph.vertexSet());
+		LayoutAlgorithm layout4 = new SugiyamaLayoutAlgorithm(SugiyamaLayoutAlgorithm.HORIZONTAL);
+		graphViewer.setLayoutAlgorithm(layout4, true);
+		graphViewer.applyLayout();
+		layout4.applyLayout(true);
+		ZoomContributionViewItem toolbar = new ZoomContributionViewItem(this);
+		IActionBars bars = getViewSite().getActionBars();
+		bars.getMenuManager().add(toolbar);
 	}
 
 	@TmfSignalHandler
@@ -193,7 +276,12 @@ public class TaskHierarchyView extends TmfView {
 	 */
 	@Override
 	public void setFocus() {
-		label.setFocus();
+		content.setFocus();
+	}
+
+	@Override
+	public AbstractZoomableViewer getZoomableViewer() {
+		return graphViewer;
 	}
 
 }
