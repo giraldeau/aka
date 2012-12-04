@@ -45,8 +45,8 @@ public class TaskGraphExtractor {
 		}
 
 		// union of sets
-		v1.addAll(v2);
-		e1.addAll(e2);
+		v1.retainAll(v2);
+		e1.retainAll(e2);
 		Subgraph<ExecVertex, ExecEdge, DirectedGraph<ExecVertex, ExecEdge>> sub =
 				new DirectedSubgraph<ExecVertex, ExecEdge>(graph.getGraph(), v1, e1);
 

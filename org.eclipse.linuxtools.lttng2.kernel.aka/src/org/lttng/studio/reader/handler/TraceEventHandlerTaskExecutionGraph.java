@@ -24,6 +24,7 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 		super();
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));
+		hooks.add(new TraceHook("sched_wakeup"));
 	}
 
 	@Override
@@ -68,14 +69,14 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 		 * v01 ---> v11
 		 */
 
-		ExecVertex v00 = graph.getStartVertexOf(parent);
-		ExecVertex v01 = graph.getStartVertexOf(child);
+		ExecVertex v00 = graph.getEndVertexOf(parent);
+		ExecVertex v01 = graph.getEndVertexOf(child);
 		ExecVertex v10 = createVertex(parent, timestamps);
 		ExecVertex v11 = createVertex(child, timestamps);
 
 		createEdge(v00, v10, EdgeType.RUNNING);
 		createEdge(v01, v11, EdgeType.UNKOWN);
-		createEdge(v10, v11, EdgeType.MSG_TASK_FORK);
+		createEdge(v10, v11, EdgeType.SPLIT);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, EventDefinition event) {
@@ -91,6 +92,36 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 		ExecVertex v0 = graph.getEndVertexOf(task);
 		ExecVertex v1 = createVertex(task, timestamps);
 		createEdge(v0, v1, EdgeType.RUNNING);
+	}
+
+	public void handle_sched_wakeup(TraceReader reader, EventDefinition event) {
+		HashMap<String, Definition> def = event.getFields().getDefinitions();
+		long timestamps = event.getTimestamp();
+		IntegerDefinition tidDef = (IntegerDefinition) def.get("_tid");
+		Task target = system.getTask(tidDef.getValue());
+		Task source = system.getTaskCpu(event.getCPU());
+
+		// FIXME: must not link the task if wake-up occurs in softirq context
+		// for now, only direct task wake-up is handled
+		if (target == null || source == null) {
+			System.err.println("wakeup source " + source + " target " + target);
+		}
+
+		/*
+		 * v00 ---> v10
+		 * 			/\
+		 *          ||
+		 * v01 ---> v11
+		 */
+
+		ExecVertex v00 = graph.getEndVertexOf(target);
+		ExecVertex v01 = graph.getEndVertexOf(source);
+		ExecVertex v10 = createVertex(target, timestamps);
+		ExecVertex v11 = createVertex(source, timestamps);
+
+		createEdge(v00, v10, EdgeType.BLOCKED);
+		createEdge(v01, v11, EdgeType.RUNNING);
+		createEdge(v11, v10, EdgeType.MERGE);
 	}
 
 	@Override
