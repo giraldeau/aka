@@ -10,15 +10,20 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.viewers.ArrayContentProvider;
-import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IActionBars;
+import org.eclipse.ui.IViewReference;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.zest.core.viewers.EntityConnectionData;
 import org.eclipse.zest.core.viewers.IConnectionStyleProvider;
 import org.eclipse.zest.core.viewers.IGraphEntityContentProvider;
@@ -124,14 +129,24 @@ public class TaskHierarchyView extends AbstractGraphView {
 		graphViewer.setContentProvider(new TaskNodeProvider());
 		graphViewer.setLabelProvider(new TaskLabelProvider());
 
-		graphViewer.addSelectionChangedListener(new ISelectionChangedListener() {
-			@Override
-			public void selectionChanged(SelectionChangedEvent event) {
-				// FIXME: Open a new view based on the selection
-				System.out.println("Selection changed: " + (event.getSelection()));
-			}
-		});
+		graphViewer.getGraphControl().addMouseListener(new MouseAdapter() {
 
+			@Override
+			public void mouseDoubleClick(MouseEvent e) {
+				IWorkbenchWindow window = getSite().getWorkbenchWindow();
+				IWorkbenchPage page = window.getActivePage();
+				try {
+					page.showView(TaskExecutionGraphView.ID);
+				} catch (PartInitException e1) {
+					e1.printStackTrace();
+				}
+				IViewReference view = page.findViewReference(TaskExecutionGraphView.ID);
+				TaskExecutionGraphView part = (TaskExecutionGraphView) view.getView(true);
+				IStructuredSelection sel = (IStructuredSelection) graphViewer.getSelection();
+				part.showTask((Task) sel.getFirstElement());
+			}
+
+		});
 		makeActions();
 		hookContextMenu();
 		contributeToActionBars();

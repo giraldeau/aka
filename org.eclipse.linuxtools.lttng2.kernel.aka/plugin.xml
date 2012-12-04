@@ -19,7 +19,7 @@
       <view
             category="org.eclipse.linuxtools.lttng2.kernel.aka"
             class="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView"
-            id="org.eclipse.linuxtools.lttng2.kernel.aka.TaskExecutionGraphView"
+            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView"
             name="Execution Graph"
             restorable="true">
       </view>

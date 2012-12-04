@@ -1,5 +1,7 @@
 package org.lttng.studio.tests.state;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,9 +38,12 @@ public class TestTaskState {
 		Collection<Task> tasks = model.getTasks();
 		HashSet<Task> burn = new HashSet<Task>();
 		for (Task task: tasks) {
-			if (task.getName().endsWith("burnP6"))
-				System.out.println(task);
+			if (task.getName().endsWith("burnP6")) {
+				//System.out.println(task);
+				burn.add(task);
+			}
 		}
+		assertEquals(1, burn.size());
 	}
 
 }

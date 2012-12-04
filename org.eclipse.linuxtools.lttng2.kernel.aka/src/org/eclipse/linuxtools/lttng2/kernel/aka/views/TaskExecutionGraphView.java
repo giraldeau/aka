@@ -24,11 +24,15 @@ import org.eclipse.zest.core.widgets.ZestStyles;
 import org.eclipse.zest.layouts.LayoutAlgorithm;
 import org.eclipse.zest.layouts.algorithms.CompositeLayoutAlgorithm;
 import org.eclipse.zest.layouts.algorithms.SugiyamaLayoutAlgorithm;
+import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
+import org.jgrapht.graph.Subgraph;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.TaskExecutionGraph;
+import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.ModelRegistry;
+import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.handler.IModelKeys;
 
 /**
@@ -43,6 +47,8 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView";
 
 	private TaskExecutionGraph exeGraph;
+
+	private Task task;
 
 	public class ExecVertexNodeProvider extends ArrayContentProvider implements IGraphEntityContentProvider {
 		  @Override
@@ -147,12 +153,6 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 			graph = new TaskExecutionGraph();
 		}
 		this.exeGraph = graph;
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				graphViewer.setInput(exeGraph.getGraph().vertexSet());
-			}
-		});
 	}
 
 	private void hookContextMenu() {
@@ -182,6 +182,23 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 	}
 
 	private void makeActions() {
+	}
+
+	public void showTask(Task task) {
+		System.out.println("TaskExecutionGraph setTask " + task);
+		this.task = task;
+		ExecVertex startVertex = exeGraph.getStartVertexOf(task);
+		ExecVertex endVertex = exeGraph.getEndVertexOf(task);
+		final Subgraph<ExecVertex, ExecEdge, DirectedGraph<ExecVertex, ExecEdge>> subgraph =
+				TaskGraphExtractor.getExecutionGraph(exeGraph, startVertex, endVertex);
+		System.out.println("subgraph.vertexSet().size() " + subgraph.vertexSet().size());
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				graphViewer.setInput(subgraph.vertexSet());
+			}
+		});
+
 	}
 
 }
