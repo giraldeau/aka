@@ -35,7 +35,7 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 	}
 
 	public ExecVertex createVertex(Task task, long timestamps) {
-		ExecVertex vertex = new ExecVertex(task, timestamps, false);
+		ExecVertex vertex = new ExecVertex(task, timestamps);
 		graph.getVertexMap().put(task, vertex);
 		graph.getGraph().addVertex(vertex);
 		return vertex;
@@ -75,8 +75,8 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 		ExecVertex v11 = createVertex(child, timestamps);
 
 		createEdge(v00, v10, EdgeType.RUNNING);
-		createEdge(v01, v11, EdgeType.UNKOWN);
-		createEdge(v10, v11, EdgeType.SPLIT);
+		createEdge(v01, v11, EdgeType.DEFAULT);
+		createEdge(v10, v11, EdgeType.DEFAULT);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, EventDefinition event) {
@@ -121,7 +121,7 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 
 		createEdge(v00, v10, EdgeType.BLOCKED);
 		createEdge(v01, v11, EdgeType.RUNNING);
-		createEdge(v11, v10, EdgeType.MERGE);
+		createEdge(v11, v10, EdgeType.DEFAULT);
 	}
 
 	@Override
