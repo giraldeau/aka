@@ -171,6 +171,56 @@ public class TestBasicGraph {
 		GraphUtils.saveGraphDefault(graph, base + "nested");
 	}
 
+	@Test
+	public void testOpened1() throws IOException {
+		Object A = "A";
+		Object B = "B";
+
+		ExecVertex vA0 = new ExecVertex(A, 0);
+		ExecVertex vA1 = new ExecVertex(A, 1);
+		ExecVertex vA2 = new ExecVertex(A, 2);
+		graph.addVertex(vA0);
+		graph.addVertex(vA1);
+		graph.addVertex(vA2);
+		graph.addEdge(vA0, vA1);
+		graph.addEdge(vA1, vA2);
+
+		ExecVertex vB1 = new ExecVertex(B, 1);
+		ExecVertex vB2 = new ExecVertex(B, 2);
+		graph.addVertex(vB1);
+		graph.addVertex(vB2);
+		graph.addEdge(vB1, vB2);
+
+		graph.addEdge(vA1, vB1);
+
+		GraphUtils.saveGraphDefault(graph, base + "open_1");
+	}
+
+	@Test
+	public void testOpened2() throws IOException {
+		Object A = "A";
+		Object B = "B";
+
+		ExecVertex vA0 = new ExecVertex(A, 0);
+		ExecVertex vA1 = new ExecVertex(A, 1);
+		ExecVertex vA2 = new ExecVertex(A, 2);
+		graph.addVertex(vA0);
+		graph.addVertex(vA1);
+		graph.addVertex(vA2);
+		graph.addEdge(vA0, vA1);
+		graph.addEdge(vA1, vA2);
+
+		ExecVertex vB0 = new ExecVertex(B, 0);
+		ExecVertex vB1 = new ExecVertex(B, 1);
+		graph.addVertex(vB0);
+		graph.addVertex(vB1);
+		graph.addEdge(vB0, vB1);
+
+		graph.addEdge(vB1, vA1);
+
+		GraphUtils.saveGraphDefault(graph, base + "open_2");
+	}
+
 	private ExecVertex[] genSeq(Object owner, int num) {
 		ExecVertex[] v = new ExecVertex[num];
 		ExecVertex prev = null;
