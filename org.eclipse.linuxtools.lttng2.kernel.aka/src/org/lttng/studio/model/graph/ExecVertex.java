@@ -1,6 +1,6 @@
 package org.lttng.studio.model.graph;
 
-public class ExecVertex {
+public class ExecVertex implements Comparable<ExecVertex> {
 
 	private static int count = 0;
 
@@ -43,6 +43,11 @@ public class ExecVertex {
 
 	public void setType(VertexType type) {
 		this.type = type;
+	}
+
+	@Override
+	public int compareTo(ExecVertex o) {
+		return this.timestamp > o.timestamp ? 1 : (this.timestamp == o.timestamp ? 0 : -1);
 	}
 
 }

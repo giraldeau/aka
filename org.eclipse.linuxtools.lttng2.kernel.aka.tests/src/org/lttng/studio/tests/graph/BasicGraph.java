@@ -11,6 +11,34 @@ import org.lttng.studio.utils.GraphUtils;
 
 public class BasicGraph {
 
+	public static DirectedWeightedMultigraph<ExecVertex, ExecEdge> makeLengthUnequal() {
+		DirectedWeightedMultigraph<ExecVertex, ExecEdge> graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+
+		ExecVertex vA1 = new ExecVertex(A, 1);
+		ExecVertex vA3 = new ExecVertex(A, 3);
+		
+		ExecVertex vB1 = new ExecVertex(B, 1);
+		ExecVertex vB2 = new ExecVertex(B, 2);
+		ExecVertex vB3 = new ExecVertex(B, 3);
+		ExecVertex vB4 = new ExecVertex(B, 4);
+		
+		graph.addVertex(vA1);
+		graph.addVertex(vA3);
+		graph.addVertex(vB1);
+		graph.addVertex(vB2);
+		graph.addVertex(vB3);
+		graph.addVertex(vB4);		
+		
+		graph.addEdge(vB1, vB2);
+		graph.addEdge(vB2, vB3);
+		graph.addEdge(vB3, vB4);
+		graph.addEdge(vA1, vB1);
+		graph.addEdge(vB3, vA3);
+		return graph;
+	}
+	
 	public static DirectedWeightedMultigraph<ExecVertex, ExecEdge> makeBasic() {
 		DirectedWeightedMultigraph<ExecVertex, ExecEdge> graph = makeGraph();
 		Object A = "A";
