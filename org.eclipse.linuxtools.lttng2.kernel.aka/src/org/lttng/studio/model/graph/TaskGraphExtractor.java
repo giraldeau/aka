@@ -20,7 +20,7 @@ public class TaskGraphExtractor {
 	 * with edges on the critical path annotated
 	 */
 	public static Subgraph<ExecVertex, ExecEdge, DirectedGraph<ExecVertex, ExecEdge>>
-	getExecutionGraph(TaskExecutionGraph graph, ExecVertex start, ExecVertex end) {
+	getExecutionGraph(ExecGraph graph, ExecVertex start, ExecVertex end) {
 		final Set<ExecVertex> v1 = new HashSet<ExecVertex>();
 		final Set<ExecEdge> e1 = new HashSet<ExecEdge>();
 		final Set<ExecVertex> v2 = new HashSet<ExecVertex>();

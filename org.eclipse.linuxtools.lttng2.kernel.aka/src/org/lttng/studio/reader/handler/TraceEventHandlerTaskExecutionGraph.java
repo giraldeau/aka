@@ -8,7 +8,7 @@ import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
 import org.lttng.studio.model.graph.EdgeType;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.TaskExecutionGraph;
+import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceHook;
@@ -17,7 +17,7 @@ import org.lttng.studio.reader.TraceReader;
 public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase {
 
 	SystemModel system;
-	TaskExecutionGraph graph;
+	ExecGraph graph;
 	//HashMap<Object, ExecVertex> tailMap;
 
 	public TraceEventHandlerTaskExecutionGraph() {
@@ -30,7 +30,7 @@ public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase 
 	@Override
 	public void handleInit(TraceReader reader) {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
-		graph = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, TaskExecutionGraph.class);
+		graph = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ExecGraph.class);
 		system.init(reader);
 	}
 

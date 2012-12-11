@@ -29,7 +29,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.Subgraph;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.TaskExecutionGraph;
+import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.Task;
@@ -46,7 +46,7 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 	 */
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView";
 
-	private TaskExecutionGraph exeGraph;
+	private ExecGraph exeGraph;
 
 	private Task task;
 
@@ -144,13 +144,13 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 	@Override
 	public void ready(TmfExperiment<?> experiment) {
 		ModelRegistry registry = JobManager.getInstance().getRegistry(experiment);
-		TaskExecutionGraph graph = registry.getModel(IModelKeys.SHARED, TaskExecutionGraph.class);
+		ExecGraph graph = registry.getModel(IModelKeys.SHARED, ExecGraph.class);
 		setTaskExecutionGraph(graph);
 	}
 
-	private void setTaskExecutionGraph(TaskExecutionGraph graph) {
+	private void setTaskExecutionGraph(ExecGraph graph) {
 		if (graph == null) {
-			graph = new TaskExecutionGraph();
+			graph = new ExecGraph();
 		}
 		this.exeGraph = graph;
 	}

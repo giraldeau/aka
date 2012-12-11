@@ -15,7 +15,7 @@ import org.jgrapht.graph.Subgraph;
 import org.junit.Test;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.TaskExecutionGraph;
+import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -48,7 +48,7 @@ public class TestTaskExecGraph {
 		thread.start();
 		thread.join();
 
-		TaskExecutionGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, TaskExecutionGraph.class);
+		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Set<Task> task = model.getTaskByNameSuffix("wk-cpm3");
 

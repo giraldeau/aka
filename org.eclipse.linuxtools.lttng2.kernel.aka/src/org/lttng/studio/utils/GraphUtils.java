@@ -7,10 +7,15 @@ import java.io.IOException;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.DOTExporter;
 import org.lttng.studio.model.graph.ExecEdge;
+import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 
 public class GraphUtils {
 
+	public static void saveGraphDefault(ExecGraph graph, String path) throws IOException {
+		saveGraphDefault(graph.getGraph(), path);
+	}
+	
 	public static void saveGraphDefault(Graph<ExecVertex, ExecEdge> graph, String path) throws IOException {
 		saveGraph(graph, new File(path + ".dot").toString());
 	}

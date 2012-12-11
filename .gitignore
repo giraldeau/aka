@@ -1,5 +1,6 @@
 *.class
 traceset
+graph
 
 # Package Files #
 *.jar
