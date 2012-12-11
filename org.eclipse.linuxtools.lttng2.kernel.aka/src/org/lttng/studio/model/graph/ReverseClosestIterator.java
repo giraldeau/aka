@@ -3,8 +3,8 @@ package org.lttng.studio.model.graph;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
+import org.jgrapht.graph.DirectedWeightedMultigraph;
 
 /*
  * The reverse graph iterator visits vertex from end to start through
@@ -12,7 +12,7 @@ import org.jgrapht.Graphs;
  */
 public class ReverseClosestIterator<V, E> extends ReverseBreadthFirstIterator<V, E> {
 
-	public ReverseClosestIterator(DirectedGraph<V, E> g, V startVertex) {
+	public ReverseClosestIterator(DirectedWeightedMultigraph<V, E> g, V startVertex) {
 		super(g, startVertex);
 	}
 

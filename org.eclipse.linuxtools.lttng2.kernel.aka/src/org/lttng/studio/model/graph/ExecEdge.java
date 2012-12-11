@@ -1,7 +1,9 @@
 package org.lttng.studio.model.graph;
 
-public class ExecEdge {
+import org.jgrapht.graph.DefaultWeightedEdge;
 
+public class ExecEdge extends DefaultWeightedEdge {
+	private static final long serialVersionUID = -5209049262649453792L;
 	private EdgeType type;
 	private final long weight;
 
@@ -22,7 +24,7 @@ public class ExecEdge {
 		this.type = type;
 	}
 
-	public long getWeight() {
+	public double getWeight() {
 		return weight;
 	}
 

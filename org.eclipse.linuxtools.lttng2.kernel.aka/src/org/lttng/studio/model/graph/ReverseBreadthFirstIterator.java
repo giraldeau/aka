@@ -11,7 +11,7 @@ import org.jgrapht.event.VertexTraversalEvent;
 import org.jgrapht.traverse.CrossComponentIterator;
 
 /*
- * JGraphT includes DeptFirstIterator, here is the reverse version of it.
+ * JGraphT includes BreadthFirstIterator, here is the reverse version of it.
  * The traversal is done from the provided start vertex through incoming
  * vertex.
  */

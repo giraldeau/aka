@@ -2,19 +2,18 @@ package org.lttng.studio.model.graph;
 
 import java.util.List;
 
-import org.jgrapht.DirectedGraph;
 import org.jgrapht.EdgeFactory;
-import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedWeightedMultigraph;
 
 import com.google.common.collect.ArrayListMultimap;
 
 public class ExecGraph {
 
-	private final DirectedGraph<ExecVertex, ExecEdge> graph;
+	private final DirectedWeightedMultigraph<ExecVertex, ExecEdge> graph;
 	private final ArrayListMultimap<Object, ExecVertex> vertexMap;
 
 	public ExecGraph() {
-		graph = new DefaultDirectedGraph<ExecVertex, ExecEdge>(new EdgeFactory<ExecVertex, ExecEdge>() {
+		graph = new DirectedWeightedMultigraph<ExecVertex, ExecEdge>(new EdgeFactory<ExecVertex, ExecEdge>() {
 				@Override
 				public ExecEdge createEdge(ExecVertex a, ExecVertex b) {
 					if (a.getTimestamp() > b.getTimestamp())
@@ -25,7 +24,7 @@ public class ExecGraph {
 		vertexMap = ArrayListMultimap.create();
 	}
 
-	public DirectedGraph<ExecVertex, ExecEdge> getGraph() {
+	public DirectedWeightedMultigraph<ExecVertex, ExecEdge> getGraph() {
 		return graph;
 	}
 
@@ -55,7 +54,8 @@ public class ExecGraph {
 		graph.addVertex(vertex);
 		ExecVertex tail = getEndVertexOf(vertex.getOwner());
 		if (tail != null) {
-			graph.addEdge(tail, vertex);
+			ExecEdge edge = graph.addEdge(tail, vertex);
+			graph.setEdgeWeight(edge, edge.getWeight());
 		}
 		vertexMap.put(vertex.getOwner(), vertex);
 	}
@@ -63,7 +63,8 @@ public class ExecGraph {
 	public void addVerticalEdge(ExecVertex src, ExecVertex dst) {
 		if (src.getTimestamp() != dst.getTimestamp())
 			throw new RuntimeException("Vertical edge source and testination vertex must have equal timestamps");
-		graph.addEdge(src, dst);
+		ExecEdge edge = graph.addEdge(src, dst);
+		graph.setEdgeWeight(edge, edge.getWeight());
 	}
 	
 }
