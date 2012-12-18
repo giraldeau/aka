@@ -2,16 +2,33 @@ package org.lttng.studio.tests.graph;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Set;
 
-import org.jgrapht.EdgeFactory;
-import org.jgrapht.graph.DirectedWeightedMultigraph;
-import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.utils.GraphUtils;
 
 public class BasicGraph {
 
+	private static HashMap<String, Method> func = new HashMap<String, Method>();
+	static {
+		try {
+			func.put("basic", 		BasicGraph.class.getDeclaredMethod("makeBasic"));
+			func.put("concat", 		BasicGraph.class.getDeclaredMethod("makeConcat"));
+			func.put("embeded", 	BasicGraph.class.getDeclaredMethod("makeEmbeded"));
+			func.put("interleave",	BasicGraph.class.getDeclaredMethod("makeInterleave"));
+			func.put("nested", 		BasicGraph.class.getDeclaredMethod("makeNested"));
+			func.put("open_1", 		BasicGraph.class.getDeclaredMethod("makeOpened1"));
+			func.put("open_2", 		BasicGraph.class.getDeclaredMethod("makeOpened2"));
+			func.put("shell", 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException(e);
+		}
+	};
+	
 	public static ExecGraph makeLengthUnequal() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
@@ -247,6 +264,26 @@ public class BasicGraph {
 		graph.addVerticalEdge(vE[15], vB[15]);
 		return graph;
 	}
+
+	public static ExecGraph makeGraphByName(String name) {
+		Method method = func.get(name);
+		if (method == null)
+			return null;
+		try {
+			return (ExecGraph) method.invoke(null);
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public static Set<String> getGraphName() {
+		return func.keySet();
+	}
 	
 	private static ExecVertex[] genSeq(ExecGraph graph, Object owner, int num) {
 		ExecVertex[] v = new ExecVertex[num];
@@ -263,14 +300,9 @@ public class BasicGraph {
 	
 	public static void main(String[] args) throws IOException {
 		String base = "graph" + File.separator + "tests" + File.separator;
-		GraphUtils.saveGraphDefault(makeBasic(), base + "basic");
-		GraphUtils.saveGraphDefault(makeConcat(), base + "concat");
-		GraphUtils.saveGraphDefault(makeEmbeded(), base + "embeded");
-		GraphUtils.saveGraphDefault(makeInterleave(), base + "interleave");
-		GraphUtils.saveGraphDefault(makeNested(), base + "nested");
-		GraphUtils.saveGraphDefault(makeOpened1(), base + "open_1");
-		GraphUtils.saveGraphDefault(makeOpened2(), base + "open_2");
-		GraphUtils.saveGraphDefault(makeExecShell(), base + "shell");
+		for (String name: func.keySet()) {
+			GraphUtils.saveGraphDefault(makeGraphByName(name), base + name);
+		}
 	}
 	
 }
