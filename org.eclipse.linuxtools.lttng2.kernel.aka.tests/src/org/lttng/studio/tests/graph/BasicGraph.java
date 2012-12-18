@@ -13,17 +13,26 @@ import org.lttng.studio.utils.GraphUtils;
 
 public class BasicGraph {
 
+	public static String GRAPH_BASIC 		= "basic";
+	public static String GRAPH_CONCAT 		= "concat";
+	public static String GRAPH_EMBEDED 	= "embeded";
+	public static String GRAPH_INTERLEAVE 	= "interleave";
+	public static String GRAPH_NESTED 		= "nested";
+	public static String GRAPH_OPEN1 		= "open_1";
+	public static String GRAPH_OPEN2 		= "open_2";
+	public static String GRAPH_SHELL 		= "shell";
+	
 	private static HashMap<String, Method> func = new HashMap<String, Method>();
 	static {
 		try {
-			func.put("basic", 		BasicGraph.class.getDeclaredMethod("makeBasic"));
-			func.put("concat", 		BasicGraph.class.getDeclaredMethod("makeConcat"));
-			func.put("embeded", 	BasicGraph.class.getDeclaredMethod("makeEmbeded"));
-			func.put("interleave",	BasicGraph.class.getDeclaredMethod("makeInterleave"));
-			func.put("nested", 		BasicGraph.class.getDeclaredMethod("makeNested"));
-			func.put("open_1", 		BasicGraph.class.getDeclaredMethod("makeOpened1"));
-			func.put("open_2", 		BasicGraph.class.getDeclaredMethod("makeOpened2"));
-			func.put("shell", 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
+			func.put(GRAPH_BASIC, 		BasicGraph.class.getDeclaredMethod("makeBasic"));
+			func.put(GRAPH_CONCAT, 		BasicGraph.class.getDeclaredMethod("makeConcat"));
+			func.put(GRAPH_EMBEDED, 	BasicGraph.class.getDeclaredMethod("makeEmbeded"));
+			func.put(GRAPH_INTERLEAVE,	BasicGraph.class.getDeclaredMethod("makeInterleave"));
+			func.put(GRAPH_NESTED, 		BasicGraph.class.getDeclaredMethod("makeNested"));
+			func.put(GRAPH_OPEN1, 		BasicGraph.class.getDeclaredMethod("makeOpened1"));
+			func.put(GRAPH_OPEN2, 		BasicGraph.class.getDeclaredMethod("makeOpened2"));
+			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);
 		}
