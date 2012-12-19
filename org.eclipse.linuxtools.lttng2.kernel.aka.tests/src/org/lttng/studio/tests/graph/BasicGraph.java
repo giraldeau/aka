@@ -11,6 +11,8 @@ import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.utils.GraphUtils;
 
+import com.google.common.collect.ArrayListMultimap;
+
 public class BasicGraph {
 
 	public static String GRAPH_BASIC 		= "basic";
@@ -288,6 +290,19 @@ public class BasicGraph {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static Object getBaseObject(ExecGraph graph) {
+		Object base = null;
+		ArrayListMultimap<Object, ExecVertex> vertexMap = graph.getVertexMap();
+		for (Object o : vertexMap.keySet()) {
+			if (o instanceof String) {
+				String s = (String) o;
+				if (s.compareTo("A") == 0)
+					base = s;
+			}
+		}
+		return base;
 	}
 	
 	public static Set<String> getGraphName() {

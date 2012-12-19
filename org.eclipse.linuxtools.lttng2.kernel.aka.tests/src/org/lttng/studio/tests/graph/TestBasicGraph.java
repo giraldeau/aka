@@ -16,8 +16,6 @@ import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ForwardClosestIterator;
 import org.lttng.studio.model.graph.ReverseClosestIterator;
 
-import com.google.common.collect.ArrayListMultimap;
-
 public class TestBasicGraph {
 
 	@Test
@@ -25,7 +23,7 @@ public class TestBasicGraph {
 		final ExecGraph graph = BasicGraph.makeLengthUnequal();
 
 		// retrieve the base object
-		Object base = getBaseObject(graph);
+		Object base = BasicGraph.getBaseObject(graph);
 
 		final StringBuilder str = new StringBuilder();
 		ExecVertex tail = graph.getEndVertexOf(base);
@@ -81,7 +79,7 @@ public class TestBasicGraph {
 	
 	private String getForwardClosestTraversalString(ExecGraph graph) {
 		// retrieve the base object
-		Object base = getBaseObject(graph);
+		Object base = BasicGraph.getBaseObject(graph);
 
 		// check that timestamps increases
 		// check that every node is encountered only once
@@ -107,19 +105,6 @@ public class TestBasicGraph {
 			iter.next();
 		
 		return str.toString();
-	}
-	
-	public Object getBaseObject(ExecGraph graph) {
-		Object base = null;
-		ArrayListMultimap<Object, ExecVertex> vertexMap = graph.getVertexMap();
-		for (Object o : vertexMap.keySet()) {
-			if (o instanceof String) {
-				String s = (String) o;
-				if (s.compareTo("A") == 0)
-					base = s;
-			}
-		}
-		return base;
 	}
 
 }
