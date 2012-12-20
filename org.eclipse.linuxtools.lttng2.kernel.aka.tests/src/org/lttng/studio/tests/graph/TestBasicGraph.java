@@ -72,24 +72,22 @@ public class TestBasicGraph {
 	@Test
 	public void testForwardClosestTraversalVertexEdgeCount() {
 		HashMap<String, ItemCount> exp = new HashMap<String, ItemCount>();
-		exp.put(BasicGraph.GRAPH_BASIC, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_CONCAT, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_EMBEDED, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_INTERLEAVE, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_NESTED, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_OPEN1, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_OPEN2, new ItemCount(0, 0));
-		exp.put(BasicGraph.GRAPH_SHELL, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_BASIC, 		new ItemCount(6, 6));
+		exp.put(BasicGraph.GRAPH_CONCAT, 		new ItemCount(10, 11));
+		exp.put(BasicGraph.GRAPH_EMBEDED, 		new ItemCount(10, 11));
+		exp.put(BasicGraph.GRAPH_INTERLEAVE, 	new ItemCount(10, 11));
+		exp.put(BasicGraph.GRAPH_NESTED, 		new ItemCount(10, 11));
+		exp.put(BasicGraph.GRAPH_OPEN1, 		new ItemCount(5, 4));
+		exp.put(BasicGraph.GRAPH_OPEN2, 		new ItemCount(3, 2));
+		exp.put(BasicGraph.GRAPH_SHELL, 		new ItemCount(84, 90));
 
 		// check that regex matches
 		Set<String> graphName = BasicGraph.getGraphName();
 		for (String name: graphName) {
-			if (name.compareTo(BasicGraph.GRAPH_OPEN2) != 0)
-				continue;
 			ExecGraph graph = BasicGraph.makeGraphByName(name);
 			ItemCount count = getItemCount(graph);
-			System.out.println(String.format("%-10s %4d %4d", name, count.vertex, count.edge));
-			//assertTrue(count.equals(exp.get(name)));
+			//System.out.println(String.format("%-10s %4d %4d", name, count.vertex, count.edge));
+			assertTrue(count.equals(exp.get(name)));
 		}
 	}
 	
@@ -105,12 +103,12 @@ public class TestBasicGraph {
 			@Override
 			public void vertexTraversed(VertexTraversalEvent<ExecVertex> item) {
 				count.vertex++;
-				System.out.println(item.getVertex());
+				//System.out.println(item.getVertex());
 			}
 			@Override
 			public void edgeTraversed(EdgeTraversalEvent<ExecVertex, ExecEdge> item) {
 				count.edge++;
-				System.out.println(item.getEdge());
+				//System.out.println(item.getEdge());
 			}
 		});
 
