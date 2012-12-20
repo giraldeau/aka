@@ -1,6 +1,6 @@
 *.class
 traceset
-graph
+org.eclipse.linuxtools.lttng2.kernel.aka.tests/graph
 
 # Package Files #
 *.jar

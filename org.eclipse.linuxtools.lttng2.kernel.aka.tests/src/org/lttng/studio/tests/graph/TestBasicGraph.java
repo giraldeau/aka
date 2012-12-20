@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.jgrapht.event.EdgeTraversalEvent;
 import org.jgrapht.event.TraversalListenerAdapter;
 import org.jgrapht.event.VertexTraversalEvent;
 import org.jgrapht.traverse.AbstractGraphIterator;
@@ -41,6 +42,82 @@ public class TestBasicGraph {
 			iter.next();
 		
 		assertTrue(str.toString().matches("A3B3B2B1A1"));
+	}
+
+	class ItemCount {
+		public int vertex;
+		public int edge;
+		public ItemCount(int vertex, int edge) {
+			this.vertex = vertex;
+			this.edge = edge;
+		}
+		@Override
+		public boolean equals(Object other) {
+			if (this == other)
+				return true;
+			if (other instanceof ItemCount) {
+				ItemCount item = (ItemCount) other;
+				if (this.vertex == item.vertex &&
+						this.edge == item.edge)
+					return true;
+			}
+			return false;
+		}
+		@Override
+		public int hashCode() {
+			return vertex + 42 * edge;
+		}
+	}
+	
+	@Test
+	public void testForwardClosestTraversalVertexEdgeCount() {
+		HashMap<String, ItemCount> exp = new HashMap<String, ItemCount>();
+		exp.put(BasicGraph.GRAPH_BASIC, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_CONCAT, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_EMBEDED, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_INTERLEAVE, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_NESTED, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_OPEN1, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_OPEN2, new ItemCount(0, 0));
+		exp.put(BasicGraph.GRAPH_SHELL, new ItemCount(0, 0));
+
+		// check that regex matches
+		Set<String> graphName = BasicGraph.getGraphName();
+		for (String name: graphName) {
+			if (name.compareTo(BasicGraph.GRAPH_OPEN2) != 0)
+				continue;
+			ExecGraph graph = BasicGraph.makeGraphByName(name);
+			ItemCount count = getItemCount(graph);
+			System.out.println(String.format("%-10s %4d %4d", name, count.vertex, count.edge));
+			//assertTrue(count.equals(exp.get(name)));
+		}
+	}
+	
+	private ItemCount getItemCount(final ExecGraph graph) {
+		// retrieve the base object
+		Object base = BasicGraph.getBaseObject(graph);
+
+		final ItemCount count = new ItemCount(0, 0);
+		ExecVertex tail = graph.getStartVertexOf(base);
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
+				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
+		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
+			@Override
+			public void vertexTraversed(VertexTraversalEvent<ExecVertex> item) {
+				count.vertex++;
+				System.out.println(item.getVertex());
+			}
+			@Override
+			public void edgeTraversed(EdgeTraversalEvent<ExecVertex, ExecEdge> item) {
+				count.edge++;
+				System.out.println(item.getEdge());
+			}
+		});
+
+		while (iter.hasNext())
+			iter.next();
+		
+		return count;
 	}
 
 	@Test
