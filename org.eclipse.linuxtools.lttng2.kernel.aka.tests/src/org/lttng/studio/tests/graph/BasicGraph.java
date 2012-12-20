@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Set;
 
+import org.lttng.studio.model.graph.EdgeType;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.utils.GraphUtils;
@@ -45,23 +46,23 @@ public class BasicGraph {
 		Object A = "A";
 		Object B = "B";
 
-		ExecVertex vA1 = new ExecVertex(A, 1);
-		ExecVertex vA3 = new ExecVertex(A, 3);
+		ExecVertex vA0 = new ExecVertex(A, 0);
+		ExecVertex vA2 = new ExecVertex(A, 2);
 		
+		ExecVertex vB0 = new ExecVertex(B, 0);
 		ExecVertex vB1 = new ExecVertex(B, 1);
 		ExecVertex vB2 = new ExecVertex(B, 2);
 		ExecVertex vB3 = new ExecVertex(B, 3);
-		ExecVertex vB4 = new ExecVertex(B, 4);
 		
-		graph.appendVertexByOwner(vA1);
-		graph.appendVertexByOwner(vA3);
+		graph.appendVertexByOwner(vA0);
+		graph.appendVertexByOwner(vA2);
+		graph.appendVertexByOwner(vB0);
 		graph.appendVertexByOwner(vB1);
 		graph.appendVertexByOwner(vB2);
 		graph.appendVertexByOwner(vB3);
-		graph.appendVertexByOwner(vB4);
 		
-		graph.addVerticalEdge(vA1, vB1);
-		graph.addVerticalEdge(vB3, vA3);
+		graph.addVerticalEdge(vA0, vB0);
+		graph.addVerticalEdge(vB2, vA2);
 		return graph;
 	}
 	
@@ -79,6 +80,9 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vA[1], vB1);
 		graph.addVerticalEdge(vB2, vA[2]);
+		graph.getGraph()
+			.getEdge(getVertexByName(graph, "A1"), getVertexByName(graph, "A2"))
+			.setType(EdgeType.BLOCKED);
 		return graph;
 	}
 	
@@ -292,15 +296,13 @@ public class BasicGraph {
 		return null;
 	}
 	
-	public static Object getBaseObject(ExecGraph graph) {
-		Object base = null;
+	public static ExecVertex getVertexByName(ExecGraph graph, String name) {
+		ExecVertex base = null;
 		ArrayListMultimap<Object, ExecVertex> vertexMap = graph.getVertexMap();
-		for (Object o : vertexMap.keySet()) {
-			if (o instanceof String) {
-				String s = (String) o;
-				if (s.compareTo("A") == 0)
-					base = s;
-			}
+		for (ExecVertex v : vertexMap.values()) {
+			String s = "" + v.getOwner() + v.getTimestamp(); 
+			if (s.compareTo(name) == 0)
+				base = v;
 		}
 		return base;
 	}

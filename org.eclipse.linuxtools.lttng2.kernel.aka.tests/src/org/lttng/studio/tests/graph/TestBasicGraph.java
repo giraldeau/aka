@@ -24,10 +24,10 @@ public class TestBasicGraph {
 		final ExecGraph graph = BasicGraph.makeLengthUnequal();
 
 		// retrieve the base object
-		Object base = BasicGraph.getBaseObject(graph);
+		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
 
 		final StringBuilder str = new StringBuilder();
-		ExecVertex tail = graph.getEndVertexOf(base);
+		ExecVertex tail = graph.getEndVertexOf(base.getOwner());
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
 				new ReverseClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
 		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
@@ -41,7 +41,7 @@ public class TestBasicGraph {
 		while (iter.hasNext())
 			iter.next();
 		
-		assertTrue(str.toString().matches("A3B3B2B1A1"));
+		assertTrue(str.toString().matches("A2B2B1B0A0"));
 	}
 
 	class ItemCount {
@@ -93,10 +93,10 @@ public class TestBasicGraph {
 	
 	private ItemCount getItemCount(final ExecGraph graph) {
 		// retrieve the base object
-		Object base = BasicGraph.getBaseObject(graph);
+		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
 
 		final ItemCount count = new ItemCount(0, 0);
-		ExecVertex tail = graph.getStartVertexOf(base);
+		ExecVertex tail = graph.getStartVertexOf(base.getOwner());
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
 		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
@@ -154,12 +154,12 @@ public class TestBasicGraph {
 	
 	private String getForwardClosestTraversalString(ExecGraph graph) {
 		// retrieve the base object
-		Object base = BasicGraph.getBaseObject(graph);
+		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
 
 		// check that timestamps increases
 		// check that every node is encountered only once
 		final StringBuilder str = new StringBuilder();
-		ExecVertex tail = graph.getStartVertexOf(base);
+		ExecVertex tail = graph.getStartVertexOf(base.getOwner());
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
 		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {

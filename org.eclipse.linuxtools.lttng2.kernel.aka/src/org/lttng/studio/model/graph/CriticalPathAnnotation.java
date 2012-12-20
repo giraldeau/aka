@@ -8,12 +8,11 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 
 	@Override
 	public void vertexTraversed(VertexTraversalEvent<ExecVertex> item) {
-		//System.out.println(item.getVertex());
 	}
 	
 	@Override
 	public void edgeTraversed(EdgeTraversalEvent<ExecVertex, ExecEdge> item) {
-		//System.out.println(item.getEdge());
+		System.out.println(item.getEdge());
 	}
 	
 }
