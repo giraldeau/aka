@@ -20,17 +20,18 @@ import org.jgrapht.traverse.CrossComponentIterator;
 public class ForwardClosestIterator<V extends Comparable<V>, E> extends CrossComponentIterator<V, E, Object> {
 
 	protected PriorityQueue<V> queue;
-	protected V startVertex;
 	protected DirectedGraph<V, E> graph;
 	protected HashSet<E> seenEdge = new HashSet<E>();
 	protected HashSet<V> seenVertex = new HashSet<V>();
 	
 	public ForwardClosestIterator(DirectedGraph<V, E> g, V startVertex) {
 		super(g, startVertex);
-		this.startVertex = startVertex;
-		this.graph = g;
-		setCrossComponentTraversal(false);
 		queue = new PriorityQueue<V>(8);
+		this.graph = g;
+		if (!graph.containsVertex(startVertex))
+			throw new RuntimeException("start vertex must be part of the graph");
+		queue.add(startVertex);
+		setCrossComponentTraversal(false);
 	}
 
 	@Override
@@ -64,14 +65,13 @@ public class ForwardClosestIterator<V extends Comparable<V>, E> extends CrossCom
 				encounterVertex(next, edge);
 			}
 		}
-
-		/*
-		if (nListeners != 0) {
-			fireEdgeTraversed(createEdgeTraversalEvent(closest));
-		}
-		*/
 	}
 
+	@Override
+	public boolean hasNext() {
+		return !queue.isEmpty();
+	}
+	
 	@Override
 	protected void encounterVertex(V vertex, E edge) {
 		if (vertex != null) {

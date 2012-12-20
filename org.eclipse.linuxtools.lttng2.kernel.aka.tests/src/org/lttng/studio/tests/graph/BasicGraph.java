@@ -80,9 +80,7 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vA[1], vB1);
 		graph.addVerticalEdge(vB2, vA[2]);
-		graph.getGraph()
-			.getEdge(getVertexByName(graph, "A1"), getVertexByName(graph, "A2"))
-			.setType(EdgeType.BLOCKED);
+		setEdgeBlocked(graph, "A1", "A2");
 		return graph;
 	}
 	
@@ -109,6 +107,8 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vA[3], vC3);
 		graph.addVerticalEdge(vC4, vA[4]);
+		setEdgeBlocked(graph, "A1", "A2");
+		setEdgeBlocked(graph, "A3", "A4");
 		return graph;
 	}
 
@@ -135,6 +135,8 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vA[2], vC2);
 		graph.addVerticalEdge(vC4, vA[4]);
+		setEdgeBlocked(graph, "A2", "A3");
+		setEdgeBlocked(graph, "A3", "A4");
 		return graph;
 	}
 
@@ -161,6 +163,8 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vA[1], vC1);
 		graph.addVerticalEdge(vC4, vA[4]);
+		setEdgeBlocked(graph, "A2", "A3");
+		setEdgeBlocked(graph, "A3", "A4");
 		return graph;
 	}
 
@@ -198,6 +202,8 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vC3, vB3);
 		graph.addVerticalEdge(vB4, vA4);
+		setEdgeBlocked(graph, "A1", "A4");
+		setEdgeBlocked(graph, "B2", "B3");
 		return graph;
 	}
 
@@ -322,6 +328,12 @@ public class BasicGraph {
 
 	private static ExecGraph makeGraph() {
 		return new ExecGraph();
+	}
+
+	private static void setEdgeBlocked(ExecGraph graph, String s1, String s2) {
+		graph.getGraph()
+		.getEdge(getVertexByName(graph, s1), getVertexByName(graph, s2))
+		.setType(EdgeType.BLOCKED);		
 	}
 	
 	public static void main(String[] args) throws IOException {
