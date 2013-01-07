@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 import org.lttng.studio.model.graph.EdgeType;
+import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.utils.GraphUtils;
@@ -311,6 +312,12 @@ public class BasicGraph {
 				base = v;
 		}
 		return base;
+	}
+	
+	public static ExecEdge getEdgeByName(ExecGraph graph, String s1, String s2) {
+		ExecVertex v1 = getVertexByName(graph, s1);
+		ExecVertex v2 = getVertexByName(graph, s2);
+		return graph.getGraph().getEdge(v1, v2);
 	}
 	
 	public static Set<String> getGraphName() {
