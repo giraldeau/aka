@@ -15,6 +15,7 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 	final public static Integer BLUE = 2;
 	private HashMap<ExecEdge, Integer> edgeState;
 	private ExecGraph graph;
+	private ExecVertex head; // contains the first encountered verted
 	
 	public CriticalPathAnnotation(ExecGraph graph) {
 		edgeState = new HashMap<ExecEdge, Integer>();
@@ -23,53 +24,84 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 	
 	@Override
 	public void vertexTraversed(VertexTraversalEvent<ExecVertex> item) {
-		// 1. add all outgoing edge as candidate for critical path
-		// 2. get next outgoing edge of the current owner
-		ExecEdge next = null;
+		ExecEdge nextSelf = null;
+		/*
+		 * 1. set outgoing edges as red
+		 *    if at least one incoming edge is red, otherwise set them as blue
+		 * 2. get next outgoing edge of the current owner 
+		 */
+		
 		ExecVertex vertex = item.getVertex();
+		if (head == null)
+			head = vertex;
+		int numIn = graph.getGraph().incomingEdgesOf(vertex).size();
+		int inRed = countRedEdgeIncoming(vertex);
+		int color = (numIn > 0 && inRed == 0) ? BLUE : RED;
+		//System.out.println("vertex " + vertex + " color " + color);
+	
 		Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(vertex);
 		for (ExecEdge e: out) {
-			edgeState.put(e, RED);
+			edgeState.put(e, color);
 			ExecVertex target = graph.getGraph().getEdgeTarget(e);
 			if (target.getOwner() == vertex.getOwner()) {
-				next = e;
+				nextSelf = e;
 			}
 		}
 		
-		// no more edge to explore
-		if (next == null) {
+		// dead-end
+		if (nextSelf == null) {
+			if (vertex.getOwner() != head.getOwner()) {
+				annotateBlueBackward(vertex);
+			}
 			return;
 		}
 		
-		// backtrack if encounter blocking
-		// annotate edges as blue until a vertex with
-		// 2 red edges is encountered
-		if (next.getType() == EdgeType.BLOCKED) {
-			edgeState.put(next, BLUE);
-			Deque<ExecVertex> queue = new ArrayDeque<ExecVertex>();
-			queue.add(vertex);
-			while(true) {
-				if (queue.isEmpty())
-					break;
-				ExecVertex curr = queue.poll();
-				int red = countRedEdge(curr);
-				if (red >= 2)
-					continue;
-				Set<ExecEdge> inc = graph.getGraph().incomingEdgesOf(curr);
-				for (ExecEdge e: inc) {
-					queue.add(graph.getGraph().getEdgeSource(e));
-					if (edgeState.containsKey(e)) {
-						edgeState.put(e, BLUE);
-					}
+		// backtrack if encounter blocking and current color is RED
+		if (color == RED && nextSelf.getType() == EdgeType.BLOCKED) {
+			edgeState.put(nextSelf, BLUE);
+			annotateBlueBackward(vertex);
+		}
+	}
+
+	/* 
+	 * Annotate edges as BLUE until a vertex with
+	 * 2 red edges is encountered
+	 */
+	public void annotateBlueBackward(ExecVertex vertex) {
+		Deque<ExecVertex> queue = new ArrayDeque<ExecVertex>();
+		queue.add(vertex);
+		while(true) {
+			if (queue.isEmpty())
+				break;
+			ExecVertex curr = queue.poll();
+			int red = countRedEdgeAll(curr);
+			if (red >= 2)
+				continue;
+			Set<ExecEdge> inc = graph.getGraph().incomingEdgesOf(curr);
+			for (ExecEdge e: inc) {
+				queue.add(graph.getGraph().getEdgeSource(e));
+				if (edgeState.containsKey(e)) {
+					edgeState.put(e, BLUE);
 				}
 			}
 		}
 	}
 	
-	public int countRedEdge(ExecVertex vertex) {
-		Set<ExecEdge> all = graph.getGraph().edgesOf(vertex);
+	public int countRedEdgeAll(ExecVertex vertex) {
+		return countRedEdge(graph.getGraph().edgesOf(vertex));
+	}
+	
+	public int countRedEdgeIncoming(ExecVertex vertex) {
+		return countRedEdge(graph.getGraph().incomingEdgesOf(vertex));
+	}
+
+	public int countRedEdgeOutgoing(ExecVertex vertex) {
+		return countRedEdge(graph.getGraph().outgoingEdgesOf(vertex));
+	}
+	
+	public int countRedEdge(Set<ExecEdge> set) {
 		int red = 0;
-		for (ExecEdge e: all) {
+		for (ExecEdge e: set) {
 			if (edgeState.get(e) == RED)
 				red++;
 		}

@@ -28,6 +28,10 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_EMBEDED,	"A0-A1;A1-C1;C1-C4;C4-A4;A4-A5");
 		exp.put(BasicGraph.GRAPH_INTERLEAVE,"A0-A1;A1-A2;A2-C2;C2-C4;C4-A4;A4-A5;");
 		exp.put(BasicGraph.GRAPH_NESTED,	"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-B3;B3-B4;B4-A4;A4-A5");
+		exp.put(BasicGraph.GRAPH_SHELL,		"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-C4;C4-C5;C5-C6;C6-C7;" +
+											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
+											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
+											"B17-A17;A17-A18;");
 	}
 	
 	@Test
@@ -55,9 +59,14 @@ public class TestGraphAnnotation {
 		if (diff.size() != 0) {
 			System.out.println("FAILED " + curr);
 			System.out.println("Expected:");
-			System.out.println(expRed);
+			for (ExecEdge e: expRed)
+				System.out.println(e);
 			System.out.println("Actual:");
-			System.out.println(actRed);	
+			for (ExecEdge e: actRed)
+				System.out.println(e);
+			System.out.println("Difference:");
+			for (ExecEdge e: diff)
+				System.out.println(e);
 		}
 		assertEquals(0, diff.size());
 	}

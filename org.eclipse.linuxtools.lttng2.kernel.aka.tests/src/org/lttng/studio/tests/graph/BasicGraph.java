@@ -284,6 +284,15 @@ public class BasicGraph {
 		
 		// child 3
 		graph.addVerticalEdge(vE[15], vB[15]);
+
+		// blocking edges
+		setEdgeBlocked(graph, "A2", "A3");
+		setEdgeBlocked(graph, "A16", "A17");
+		setEdgeBlocked(graph, "B6", "B7");
+		setEdgeBlocked(graph, "B9", "B10");
+		setEdgeBlocked(graph, "B12", "B13");
+		setEdgeBlocked(graph, "D4", "D5");
+		setEdgeBlocked(graph, "E6", "E7");
 		return graph;
 	}
 
