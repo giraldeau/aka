@@ -9,7 +9,8 @@ import java.util.Map.Entry;
 
 import org.jgrapht.traverse.AbstractGraphIterator;
 import org.junit.Test;
-import org.lttng.studio.model.graph.CriticalPathAnnotation;
+import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
@@ -35,16 +36,16 @@ public class TestGraphAnnotation {
 	}
 	
 	@Test
-	public void testGraphAnnotateAll() {
+	public void testGraphAnnotateClosestFirstAll() {
 		for (String name: exp.keySet()) {
-			testGraphAnnotate(name);
+			testGraphAnnotateClosestFirst(name);
 		}
 	}
 	
-	public void testGraphAnnotate(String curr) {
+	public void testGraphAnnotateClosestFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
-		CriticalPathAnnotation traversal = new CriticalPathAnnotation(graph);
+		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
 		ExecVertex head = graph.getStartVertexOf(base.getOwner());
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
@@ -53,18 +54,37 @@ public class TestGraphAnnotation {
 			iter.next();
 		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
 		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
-		HashSet<ExecEdge> actRed = getEdgesByType(map, CriticalPathAnnotation.RED);
-		
+		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
+		checkPath(curr, expRed, actRed);
+	}
+	
+	@Test
+	public void testGraphDepthFirstAll() {
+		for (String name: exp.keySet()) {
+			testGraphAnnotateDepthFirst(name);
+		}
+	}
+	
+	public void testGraphAnnotateDepthFirst(String curr) {
+		ExecGraph graph = BasicGraph.makeGraphByName(curr);
+		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
+		HashMap<ExecEdge, Integer> map = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start);
+		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
+		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
+		checkPath(curr, expRed, actRed);
+	}
+	
+	public void checkPath(String name, HashSet<ExecEdge> expRed, HashSet<ExecEdge> actRed) {
 		SetView<ExecEdge> diff = Sets.symmetricDifference(expRed, actRed);
 		if (diff.size() != 0) {
-			System.out.println("FAILED " + curr);
+			System.out.println("FAILED " + name);
 			System.out.println("Expected:");
 			for (ExecEdge e: expRed)
 				System.out.println(e);
 			System.out.println("Actual:");
 			for (ExecEdge e: actRed)
 				System.out.println(e);
-			System.out.println("Difference:");
+			System.out.println("Difference (size=" + diff.size() + "):");
 			for (ExecEdge e: diff)
 				System.out.println(e);
 		}

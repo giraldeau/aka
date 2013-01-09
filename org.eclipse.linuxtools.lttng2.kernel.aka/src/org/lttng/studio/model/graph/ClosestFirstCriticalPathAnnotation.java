@@ -9,15 +9,13 @@ import org.jgrapht.event.EdgeTraversalEvent;
 import org.jgrapht.event.TraversalListenerAdapter;
 import org.jgrapht.event.VertexTraversalEvent;
 
-public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex, ExecEdge> {
+public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex, ExecEdge> {
 
-	final public static Integer RED = 1;
-	final public static Integer BLUE = 2;
 	private HashMap<ExecEdge, Integer> edgeState;
 	private ExecGraph graph;
 	private ExecVertex head; // contains the first encountered verted
 	
-	public CriticalPathAnnotation(ExecGraph graph) {
+	public ClosestFirstCriticalPathAnnotation(ExecGraph graph) {
 		edgeState = new HashMap<ExecEdge, Integer>();
 		this.graph = graph;
 	}
@@ -36,7 +34,7 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 			head = vertex;
 		int numIn = graph.getGraph().incomingEdgesOf(vertex).size();
 		int inRed = countRedEdgeIncoming(vertex);
-		int color = (numIn > 0 && inRed == 0) ? BLUE : RED;
+		int color = (numIn > 0 && inRed == 0) ? ExecEdge.BLUE : ExecEdge.RED;
 		//System.out.println("vertex " + vertex + " color " + color);
 	
 		Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(vertex);
@@ -57,8 +55,8 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 		}
 		
 		// backtrack if encounter blocking and current color is RED
-		if (color == RED && nextSelf.getType() == EdgeType.BLOCKED) {
-			edgeState.put(nextSelf, BLUE);
+		if (color == ExecEdge.RED && nextSelf.getType() == EdgeType.BLOCKED) {
+			edgeState.put(nextSelf, ExecEdge.BLUE);
 			annotateBlueBackward(vertex);
 		}
 	}
@@ -81,7 +79,7 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 			for (ExecEdge e: inc) {
 				queue.add(graph.getGraph().getEdgeSource(e));
 				if (edgeState.containsKey(e)) {
-					edgeState.put(e, BLUE);
+					edgeState.put(e, ExecEdge.BLUE);
 				}
 			}
 		}
@@ -102,7 +100,7 @@ public class CriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex,
 	public int countRedEdge(Set<ExecEdge> set) {
 		int red = 0;
 		for (ExecEdge e: set) {
-			if (edgeState.get(e) == RED)
+			if (edgeState.get(e) == ExecEdge.RED)
 				red++;
 		}
 		return red;
