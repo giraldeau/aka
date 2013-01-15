@@ -31,7 +31,7 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testTaskExecGraph() throws IOException, TmfTraceException, InterruptedException {
-		String name = "wk-cpm3-k";
+		String name = "wk-cpm1-k";
 		File out = new File("graph" + File.separator + name);
 		out.mkdirs();
 		File traceDir = TestTraceset.getKernelTrace(name);
@@ -43,14 +43,14 @@ public class TestTaskExecGraph {
 		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeFull();
 
 		thread.addTrace(ctfTmfTrace);
-		thread.addPhase(new AnalysisPhase("test", phase1));
-		thread.addPhase(new AnalysisPhase("test", phase2));
+		thread.addPhase(new AnalysisPhase("phase1", phase1));
+		thread.addPhase(new AnalysisPhase("phase2", phase2));
 		thread.start();
 		thread.join();
 
 		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
-		Set<Task> task = model.getTaskByNameSuffix("wk-cpm3");
+		Set<Task> task = model.getTaskByNameSuffix("wk-cpm1");
 
 		assertTrue(task.size() > 0);
 		assertTrue(graph.getGraph().vertexSet().size() > 0);

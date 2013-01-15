@@ -14,13 +14,13 @@ import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
 
-public class TraceEventHandlerTaskExecutionGraph  extends TraceEventHandlerBase {
+public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	SystemModel system;
 	ExecGraph graph;
 	//HashMap<Object, ExecVertex> tailMap;
 
-	public TraceEventHandlerTaskExecutionGraph() {
+	public TraceEventHandlerExecutionGraph() {
 		super();
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));

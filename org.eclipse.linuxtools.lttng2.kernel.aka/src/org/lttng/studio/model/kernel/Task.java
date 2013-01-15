@@ -52,7 +52,7 @@ public class Task {
 		WAIT_CPU(2),
 		EXIT(3),
 		ZOMBIE(4),
-		WAIT(5),
+		WAIT_BLOCKED(5),
 		RUN(6),
 		DEAD(7);
 		private final int val;

@@ -57,6 +57,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("sched_switch"));
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));
+		//hooks.add(new TraceHook(""));
 		hooks.add(new TraceHook()); // get all events to check sys_* events
 		hooks.add(new TraceHook("sys_execve"));
 		hooks.add(new TraceHook("sys_clone"));
@@ -85,11 +86,18 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		int cpu = event.getCPU();
 		IntegerDefinition next = (IntegerDefinition) def.get("_next_tid");
 		IntegerDefinition prev = (IntegerDefinition) def.get("_prev_tid");
+		IntegerDefinition prev_state = (IntegerDefinition) def.get("_prev_state");
+		
 		system.setCurrentTid(cpu, next.getValue());
 
 		_update_task_state(next.getValue(), process_status.RUN);
-		// TODO: Must handle many cases: blocking, wait cpu, dead
-		_update_task_state(prev.getValue(), process_status.WAIT);
+		
+		// prev_state == 0 means runnable, thus waits for cpu
+		if (prev_state.getValue() == 0) {
+			_update_task_state(prev.getValue(), process_status.WAIT_CPU);
+		} else {
+			_update_task_state(prev.getValue(), process_status.WAIT_BLOCKED);
+		}
 	}
 
 	public void handle_sched_process_fork(TraceReader reader, EventDefinition event) {
