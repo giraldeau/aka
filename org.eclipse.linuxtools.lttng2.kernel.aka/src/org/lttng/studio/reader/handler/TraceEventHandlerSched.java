@@ -17,6 +17,7 @@ import org.lttng.studio.model.kernel.Task.execution_mode;
 import org.lttng.studio.model.kernel.Task.process_status;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.utils.AnalysisFilter;
 import org.lttng.studio.utils.StringHelper;
 
 /*
@@ -37,6 +38,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	SystemModel system;
 	private int schedSwitchUnkownTask;
+
+	private AnalysisFilter filter;
 
 	/*
 	 * sched_migrate_task:
@@ -66,6 +69,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
+		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 		schedSwitchUnkownTask = 0;
@@ -187,10 +191,21 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		case SYS_EXECVE:
 			if (ret == 0) {
 				task.setName(ev.cmd);
+				// check if this task needs to be monitored
+				for (String c: filter.getCommands()) {
+					if (ev.cmd.matches(c)) {
+						filter.addTid(task.getTid());
+						break;
+					}
+				}
 			}
 			break;
 		case SYS_CLONE:
 			if (ret > 0) { // child
+				// handle filtering
+				if (filter.isFollowChild() && filter.getTids().contains(task.getTid())) {
+					filter.addTid(ret);
+				}
 				if (!CloneFlags.isFlagSet(ev.flags, CloneFlags.CLONE_FILES)) {
 					// detach file descriptors from parent
 					Task parent = system.getTask(task.getPpid());
