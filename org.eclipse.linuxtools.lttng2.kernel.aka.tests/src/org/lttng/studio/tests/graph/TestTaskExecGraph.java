@@ -1,5 +1,6 @@
 package org.lttng.studio.tests.graph;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -25,26 +26,49 @@ import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.tests.basic.TestTraceset;
+import org.lttng.studio.tests.basic.TestUtils;
 import org.lttng.studio.utils.GraphUtils;
 
 public class TestTaskExecGraph {
 
-	@Test
-	public void testTaskExecGraph() throws IOException, TmfTraceException, InterruptedException {
-		String name = "wk-cpm1-k";
+	public File getGraphOutDir(String name) {
 		File out = new File("graph" + File.separator + name);
 		out.mkdirs();
-		File traceDir = TestTraceset.getKernelTrace(name);
-		AnalyzerThread thread = new AnalyzerThread();
-		CtfTmfTrace ctfTmfTrace = new CtfTmfTrace();
-		ctfTmfTrace.initTrace(null, traceDir.getCanonicalPath(), CtfTmfEvent.class);
+		return out;
+	}
 
-		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
-		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeFull();
+	private void saveGraphTasks(ExecGraph graph, Set<Task> task, String name) throws IOException {
+		assertTrue(task.size() > 0);
+		assertTrue(graph.getGraph().vertexSet().size() > 0);
+		File out = getGraphOutDir(name);
+		for (Task t: task) {
+			Subgraph<ExecVertex, ExecEdge, DirectedGraph<ExecVertex, ExecEdge>> subgraph = 
+					TaskGraphExtractor.getExecutionGraph(graph, graph.getStartVertexOf(t), graph.getEndVertexOf(t));
+			String path = new File(out, t.getTid() + "-egraph.dot").getCanonicalPath();
+			GraphUtils.saveGraphDefault(subgraph, path);
+		}		
+	}
+	
+	@Test
+	public void testSleep1() throws InterruptedException, IOException {
+		String name = "sleep-1x-1sec-k";
+		AnalyzerThread thread = TestUtils.setupAnalysis(name);
+		assertNotNull(thread);
+		thread.start();
+		thread.join();
 
-		thread.addTrace(ctfTmfTrace);
-		thread.addPhase(new AnalysisPhase("phase1", phase1));
-		thread.addPhase(new AnalysisPhase("phase2", phase2));
+		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
+		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
+		Set<Task> task = model.getTaskByNameSuffix("sleep");
+
+		saveGraphTasks(graph, task, name);
+	}
+	
+	@Test
+	public void testCPM1() throws InterruptedException, IOException {
+		String name = "wk-cpm1-k";
+		AnalyzerThread thread = TestUtils.setupAnalysis(name);
+		assertNotNull(thread);
 		thread.start();
 		thread.join();
 
@@ -52,14 +76,7 @@ public class TestTaskExecGraph {
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Set<Task> task = model.getTaskByNameSuffix("wk-cpm1");
 
-		assertTrue(task.size() > 0);
-		assertTrue(graph.getGraph().vertexSet().size() > 0);
-
-		for (Task t: task) {
-			Subgraph<ExecVertex, ExecEdge, DirectedGraph<ExecVertex, ExecEdge>> subgraph = TaskGraphExtractor.getExecutionGraph(graph, graph.getStartVertexOf(t), graph.getEndVertexOf(t));
-			String path = new File(out, t.getTid() + "-egraph.dot").getCanonicalPath();
-			GraphUtils.saveGraphDefault(subgraph, path);
-		}
+		saveGraphTasks(graph, task, name);
 	}
 
 }

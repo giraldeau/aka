@@ -22,6 +22,7 @@ public class SystemModel implements ITraceModel {
 	private long[] current;			// (cpu, tid)
 	private int numCpus;
 	private boolean isInitialized = false;
+	private HashMap<Long, HRTimer> hrtimers;
 
 	public SystemModel() {
 	}
@@ -35,6 +36,7 @@ public class SystemModel implements ITraceModel {
 			taskFdSet = new HashMap<Task, FDSet>();
 			sockPeer = HashBiMap.create();
 			taskSock = HashMultimap.create();
+			hrtimers = new HashMap<Long, HRTimer>();
 			current = new long[numCpus];
 			// Swapper task is always present
 			Task swapper = new Task();
@@ -55,6 +57,10 @@ public class SystemModel implements ITraceModel {
 		return current[cpu];
 	}
 
+	public HashMap<Long, HRTimer> getHRTimers() {
+		return hrtimers;
+	}
+	
 	public void setCurrentTid(int cpu, long tid) {
 		current[cpu] = tid;
 	}
