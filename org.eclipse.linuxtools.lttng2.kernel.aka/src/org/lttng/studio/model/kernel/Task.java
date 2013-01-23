@@ -46,6 +46,35 @@ public class Task {
 		public int value() { return val; }
 	}
 
+	/*
+	from lttng-statedump-impl.c:
+	enum lttng_process_status {
+        LTTNG_UNNAMED = 0,
+        LTTNG_WAIT_FORK = 1,
+        LTTNG_WAIT_CPU = 2,
+        LTTNG_EXIT = 3,
+        LTTNG_ZOMBIE = 4,
+        LTTNG_WAIT = 5,
+        LTTNG_RUN = 6,
+        LTTNG_DEAD = 7,
+	};
+	
+	from include/linux/sched.h
+	#define TASK_RUNNING            0
+	#define TASK_INTERRUPTIBLE      1
+	#define TASK_UNINTERRUPTIBLE    2
+	#define __TASK_STOPPED          4
+	#define __TASK_TRACED           8
+	// in tsk->exit_state
+	#define EXIT_ZOMBIE             16
+	#define EXIT_DEAD               32
+	// in tsk->state again
+	#define TASK_DEAD               64
+	#define TASK_WAKEKILL           128
+	#define TASK_WAKING             256
+	#define TASK_STATE_MAX          512
+	 */
+	
 	public enum process_status {
 		UNNAMED(0),
 		WAIT_FORK(1),

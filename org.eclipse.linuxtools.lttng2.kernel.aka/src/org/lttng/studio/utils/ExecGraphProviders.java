@@ -32,7 +32,7 @@ public class ExecGraphProviders {
 						Task task = (Task) vertex.getOwner();
 						return String.format("[%d] %d", vertex.getId(), task.getTid());
 					}
-					return String.format("[%d] %s %d", vertex.getId(), vertex.getOwner(), vertex.getTimestamp());
+					return String.format("[%d] %s", vertex.getId(), vertex.getOwner());
 				}
 			};
 		}

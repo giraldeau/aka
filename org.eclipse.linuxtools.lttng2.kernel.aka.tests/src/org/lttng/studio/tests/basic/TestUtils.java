@@ -9,8 +9,10 @@ import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
+import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
+import org.lttng.studio.utils.AnalysisFilter;
 
 public class TestUtils {
 	

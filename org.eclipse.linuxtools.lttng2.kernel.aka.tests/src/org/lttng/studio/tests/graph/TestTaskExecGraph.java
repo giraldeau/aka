@@ -27,6 +27,7 @@ import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.tests.basic.TestTraceset;
 import org.lttng.studio.tests.basic.TestUtils;
+import org.lttng.studio.utils.AnalysisFilter;
 import org.lttng.studio.utils.GraphUtils;
 
 public class TestTaskExecGraph {
@@ -54,12 +55,15 @@ public class TestTaskExecGraph {
 		String name = "sleep-1x-1sec-k";
 		AnalyzerThread thread = TestUtils.setupAnalysis(name);
 		assertNotNull(thread);
+		AnalysisFilter filter = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
+		filter.addCommand(".*sleep-1x-1sec");
+		filter.setFollowChild(true);
 		thread.start();
 		thread.join();
 
 		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
-		Set<Task> task = model.getTaskByNameSuffix("sleep");
+		Set<Task> task = model.getTaskByNameSuffix("sleep-1x-1sec");
 
 		saveGraphTasks(graph, task, name);
 	}
@@ -69,6 +73,8 @@ public class TestTaskExecGraph {
 		String name = "wk-cpm1-k";
 		AnalyzerThread thread = TestUtils.setupAnalysis(name);
 		assertNotNull(thread);
+		AnalysisFilter filter = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
+		filter.addCommand(".*wk-cpm1");
 		thread.start();
 		thread.join();
 

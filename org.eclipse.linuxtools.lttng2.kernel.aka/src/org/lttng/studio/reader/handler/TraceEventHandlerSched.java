@@ -130,6 +130,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		if (task == null)
 			return;
 		task.setEnd(event.getTimestamp());
+		task.setProcessStatus(process_status.EXIT);
 	}
 
 	public void handle_all_event(TraceReader reader, EventDefinition event) {

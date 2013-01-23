@@ -31,4 +31,8 @@ public class HRTimer {
 		this.state = state;
 	}
 	
+	public String toString() {
+		return String.format("[hrtimer]");
+	}
+	
 }

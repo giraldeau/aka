@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.lttng.studio.model.kernel.ITraceModel;
+import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceReader;
 
 public class AnalysisFilter  implements ITraceModel {
@@ -49,6 +50,10 @@ public class AnalysisFilter  implements ITraceModel {
 
 	public Set<String> getCommands() {
 		return commands;
+	}
+	
+	public boolean containsTaskTid(Task task) {
+		return tids.contains(task.getTid());
 	}
 
 }
