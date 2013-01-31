@@ -1,9 +1,9 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka;
 
-import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
 public interface JobListener {
 
-	public void ready(TmfExperiment<?> experiment);
+	public void ready(ITmfTrace experiment);
 
 }

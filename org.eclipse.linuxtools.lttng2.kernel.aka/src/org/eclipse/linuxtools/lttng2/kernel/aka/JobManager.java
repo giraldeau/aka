@@ -10,9 +10,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
-import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
-import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
@@ -23,13 +21,13 @@ import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 public class JobManager {
 
 	private static JobManager instance;
-	private final HashMap<TmfExperiment<?>, ModelRegistry> registryMap;
-	private final HashMap<TmfExperiment<?>, Job> jobMap;
+	private final HashMap<ITmfTrace, ModelRegistry> registryMap;
+	private final HashMap<ITmfTrace, Job> jobMap;
 	private final List<JobListener> listeners;
 
 	private JobManager() {
-		registryMap = new HashMap<TmfExperiment<?>, ModelRegistry>();
-		jobMap = new HashMap<TmfExperiment<?>, Job>();
+		registryMap = new HashMap<ITmfTrace, ModelRegistry>();
+		jobMap = new HashMap<ITmfTrace, Job>();
 		listeners = new ArrayList<JobListener>();
 	}
 
@@ -39,20 +37,17 @@ public class JobManager {
 		return instance;
 	}
 
-	public synchronized void launch(final TmfExperiment<?> experiment) {
-		if (experiment == null)
+	public synchronized void launch(final ITmfTrace trace) {
+		if (trace == null)
 			return;
 
-		if (jobMap.containsKey(experiment))
+		if (jobMap.containsKey(trace))
 			return;
 
 		// Our analyzer only accepts CtfTmfTrace
 		final AnalyzerThread thread = new AnalyzerThread();
-		ITmfTrace<? extends ITmfEvent>[] traces = experiment.getTraces();
-		for (ITmfTrace<? extends ITmfEvent> trace: traces) {
-			if (trace instanceof CtfTmfTrace) {
-				thread.addTrace((CtfTmfTrace)trace);
-			}
+		if (trace instanceof CtfTmfTrace) {
+			thread.addTrace((CtfTmfTrace)trace);
 		}
 
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
@@ -73,14 +68,14 @@ public class JobManager {
 					e.printStackTrace();
 					return Status.CANCEL_STATUS;
 				}
-				registryMap.put(experiment, thread.getReader().getRegistry());
-				fireJobReady(experiment);
+				registryMap.put(trace, thread.getReader().getRegistry());
+				fireJobReady(trace);
 				return Status.OK_STATUS;
 			}
 		};
 		job.setUser(true);
 		job.schedule();
-		jobMap.put(experiment, job);
+		jobMap.put(trace, job);
 	}
 
 	public void addListener(JobListener listener) {
@@ -91,14 +86,14 @@ public class JobManager {
 		listeners.remove(listener);
 	}
 
-	public void fireJobReady(TmfExperiment<?> experiment) {
+	public void fireJobReady(ITmfTrace trace) {
 		for (JobListener listener: listeners) {
-			listener.ready(experiment);
+			listener.ready(trace);
 		}
 	}
 
-	public ModelRegistry getRegistry(TmfExperiment<?> experiment) {
-		return registryMap.get(experiment);
+	public ModelRegistry getRegistry(ITmfTrace trace) {
+		return registryMap.get(trace);
 	}
 
 }

@@ -12,7 +12,7 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
-import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
@@ -28,8 +28,8 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.Subgraph;
 import org.lttng.studio.model.graph.ExecEdge;
-import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ExecGraph;
+import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.Task;
@@ -47,8 +47,6 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView";
 
 	private ExecGraph exeGraph;
-
-	private Task task;
 
 	public class ExecVertexNodeProvider extends ArrayContentProvider implements IGraphEntityContentProvider {
 		  @Override
@@ -76,7 +74,7 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 			}
 
 			if (element instanceof EntityConnectionData) {
-				EntityConnectionData test = (EntityConnectionData) element;
+				//EntityConnectionData test = (EntityConnectionData) element;
 				return "";
 			}
 			throw new RuntimeException("Wrong type: "
@@ -142,7 +140,7 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 	}
 
 	@Override
-	public void ready(TmfExperiment<?> experiment) {
+	public void ready(ITmfTrace experiment) {
 		ModelRegistry registry = JobManager.getInstance().getRegistry(experiment);
 		ExecGraph graph = registry.getModel(IModelKeys.SHARED, ExecGraph.class);
 		setTaskExecutionGraph(graph);
@@ -186,7 +184,6 @@ public class TaskExecutionGraphView extends AbstractGraphView {
 
 	public void showTask(Task task) {
 		System.out.println("TaskExecutionGraph setTask " + task);
-		this.task = task;
 		ExecVertex startVertex = exeGraph.getStartVertexOf(task);
 		ExecVertex endVertex = exeGraph.getEndVertexOf(task);
 		final Subgraph<ExecVertex, ExecEdge, DirectedGraph<ExecVertex, ExecEdge>> subgraph =

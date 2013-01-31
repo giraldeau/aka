@@ -6,7 +6,6 @@ import java.util.HashMap;
 import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
-import org.eclipse.linuxtools.tmf.ui.views.histogram.HistogramUtils;
 import org.lttng.studio.model.kernel.Inet4Sock;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -78,9 +77,8 @@ public class TraceEventHandlerSock extends TraceEventHandlerBase {
 		Task owner = system.getInetSockTaskOwner(oldSock);
 		if (oldSock == null) {
 			long time = TraceReader.clockTime(event);
-			String nano = HistogramUtils.nanosecondsToString(time);
 			System.err.println("WARNING: cloning unkown sock osk=" +
-					Long.toHexString(osk.getValue()) + " at " + nano);
+					Long.toHexString(osk.getValue()) + " at " + time);
 
 			return;
 		}

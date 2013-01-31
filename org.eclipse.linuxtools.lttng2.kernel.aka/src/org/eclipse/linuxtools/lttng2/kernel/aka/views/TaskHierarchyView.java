@@ -13,6 +13,7 @@ import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
@@ -74,7 +75,7 @@ public class TaskHierarchyView extends AbstractGraphView {
 		    }
 
 		    if (element instanceof EntityConnectionData) {
-		      EntityConnectionData test = (EntityConnectionData) element;
+		      //EntityConnectionData test = (EntityConnectionData) element;
 		      return "";
 		    }
 		    throw new RuntimeException("Wrong type: "
@@ -153,8 +154,8 @@ public class TaskHierarchyView extends AbstractGraphView {
 	}
 
 	@Override
-	public void ready(TmfExperiment<?> experiment) {
-		ModelRegistry registry = JobManager.getInstance().getRegistry(experiment);
+	public void ready(ITmfTrace trace) {
+		ModelRegistry registry = JobManager.getInstance().getRegistry(trace);
 		TaskHierarchyGraph graph = registry.getModel(IModelKeys.SHARED, TaskHierarchyGraph.class);
 		setTaskHierarchyGraph(graph);
 	}

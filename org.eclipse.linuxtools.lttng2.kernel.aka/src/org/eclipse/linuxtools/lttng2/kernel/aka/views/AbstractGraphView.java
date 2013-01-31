@@ -4,10 +4,9 @@ import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.jface.action.Action;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobListener;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
-import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
-import org.eclipse.linuxtools.tmf.core.signal.TmfExperimentSelectedSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
-import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
+import org.eclipse.linuxtools.tmf.core.signal.TmfTraceSelectedSignal;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Rectangle;
@@ -24,8 +23,8 @@ public class AbstractGraphView extends TmfView implements IZoomableWorkbenchPart
 
 	protected GraphViewer graphViewer;
 	protected Composite content;
-	protected TmfExperiment<ITmfEvent> fSelectedExperiment;
 	private Rectangle bounds;
+	private ITmfTrace fTrace;
 
 	public AbstractGraphView(String viewName) {
 		super(viewName);
@@ -89,11 +88,11 @@ public class AbstractGraphView extends TmfView implements IZoomableWorkbenchPart
 	}
 
 	@TmfSignalHandler
-	public void experimentSelected(final TmfExperimentSelectedSignal<? extends ITmfEvent> signal) {
-		if (signal.getExperiment().equals(fSelectedExperiment)) {
-            return;
-        }
-		JobManager.getInstance().launch(signal.getExperiment());
+	public void traceSelected(final TmfTraceSelectedSignal signal) {
+		if (signal.getTrace() == fTrace)
+			return;
+		fTrace = signal.getTrace();
+		JobManager.getInstance().launch(fTrace);
 	}
 
 	@Override
@@ -102,7 +101,7 @@ public class AbstractGraphView extends TmfView implements IZoomableWorkbenchPart
 	}
 
 	@Override
-	public void ready(TmfExperiment<?> experiment) {
+	public void ready(ITmfTrace trace) {
 	}
 
 }

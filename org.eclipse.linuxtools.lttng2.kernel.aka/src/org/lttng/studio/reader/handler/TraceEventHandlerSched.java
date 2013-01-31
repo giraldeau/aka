@@ -7,7 +7,6 @@ import org.eclipse.linuxtools.ctf.core.event.types.ArrayDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.StringDefinition;
-import org.eclipse.linuxtools.tmf.ui.views.histogram.HistogramUtils;
 import org.lttng.studio.model.kernel.CloneFlags;
 import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.FDSet;
@@ -163,8 +162,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		long tid = system.getCurrentTid(cpu);
 		if (tid == 0) {
 			long time = TraceReader.clockTime(event);
-			String nano = HistogramUtils.nanosecondsToString(time);
-			System.err.println("WARNING: swapper clone cpu=" + cpu + " at " + nano);
+			System.err.println("WARNING: swapper clone cpu=" + cpu + " at " + time);
 		}
 		long flags = ((IntegerDefinition) def.get("_clone_flags")).getValue();
 		EventData data = new EventData();

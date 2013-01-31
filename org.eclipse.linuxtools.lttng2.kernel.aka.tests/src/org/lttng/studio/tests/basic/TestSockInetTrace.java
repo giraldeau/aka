@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDeclaration;
+import org.eclipse.linuxtools.ctf.core.event.IEventDeclaration;
 import org.eclipse.linuxtools.ctf.core.trace.CTFReaderException;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTrace;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
@@ -27,7 +27,7 @@ public class TestSockInetTrace {
 				"inet_connect", "inet_accept" };
 		File trace = TestTraceset.getKernelTrace("netcat-tcp-k");
 		CTFTraceReader ctf = new CTFTraceReader(new CTFTrace(trace));
-		HashMap<Long,EventDeclaration> events = ctf.getTrace().getEvents(0L);
+		HashMap<Long, IEventDeclaration> events = ctf.getTrace().getEvents(0L);
 		HashSet<String> actEvents = new HashSet<String>();
 		for (Long id: events.keySet()) {
 			actEvents.add(events.get(id).getName());

@@ -3,24 +3,13 @@ package org.lttng.studio.reader.handler;
 import java.util.HashMap;
 
 import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.ArrayDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.StringDefinition;
-import org.eclipse.linuxtools.tmf.ui.views.histogram.HistogramUtils;
-import org.lttng.studio.model.kernel.CloneFlags;
-import org.lttng.studio.model.kernel.FD;
-import org.lttng.studio.model.kernel.FDSet;
 import org.lttng.studio.model.kernel.HRTimer;
 import org.lttng.studio.model.kernel.HRTimer.HRTimerState;
 import org.lttng.studio.model.kernel.SystemModel;
-import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.model.kernel.Task.execution_mode;
-import org.lttng.studio.model.kernel.Task.process_status;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
-import org.lttng.studio.utils.AnalysisFilter;
-import org.lttng.studio.utils.StringHelper;
 
 public class TraceEventHandlerHRTimer extends TraceEventHandlerBase {
 
