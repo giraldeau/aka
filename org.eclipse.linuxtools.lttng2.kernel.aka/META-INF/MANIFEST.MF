@@ -20,3 +20,4 @@ Require-Bundle: org.eclipse.ui,
  org.apache.commons.cli;bundle-version="1.2.0"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.eclipse.linuxtools.internal.lttng2.kernel.ui.views.controlflow

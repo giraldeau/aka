@@ -11,16 +11,9 @@
       </category>
       <view
             category="org.eclipse.linuxtools.lttng2.kernel.aka"
-            class="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView"
-            icon="icons/sample.gif"
-            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskHierarchyView"
-            name="Task Hierarchy View">
-      </view>
-      <view
-            category="org.eclipse.linuxtools.lttng2.kernel.aka"
-            class="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView"
-            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.TaskExecutionGraphView"
-            name="Execution Graph"
+            class="org.eclipse.linuxtools.lttng2.kernel.aka.views.BlockingView"
+            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.blocking"
+            name="Blocking"
             restorable="true">
       </view>
    </extension>
