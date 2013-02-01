@@ -19,89 +19,95 @@ import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
 import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.layouts.algorithms.SugiyamaLayoutAlgorithm;
 
-public class AbstractGraphView extends TmfView implements IZoomableWorkbenchPart, JobListener {
+public class AbstractGraphView extends TmfView implements
+	IZoomableWorkbenchPart, JobListener {
 
-	protected GraphViewer graphViewer;
-	protected Composite content;
-	private Rectangle bounds;
-	private ITmfTrace fTrace;
+    protected GraphViewer graphViewer;
+    protected Composite content;
+    private Rectangle bounds;
+    private ITmfTrace fTrace;
 
-	public AbstractGraphView(String viewName) {
-		super(viewName);
-	}
+    public AbstractGraphView(String viewName) {
+	super(viewName);
+    }
 
-	@Override
-	public AbstractZoomableViewer getZoomableViewer() {
-		return graphViewer;
-	}
+    @Override
+    public AbstractZoomableViewer getZoomableViewer() {
+	return graphViewer;
+    }
 
-	@Override
-	public void createPartControl(Composite parent) {
-		content = new Composite(parent, SWT.NONE);
-		content.setLayout(new FillLayout());
-		graphViewer = new GraphViewer(content, SWT.NONE);
-		SugiyamaLayoutAlgorithm algorithm = new SugiyamaLayoutAlgorithm(SugiyamaLayoutAlgorithm.HORIZONTAL);
-		graphViewer.setLayoutAlgorithm(algorithm);
-		// Zoom
-		IActionBars bars = getViewSite().getActionBars();
-		ZoomContributionViewItem toolbar = new ZoomContributionViewItem(this);
-		bars.getToolBarManager().add(toolbar);
+    @Override
+    public void createPartControl(Composite parent) {
+	content = new Composite(parent, SWT.NONE);
+	content.setLayout(new FillLayout());
+	graphViewer = new GraphViewer(content, SWT.NONE);
+	SugiyamaLayoutAlgorithm algorithm = new SugiyamaLayoutAlgorithm(
+		SugiyamaLayoutAlgorithm.HORIZONTAL);
+	graphViewer.setLayoutAlgorithm(algorithm);
+	// Zoom
+	IActionBars bars = getViewSite().getActionBars();
+	ZoomContributionViewItem toolbar = new ZoomContributionViewItem(this);
+	bars.getToolBarManager().add(toolbar);
 
-		// receive signal about processed trace
-		JobManager.getInstance().addListener(this);
+	// receive signal about processed trace
+	JobManager.getInstance().addListener(this);
 
-		// FIXME: this is horrible, should find why does the layout can't expand outside the scroll area to avoid overlapping
-		Action action1 = new Action() {
-			int cnt = 1;
-			@Override
-			public void run() {
-				cnt++;
-				if (bounds == null)
-					bounds = graphViewer.getGraphControl().getClientArea();
-				bounds.width = bounds.width * cnt;
-				resetBounds();
-			}
-		};
-		action1.setText("+W");
-		bars.getToolBarManager().add(action1);
+	// FIXME: this is horrible, should find why does the layout can't expand
+	// outside the scroll area to avoid overlapping
+	Action action1 = new Action() {
+	    int cnt = 1;
 
-		Action action2 = new Action() {
-			int cnt = 1;
-			@Override
-			public void run() {
-				cnt++;
-				if (bounds == null)
-					bounds = graphViewer.getGraphControl().getClientArea();
-				bounds.height = bounds.height * cnt;
-				resetBounds();
-			}
-		};
-		action2.setText("+H");
-		bars.getToolBarManager().add(action2);
-	}
+	    @Override
+	    public void run() {
+		cnt++;
+		if (bounds == null)
+		    bounds = graphViewer.getGraphControl().getClientArea();
+		bounds.width = bounds.width * cnt;
+		resetBounds();
+	    }
+	};
+	action1.setText("+W");
+	bars.getToolBarManager().add(action1);
 
-	protected void resetBounds() {
-		SugiyamaLayoutAlgorithm algorithm = new SugiyamaLayoutAlgorithm(
-				SugiyamaLayoutAlgorithm.HORIZONTAL, new Dimension(bounds.width, bounds.height));
-		graphViewer.setLayoutAlgorithm(algorithm, true);
-		System.out.println(bounds);
-	}
+	Action action2 = new Action() {
+	    int cnt = 1;
 
-	@TmfSignalHandler
-	public void traceSelected(final TmfTraceSelectedSignal signal) {
-		if (signal.getTrace() == fTrace)
-			return;
-		fTrace = signal.getTrace();
-		JobManager.getInstance().launch(fTrace);
-	}
+	    @Override
+	    public void run() {
+		cnt++;
+		if (bounds == null)
+		    bounds = graphViewer.getGraphControl().getClientArea();
+		bounds.height = bounds.height * cnt;
+		resetBounds();
+	    }
+	};
+	action2.setText("+H");
+	bars.getToolBarManager().add(action2);
+    }
 
-	@Override
-	public void setFocus() {
-		graphViewer.getControl().setFocus();
-	}
+    protected void resetBounds() {
+	SugiyamaLayoutAlgorithm algorithm = new SugiyamaLayoutAlgorithm(
+		SugiyamaLayoutAlgorithm.HORIZONTAL, new Dimension(bounds.width,
+			bounds.height));
+	graphViewer.setLayoutAlgorithm(algorithm, true);
+	System.out.println(bounds);
+    }
 
-	@Override
-	public void ready(ITmfTrace trace) {
-	}
+    @TmfSignalHandler
+    public void traceSelected(final TmfTraceSelectedSignal signal) {
+	if (signal.getTrace() == fTrace)
+	    return;
+	fTrace = signal.getTrace();
+	JobManager.getInstance().launch(fTrace);
+    }
+
+    @Override
+    public void setFocus() {
+	graphViewer.getControl().setFocus();
+    }
+
+    @Override
+    public void ready(ITmfTrace trace) {
+    }
 
 }
