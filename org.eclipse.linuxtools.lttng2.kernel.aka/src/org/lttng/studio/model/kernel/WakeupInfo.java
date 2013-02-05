@@ -8,6 +8,7 @@ public class WakeupInfo {
 	public long vec;
 	public long sk;
 	public long seq;
+	public long timer;
 	public Task awakener;
 	public Type type;
 

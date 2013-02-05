@@ -1,16 +1,17 @@
 package org.lttng.studio.tests.state;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.List;
 
 import org.junit.Test;
-import org.lttng.studio.model.kernel.BlockingItem;
-import org.lttng.studio.model.kernel.ModelEvent;
-import org.lttng.studio.model.kernel.ModelListener;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.kernel.TaskBlockingEntry;
+import org.lttng.studio.model.kernel.TaskBlockings;
 import org.lttng.studio.reader.TraceReader;
+import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.StatedumpEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerBlocking;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
@@ -26,8 +27,6 @@ public class TestTaskBlocking {
 		TraceReader reader = new TraceReader();
 		reader.addTrace(traceDir);
 
-		final HashMap<Task, BlockingItem> blockings = new HashMap<Task, BlockingItem>();
-
 		// Phase 1: build initial state
 		StatedumpEventHandler h0 = new StatedumpEventHandler();
 		reader.register(h0);
@@ -36,37 +35,29 @@ public class TestTaskBlocking {
 
 		// Phase 2: update current state, compute blocking
 		TraceEventHandlerBlocking h2 = new TraceEventHandlerBlocking();
-		h2.addListener(ModelEvent.BLOCKING, new ModelListener() {
-			@Override
-			public void handleEvent(ModelEvent event) {
-				switch(event.type) {
-				case ModelEvent.BLOCKING:
-					Task task = event.blocking.getTask();
-					blockings.put(task, event.blocking);
-					break;
-				default:
-					break;
-				}
-			}
-		});
 		TraceEventHandlerSched h1 = new TraceEventHandlerSched();
 		reader.register(h1);
 		reader.register(h2);
 		reader.process();
 
-		BlockingItem sleep = null;
-		for (Task task: blockings.keySet()) {
+		TaskBlockingEntry sleep = null;
+		TaskBlockings blockings = reader.getRegistry().getModel(IModelKeys.SHARED, TaskBlockings.class);
+
+		for (Task task: blockings.getEntries().keySet()) {
 			if (task.getName().endsWith("sleep")) {
-				BlockingItem item = blockings.get(task);
-				if (item.getSyscall().getDeclaration().getName().equals("sys_nanosleep")) {
-					sleep = item;
-					break;
+				List<TaskBlockingEntry> entries = blockings.getEntries().get(task);
+				for (TaskBlockingEntry entry: entries) {
+					if (entry.getSyscall().getDeclaration().getName().equals("sys_nanosleep")) {
+						sleep = entry;
+						break;
+					}
 				}
+				break;
 			}
 		}
+		System.out.println(sleep + " " + ((double)sleep.getInterval().duration()) / NANO);
 		assertNotNull(sleep);
-		// FIXME: add interval support
-		//assertEquals(1.0, sleep.getInterval().getDuration() / NANO, 0.01 );
+		assertEquals(1.0, sleep.getInterval().duration() / NANO, 0.01 );
 	}
 
 }

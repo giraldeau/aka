@@ -5,13 +5,15 @@ import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
 /*
  * Represents when a task is blocked waiting
  */
-public class BlockingItem {
+public class TaskBlockingEntry {
 
 	private EventDefinition syscall;
 	private WakeupInfo wakeup;
 	private Task task;
+	private final TimeInterval interval;
 
-	public BlockingItem() {
+	public TaskBlockingEntry() {
+		interval = new TimeInterval(0, 0);
 	}
 
 	public EventDefinition getSyscall() {
@@ -31,7 +33,7 @@ public class BlockingItem {
 		} else {
 			str.append("unknown");
 		}
-		str.append(",");
+		str.append("]");
 		return str.toString();
 	}
 
@@ -49,5 +51,9 @@ public class BlockingItem {
 
 	public void setTask(Task task) {
 		this.task = task;
+	}
+
+	public TimeInterval getInterval() {
+		return interval;
 	}
 }

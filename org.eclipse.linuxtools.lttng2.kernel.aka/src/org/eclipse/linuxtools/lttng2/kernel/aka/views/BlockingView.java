@@ -27,101 +27,107 @@ import org.eclipse.ui.IWorkbenchPart;
 @SuppressWarnings("restriction")
 public class BlockingView extends TmfView implements JobListener {
 
-    public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.blocking"; //$NON-NLS-1$
+	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.blocking"; //$NON-NLS-1$
 
-    Composite composite;
+	Composite composite;
 
-    TableViewer table;
+	TableViewer table;
 
-    ISelectionListener selListener = new ISelectionListener() {
-        @Override
-        public void selectionChanged(IWorkbenchPart part, ISelection selection) {
-            if (part != BlockingView.this && selection instanceof IStructuredSelection) {
-        	Object element = ((IStructuredSelection) selection).getFirstElement();
-        	if (element instanceof ControlFlowEntry) {
-        	    ControlFlowEntry entry = (ControlFlowEntry) element;
-        	    System.out.println("tid=" + entry.getThreadId());
-        	}
-            }
-        }
-    };
+	ISelectionListener selListener = new ISelectionListener() {
+		@Override
+		public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+			if (part != BlockingView.this
+					&& selection instanceof IStructuredSelection) {
+				Object element = ((IStructuredSelection) selection)
+						.getFirstElement();
+				if (element instanceof ControlFlowEntry) {
+					ControlFlowEntry entry = (ControlFlowEntry) element;
+					System.out.println("tid=" + entry.getThreadId());
+					// retrieve BlockinItems for this task
+					// table.setInput();
+				}
+			}
+		}
+	};
 
-    private ITmfTrace fTrace;
+	private ITmfTrace fTrace;
 
-    public BlockingView() {
-	super(ID);
-    }
+	public BlockingView() {
+		super(ID);
+	}
 
-    @Override
-    public void createPartControl(Composite parent) {
-	composite = new Composite(parent, SWT.NONE);
-	composite.setLayout(new FillLayout());
-	table = new TableViewer(composite, SWT.H_SCROLL | SWT.V_SCROLL
-		| SWT.BORDER);
-	table.setContentProvider(ArrayContentProvider.getInstance());
-	Table t = table.getTable();
-	t.setHeaderVisible(true);
-	t.setLinesVisible(true);
+	@Override
+	public void createPartControl(Composite parent) {
+		composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new FillLayout());
+		table = new TableViewer(composite, SWT.H_SCROLL | SWT.V_SCROLL
+				| SWT.BORDER);
+		table.setContentProvider(ArrayContentProvider.getInstance());
+		Table t = table.getTable();
+		t.setHeaderVisible(true);
+		t.setLinesVisible(true);
 
-	table.setInput(new String[] { "test1", "test2" });
+		table.setInput(null);
 
-	// get selection events
-	getSite().getWorkbenchWindow().getSelectionService().addSelectionListener(selListener);
+		// get selection events
+		getSite().getWorkbenchWindow().getSelectionService()
+				.addSelectionListener(selListener);
 
-	// receive signal about processed trace
-	JobManager.getInstance().addListener(this);
-    }
+		// receive signal about processed trace
+		JobManager.getInstance().addListener(this);
+	}
 
-    public void createColumns(Composite parent) {
-	TableViewerColumn col = new TableViewerColumn(table, SWT.NONE);
-	col.getColumn().setWidth(200);
-	col.getColumn().setText("Col 1");
-	col.setLabelProvider(new ColumnLabelProvider() {
-	    @Override
-	    public String getText(Object element) {
-		String s = (String) element;
-		return s;
-	    }
-	});
-    }
+	public void createColumns(Composite parent) {
+		TableViewerColumn col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Col 1");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				String s = (String) element;
+				return s;
+			}
+		});
+	}
 
-    @TmfSignalHandler
-    public void traceSelected(final TmfTraceSelectedSignal signal) {
-	if (signal.getTrace() == fTrace)
-		return;
-	fTrace = signal.getTrace();
-	JobManager.getInstance().launch(fTrace);
-    }
+	@TmfSignalHandler
+	public void traceSelected(final TmfTraceSelectedSignal signal) {
+		if (signal.getTrace() == fTrace)
+			return;
+		fTrace = signal.getTrace();
+		JobManager.getInstance().launch(fTrace);
+	}
 
-    public void traceClosed(final TmfTraceClosedSignal signal) {
-    }
+	public void traceClosed(final TmfTraceClosedSignal signal) {
+	}
 
-    @TmfSignalHandler
-    public void synchToTime(final TmfTimeSynchSignal signal) {
+	@TmfSignalHandler
+	public void synchToTime(final TmfTimeSynchSignal signal) {
 
-    }
+	}
 
-    @TmfSignalHandler
-    public void synchToRange(final TmfRangeSynchSignal signal) {
+	@TmfSignalHandler
+	public void synchToRange(final TmfRangeSynchSignal signal) {
 
-    }
+	}
 
-    @Override
-    public void setFocus() {
-	composite.setFocus();
-    }
+	@Override
+	public void setFocus() {
+		composite.setFocus();
+	}
 
-    @Override
-    public void dispose() {
-	ISelectionService s = getSite().getWorkbenchWindow().getSelectionService();
-	s.removeSelectionListener(selListener);
-	JobManager.getInstance().removeListener(this);
-	super.dispose();
-    }
+	@Override
+	public void dispose() {
+		ISelectionService s = getSite().getWorkbenchWindow()
+				.getSelectionService();
+		s.removeSelectionListener(selListener);
+		JobManager.getInstance().removeListener(this);
+		super.dispose();
+	}
 
-    @Override
-    public void ready(ITmfTrace experiment) {
+	@Override
+	public void ready(ITmfTrace experiment) {
 
-    }
+	}
 
 }

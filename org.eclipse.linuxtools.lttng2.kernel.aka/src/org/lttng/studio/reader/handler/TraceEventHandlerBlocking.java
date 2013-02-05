@@ -1,43 +1,42 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
-import org.lttng.studio.fsa.Automaton;
-import org.lttng.studio.fsa.AutomatonRecorder;
-import org.lttng.studio.fsa.Transition;
-import org.lttng.studio.fsa.pattern.BlockingAutomaton;
-import org.lttng.studio.model.kernel.BlockingItem;
-import org.lttng.studio.model.kernel.ModelEvent;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.kernel.TaskBlockingEntry;
+import org.lttng.studio.model.kernel.TaskBlockings;
 import org.lttng.studio.model.kernel.WakeupInfo;
+import org.lttng.studio.model.kernel.WakeupInfo.Type;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 
 /*
  * Detect blocking in a process
  */
 public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
+
 	public long count;
-	HashMap<Task, AutomatonRecorder<EventDefinition>> automatMap;
-	Multimap<Task, BlockingItem> blockings;
-	HashMap<Task, WakeupInfo> taskWakeup;
-	WakeupInfo[] wakeup;
+	private TaskBlockings blockings;
+	private HashMap<Task, EventDefinition> syscall;
+	private WakeupInfo[] wakeup;
+	private HashMap<Task, TaskBlockingEntry> latestBlockingMap;
 
 	private SystemModel system;
 
 	public TraceEventHandlerBlocking() {
 		super();
 		this.hooks.add(new TraceHook());
+		this.hooks.add(new TraceHook("sched_switch"));
+		this.hooks.add(new TraceHook("sched_wakeup"));
+		this.hooks.add(new TraceHook("exit_syscall"));
 		this.hooks.add(new TraceHook("softirq_entry"));
 		this.hooks.add(new TraceHook("softirq_exit"));
+		this.hooks.add(new TraceHook("hrtimer_expire_entry"));
+		this.hooks.add(new TraceHook("hrtimer_expire_exit"));
 		this.hooks.add(new TraceHook("inet_sock_local_in"));
 	}
 
@@ -45,10 +44,10 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 	public void handleInit(TraceReader reader) {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
-		automatMap = new HashMap<Task, AutomatonRecorder<EventDefinition>>();
+		blockings = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, TaskBlockings.class);
 		wakeup = new WakeupInfo[reader.getNumCpus()];
-		taskWakeup = new HashMap<Task, WakeupInfo>();
-		blockings = ArrayListMultimap.create();
+		syscall = new HashMap<Task, EventDefinition>();
+		latestBlockingMap = new HashMap<Task, TaskBlockingEntry>();
 	}
 
 	@Override
@@ -67,6 +66,19 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		wakeup[event.getCPU()] = null;
 	}
 
+	public void handle_hrtimer_expire_entry(TraceReader reader, EventDefinition event) {
+		HashMap<String, Definition> def = event.getFields().getDefinitions();
+		long timer = ((IntegerDefinition) def.get("_hrtimer")).getValue();
+		WakeupInfo info = new WakeupInfo();
+		info.type = Type.TIMER;
+		info.timer = timer;
+		wakeup[event.getCPU()] = info;
+	}
+
+	public void handle_hrtimer_expire_exit(TraceReader reader, EventDefinition event) {
+		wakeup[event.getCPU()] = null;
+	}
+
 	public void handle_inet_sock_local_in(TraceReader reader, EventDefinition event) {
 		HashMap<String, Definition> def = event.getFields().getDefinitions();
 		long sk = ((IntegerDefinition) def.get("_sk")).getValue();
@@ -79,64 +91,54 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		}
 	}
 
-	public void handle_all_event(TraceReader reader, EventDefinition event) {
+	public void handle_sched_switch(TraceReader reader, EventDefinition event) {
 		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		Task task = system.getTaskCpu(event.getCPU());
-		AutomatonRecorder<EventDefinition> rec = getOrCreateAutomaton(task);
-		String name = event.getDeclaration().getName();
-		if (name.startsWith("sys_")) {
-			rec.step("sys_entry", event);
-		} else if (name.equals("exit_syscall")) {
-			rec.step("sys_exit", event);
-		} else if (name.equals("sched_switch")) {
-			long prev = ((IntegerDefinition) def.get("_prev_tid")).getValue();
-			long next = ((IntegerDefinition) def.get("_next_tid")).getValue();
-			Task nextTask = system.getTask(next);
-			Task prevTask = system.getTask(prev);
-			AutomatonRecorder<EventDefinition> nextAut = getOrCreateAutomaton(nextTask);
-			AutomatonRecorder<EventDefinition> prevAut = getOrCreateAutomaton(prevTask);
-			prevAut.step("sched_out", event);
-			nextAut.step("sched_in", event);
-		} else if (name.equals("sched_wakeup")) {
-			long tid = ((IntegerDefinition) def.get("_tid")).getValue();
-			Task wakeTask = system.getTask(tid);
-			AutomatonRecorder<EventDefinition> wakeAut = getOrCreateAutomaton(wakeTask);
-			Transition step = wakeAut.step("wakeup", event);
-			if (step == null)
-				return;
-			WakeupInfo info = wakeup[event.getCPU()];
-			if (info != null)
-				taskWakeup.put(wakeTask, info);
-		}
-		if (rec.getAutomaton().getState().isAccepts()) {
-			ArrayList<EventDefinition> history = rec.getHistory();
-			EventDefinition entry = history.get(0);
-			EventDefinition exit = history.get(history.size()-1);
-			BlockingItem blocking = new BlockingItem();
-			//blocking.setInterval(new Interval(entry.getTimestamp(), exit.getTimestamp()));
-			blocking.setSyscall(entry);
-			blocking.setTask(task);
-			if (taskWakeup.containsKey(task)) {
-				WakeupInfo info = taskWakeup.get(task);
-				blocking.setWakeupInfo(info);
-			}
-			ModelEvent ev = new ModelEvent();
-			ev.blocking = blocking;
-			ev.type = ModelEvent.BLOCKING;
-			notifyListeners(ev.type, ev);
-			blockings.put(task, blocking);
-			rec.reset();
+		long state = ((IntegerDefinition) def.get("_prev_state")).getValue();
+		long prevTid = ((IntegerDefinition) def.get("_prev_tid")).getValue();
+		Task task = system.getTask(prevTid);
+		// process is blocking
+		if (state >= 1) {
+			latestBlockingMap.put(task, new TaskBlockingEntry());
 		}
 	}
 
-	private AutomatonRecorder<EventDefinition> getOrCreateAutomaton(Task task) {
-		AutomatonRecorder<EventDefinition> rec = automatMap.get(task);
-		if (rec == null) {
-			Automaton aut = BlockingAutomaton.getInstance();
-			rec = new AutomatonRecorder<EventDefinition>(aut);
-			automatMap.put(task, rec);
+	public void handle_all_event(TraceReader reader, EventDefinition event) {
+		Task task = system.getTaskCpu(event.getCPU());
+		String name = event.getDeclaration().getName();
+		// record the current system call
+		if (name.startsWith("sys_")) {
+			syscall.put(task, event);
 		}
-		return rec;
+	}
+
+	public void handle_exit_syscall(TraceReader reader, EventDefinition event) {
+		Task task = system.getTaskCpu(event.getCPU());
+		EventDefinition syscallEntry = syscall.remove(task);
+		TaskBlockingEntry blockingEntry = latestBlockingMap.remove(task);
+		if (syscallEntry != null && blockingEntry != null) {
+			blockingEntry.getInterval().setStart(syscallEntry.getTimestamp());
+			blockingEntry.getInterval().setEnd(event.getTimestamp());
+		}
+	}
+	public void handle_sched_wakeup(TraceReader reader, EventDefinition event) {
+		HashMap<String, Definition> def = event.getFields().getDefinitions();
+		long tid = ((IntegerDefinition) def.get("_tid")).getValue();
+		Task blockedTask = system.getTask(tid);
+
+		// spurious wake-up
+		if (blockedTask.getProcessStatus() != Task.process_status.WAIT_BLOCKED) {
+			wakeup[event.getCPU()] = null;
+			return;
+		}
+
+		TaskBlockingEntry blocking = latestBlockingMap.get(blockedTask);
+		if (blocking == null)
+			return;
+		//blocking.setInterval(new Interval(entry.getTimestamp(), exit.getTimestamp()));
+		blocking.setSyscall(syscall.get(blockedTask));
+		blocking.setTask(blockedTask);
+		blocking.setWakeupInfo(wakeup[event.getCPU()]);
+		blockings.getEntries().put(blockedTask, blocking);
 	}
 
 }
