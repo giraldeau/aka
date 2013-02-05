@@ -25,6 +25,7 @@ public class TraceEventHandlerFactory {
 
 	public static Collection<ITraceEventHandler> makeFull() {
 		ArrayList<ITraceEventHandler> list = new ArrayList<ITraceEventHandler>();
+		list.add(new TraceEventHandlerInvariant());
 		list.add(new TraceEventHandlerSched());
 		list.add(new TraceEventHandlerTaskHierarchy());
 		list.add(new TraceEventHandlerHRTimer());

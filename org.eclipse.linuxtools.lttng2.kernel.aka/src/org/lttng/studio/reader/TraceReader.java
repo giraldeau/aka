@@ -192,6 +192,8 @@ public class TraceReader {
 
 	public void runHookSet(TreeSet<TraceHook> hooks, EventDefinition event) {
 		for (TraceHook h: hooks){
+			if (cancel == true)
+				break;
 			try {
 				h.method.invoke(h.instance, this, event);
 			} catch (IllegalArgumentException e) {
