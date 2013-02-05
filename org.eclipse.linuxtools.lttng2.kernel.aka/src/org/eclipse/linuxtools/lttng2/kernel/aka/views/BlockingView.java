@@ -1,5 +1,7 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
+import java.util.List;
+
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ISelection;
@@ -15,23 +17,36 @@ import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTraceClosedSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTraceSelectedSignal;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
+import org.eclipse.linuxtools.tmf.ui.editors.ITmfTraceEditor;
 import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Table;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPart;
+import org.lttng.studio.model.kernel.ModelRegistry;
+import org.lttng.studio.model.kernel.SystemModel;
+import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.kernel.TaskBlockingEntry;
+import org.lttng.studio.model.kernel.TaskBlockings;
+import org.lttng.studio.reader.handler.IModelKeys;
 
 @SuppressWarnings("restriction")
 public class BlockingView extends TmfView implements JobListener {
 
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.blocking"; //$NON-NLS-1$
 
-	Composite composite;
+	private Composite composite;
 
-	TableViewer table;
+	private TableViewer table;
+
+	private ITmfTrace fTrace;
+
+	private Task current;
 
 	ISelectionListener selListener = new ISelectionListener() {
 		@Override
@@ -42,15 +57,19 @@ public class BlockingView extends TmfView implements JobListener {
 						.getFirstElement();
 				if (element instanceof ControlFlowEntry) {
 					ControlFlowEntry entry = (ControlFlowEntry) element;
-					System.out.println("tid=" + entry.getThreadId());
-					// retrieve BlockinItems for this task
-					// table.setInput();
+					ModelRegistry registry = JobManager.getInstance().getRegistry(fTrace);
+					SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
+					TaskBlockings blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
+					Task task = system.getTask(entry.getThreadId());
+					if (task == current)
+						return;
+					current = task;
+					List<TaskBlockingEntry> list = blockings.getEntries().get(task);
+					table.setInput(list);
 				}
 			}
 		}
 	};
-
-	private ITmfTrace fTrace;
 
 	public BlockingView() {
 		super(ID);
@@ -71,10 +90,18 @@ public class BlockingView extends TmfView implements JobListener {
 
 		// get selection events
 		getSite().getWorkbenchWindow().getSelectionService()
-				.addSelectionListener(selListener);
+				.addPostSelectionListener(selListener);
 
 		// receive signal about processed trace
 		JobManager.getInstance().addListener(this);
+
+        IEditorPart editor = getSite().getPage().getActiveEditor();
+        if (editor instanceof ITmfTraceEditor) {
+            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+            if (trace != null) {
+                traceSelected(new TmfTraceSelectedSignal(this, trace));
+            }
+        }
 	}
 
 	public void createColumns(Composite parent) {
@@ -95,10 +122,13 @@ public class BlockingView extends TmfView implements JobListener {
 		if (signal.getTrace() == fTrace)
 			return;
 		fTrace = signal.getTrace();
+		table.setInput(null);
+		table.getControl().setEnabled(false);
 		JobManager.getInstance().launch(fTrace);
 	}
 
 	public void traceClosed(final TmfTraceClosedSignal signal) {
+		table.setInput(null);
 	}
 
 	@TmfSignalHandler
@@ -120,14 +150,19 @@ public class BlockingView extends TmfView implements JobListener {
 	public void dispose() {
 		ISelectionService s = getSite().getWorkbenchWindow()
 				.getSelectionService();
-		s.removeSelectionListener(selListener);
+		s.removePostSelectionListener(selListener);
 		JobManager.getInstance().removeListener(this);
 		super.dispose();
 	}
 
 	@Override
-	public void ready(ITmfTrace experiment) {
-
+	public void ready(ITmfTrace trace) {
+		Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+            	table.getControl().setEnabled(true);
+            }
+		});
 	}
 
 }

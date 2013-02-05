@@ -1,15 +1,14 @@
 package org.lttng.studio.reader.handler;
 
 import java.util.HashMap;
-import java.util.Set;
 
 import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
 import org.eclipse.linuxtools.ctf.core.event.types.Definition;
 import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
 import org.lttng.studio.model.graph.EdgeType;
 import org.lttng.studio.model.graph.ExecEdge;
-import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ExecGraph;
+import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.kernel.HRTimer;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -77,7 +76,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createEdge(v01, v11, EdgeType.DEFAULT);
 		createEdge(v10, v11, EdgeType.DEFAULT);
 	}
-	
+
 	public void createMerge(Object source, Object target, long timestamps) {
 		System.out.println("createMerge " + source + " -> " + target);
 		/*
@@ -96,7 +95,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createEdge(v01, v11, EdgeType.RUNNING);
 		createEdge(v11, v10, EdgeType.DEFAULT);
 	}
-	
+
 	public void handle_sched_process_fork(TraceReader reader, EventDefinition event) {
 		HashMap<String, Definition> def = event.getFields().getDefinitions();
 		long timestamps = event.getTimestamp();
@@ -119,12 +118,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		long timestamps = event.getTimestamp();
 		IntegerDefinition tidDef = (IntegerDefinition) def.get("_tid");
 		Task task = system.getTask(tidDef.getValue());
-		
+
 		if (task == null)
 			return;
 		if (!filter.containsTaskTid(task))
 			return;
-		
+
 		// v0 ---> v1
 
 		ExecVertex v0 = graph.getEndVertexOf(task);
@@ -137,12 +136,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		long timestamps = event.getTimestamp();
 		IntegerDefinition tidDef = (IntegerDefinition) def.get("_tid");
 		Task target = system.getTask(tidDef.getValue());
-		
+
 		if (!filter.containsTaskTid(target))
 			return;
-		
+
 		Object source = null;
-		
+
 		// 1 - hrtimer wakeup
 		HRTimer timer = hrtimerExpire[event.getCPU()];
 		if (timer != null) {
@@ -172,6 +171,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		IntegerDefinition hrtimerField = (IntegerDefinition) def.get("_hrtimer");
 		HRTimer timer = system.getHRTimers().get(hrtimerField.getValue());
 		Task current = system.getTaskCpu(event.getCPU());
+		if (current == null)
+			return;
 		if (!filter.containsTaskTid(current))
 			return;
 		createSplit(current, timer, event.getTimestamp());
@@ -182,11 +183,11 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		IntegerDefinition hrtimerField = (IntegerDefinition) def.get("_hrtimer");
 		hrtimerExpire[event.getCPU()] = system.getHRTimers().get(hrtimerField.getValue());
 	}
-	
+
 	public void handle_hrtimer_expire_exit(TraceReader reader, EventDefinition event) {
 		hrtimerExpire[event.getCPU()] = null;
 	}
-	
+
 	@Override
 	public void handleComplete(TraceReader reader) {
 	}

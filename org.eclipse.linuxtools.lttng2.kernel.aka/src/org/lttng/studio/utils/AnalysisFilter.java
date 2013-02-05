@@ -51,8 +51,10 @@ public class AnalysisFilter  implements ITraceModel {
 	public Set<String> getCommands() {
 		return commands;
 	}
-	
+
 	public boolean containsTaskTid(Task task) {
+		if (task == null)
+			return false;
 		return tids.contains(task.getTid());
 	}
 

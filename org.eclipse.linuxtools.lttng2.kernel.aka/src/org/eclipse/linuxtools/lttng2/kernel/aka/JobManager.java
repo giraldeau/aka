@@ -41,9 +41,6 @@ public class JobManager {
 		if (trace == null)
 			return;
 
-		if (jobMap.containsKey(trace))
-			return;
-
 		// Our analyzer only accepts CtfTmfTrace
 		final AnalyzerThread thread = new AnalyzerThread();
 		if (trace instanceof CtfTmfTrace) {
@@ -70,12 +67,20 @@ public class JobManager {
 				}
 				registryMap.put(trace, thread.getReader().getRegistry());
 				fireJobReady(trace);
+				synchronized (jobMap) {
+					jobMap.remove(trace);
+				}
 				return Status.OK_STATUS;
 			}
 		};
 		job.setUser(true);
-		job.schedule();
-		jobMap.put(trace, job);
+
+		synchronized (jobMap) {
+			if (jobMap.containsKey(trace))
+				return;
+			job.schedule();
+			jobMap.put(trace, job);
+		}
 	}
 
 	public void addListener(JobListener listener) {
