@@ -5,12 +5,23 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.linuxtools.lttng2.kernel.aka.JobListener;
+import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
+import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.FD;
+import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.kernel.TaskBlockings;
 import org.lttng.studio.reader.TraceReader;
 import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.StatedumpEventHandler;
@@ -20,7 +31,7 @@ import org.lttng.studio.tests.basic.TestTraceset;
 
 public class TestState {
 
-	//@Test
+	@Test
 	public void testStatedumpTask() throws Exception {
 		File traceDir = TestTraceset.getKernelTrace("burnP6-1x-1sec-k");
 		TraceReader reader = new TraceReader();
@@ -33,7 +44,7 @@ public class TestState {
 		assertTrue(tasks.size() > 0);
 	}
 
-	//@Test
+	@Test
 	public void testStatedumpFDs() throws Exception {
 		File traceDir = TestTraceset.getKernelTrace("burnP6-1x-1sec-k");
 		TraceReader reader = new TraceReader();
@@ -46,7 +57,7 @@ public class TestState {
 		assertTrue(fds.size() > 0);
 	}
 
-	//@Test
+	@Test
 	public void testRetrieveCurrentTask() throws Exception {
 		File traceDir = TestTraceset.getKernelTrace("burnP6-1x-1sec-k");
 		TraceReader reader = new TraceReader();
@@ -83,4 +94,29 @@ public class TestState {
 		assertEquals(0, h1.getSchedSwitchUnkownTask());
 	}
 
+	@Test
+	public void testAnalysis1() throws IOException, InterruptedException, TmfTraceException {
+		File traceDir = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
+		int i;
+		int max = 100;
+		ArrayList<Job> jobs = new ArrayList<Job>();
+		for (i = 0; i < max; i++) {
+			CtfTmfTrace ctfTmfTrace = new CtfTmfTrace();
+			ctfTmfTrace.initTrace(null, traceDir.getCanonicalPath(), CtfTmfEvent.class);
+
+			JobManager.getInstance().addListener(new JobListener() {
+				@Override
+				public void ready(ITmfTrace experiment) {
+					ModelRegistry registry = JobManager.getInstance().getRegistry(experiment);
+					TaskBlockings model = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
+					//System.out.println(model.getEntries());
+				}
+			});
+			Job job = JobManager.getInstance().launch(ctfTmfTrace);
+			jobs.add(job);
+		}
+		for (i = 0; i < max; i++) {
+			jobs.get(i).join();
+		}
+	}
 }
