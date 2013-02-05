@@ -22,12 +22,10 @@ public class JobManager {
 
 	private static JobManager instance;
 	private final HashMap<ITmfTrace, ModelRegistry> registryMap;
-	private final HashMap<ITmfTrace, Job> jobMap;
 	private final List<JobListener> listeners;
 
-	private JobManager() {
+	public JobManager() {
 		registryMap = new HashMap<ITmfTrace, ModelRegistry>();
-		jobMap = new HashMap<ITmfTrace, Job>();
 		listeners = new ArrayList<JobListener>();
 	}
 
@@ -37,14 +35,16 @@ public class JobManager {
 		return instance;
 	}
 
-	public synchronized void launch(final ITmfTrace trace) {
+	public synchronized Job launch(final ITmfTrace trace) {
 		if (trace == null)
-			return;
+			return null;
 
 		// Our analyzer only accepts CtfTmfTrace
 		final AnalyzerThread thread = new AnalyzerThread();
 		if (trace instanceof CtfTmfTrace) {
 			thread.addTrace((CtfTmfTrace)trace);
+		} else {
+			return null;
 		}
 
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
@@ -52,7 +52,7 @@ public class JobManager {
 		thread.addPhase(new AnalysisPhase("Statedump", phase1));
 		thread.addPhase(new AnalysisPhase("Model recovery", phase2));
 
-		Job job = new Job("long running action") {
+		Job job = new Job("Advanced Kernel Analysis") {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
 				TimeLoadingListener listener = new TimeLoadingListener("Trace processing",
@@ -65,40 +65,42 @@ public class JobManager {
 					e.printStackTrace();
 					return Status.CANCEL_STATUS;
 				}
-				registryMap.put(trace, thread.getReader().getRegistry());
-				fireJobReady(trace);
-				synchronized (jobMap) {
-					jobMap.remove(trace);
+				synchronized (registryMap) {
+					registryMap.put(trace, thread.getReader().getRegistry());
 				}
+				fireJobReady(trace);
 				return Status.OK_STATUS;
 			}
 		};
 		job.setUser(true);
-
-		synchronized (jobMap) {
-			if (jobMap.containsKey(trace))
-				return;
-			job.schedule();
-			jobMap.put(trace, job);
-		}
+		job.schedule();
+		return job;
 	}
 
 	public void addListener(JobListener listener) {
-		listeners.add(listener);
+		synchronized (listeners) {
+			listeners.add(listener);
+		}
 	}
 
 	public void removeListener(JobListener listener) {
-		listeners.remove(listener);
+		synchronized (listeners) {
+			listeners.remove(listener);
+		}
 	}
 
 	public void fireJobReady(ITmfTrace trace) {
-		for (JobListener listener: listeners) {
-			listener.ready(trace);
+		synchronized (listeners) {
+			for (JobListener listener: listeners) {
+				listener.ready(trace);
+			}
 		}
 	}
 
 	public ModelRegistry getRegistry(ITmfTrace trace) {
-		return registryMap.get(trace);
+		synchronized (registryMap) {
+			return registryMap.get(trace);
+		}
 	}
 
 }

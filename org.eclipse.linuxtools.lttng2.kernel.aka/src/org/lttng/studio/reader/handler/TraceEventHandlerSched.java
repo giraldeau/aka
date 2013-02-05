@@ -90,11 +90,11 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		IntegerDefinition next = (IntegerDefinition) def.get("_next_tid");
 		IntegerDefinition prev = (IntegerDefinition) def.get("_prev_tid");
 		IntegerDefinition prev_state = (IntegerDefinition) def.get("_prev_state");
-		
+
 		system.setCurrentTid(cpu, next.getValue());
 
 		_update_task_state(next.getValue(), process_status.RUN);
-		
+
 		// prev_state == 0 means runnable, thus waits for cpu
 		if (prev_state.getValue() == 0) {
 			_update_task_state(prev.getValue(), process_status.WAIT_CPU);

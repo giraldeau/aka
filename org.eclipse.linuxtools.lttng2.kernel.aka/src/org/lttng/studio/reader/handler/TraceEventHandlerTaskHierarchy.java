@@ -41,6 +41,7 @@ public class TraceEventHandlerTaskHierarchy  extends TraceEventHandlerBase {
 
 		if (parent == null || child == null) {
 			System.err.println("parent " + parent + " child " + child);
+			return;
 		}
 
 		DirectedGraph<Task,DefaultEdge> directedGraph = graph.getGraph();

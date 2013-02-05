@@ -125,6 +125,9 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		long tid = ((IntegerDefinition) def.get("_tid")).getValue();
 		Task blockedTask = system.getTask(tid);
 
+		if (blockedTask == null)
+			return;
+
 		// spurious wake-up
 		if (blockedTask.getProcessStatus() != Task.process_status.WAIT_BLOCKED) {
 			wakeup[event.getCPU()] = null;

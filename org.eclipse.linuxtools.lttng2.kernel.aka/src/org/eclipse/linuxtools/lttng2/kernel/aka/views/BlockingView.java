@@ -22,12 +22,12 @@ import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPart;
+import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -48,6 +48,8 @@ public class BlockingView extends TmfView implements JobListener {
 
 	private Task current;
 
+	private final JobManager manager;
+
 	ISelectionListener selListener = new ISelectionListener() {
 		@Override
 		public void selectionChanged(IWorkbenchPart part, ISelection selection) {
@@ -57,22 +59,29 @@ public class BlockingView extends TmfView implements JobListener {
 						.getFirstElement();
 				if (element instanceof ControlFlowEntry) {
 					ControlFlowEntry entry = (ControlFlowEntry) element;
-					ModelRegistry registry = JobManager.getInstance().getRegistry(fTrace);
+					if (registry == null)
+						return;
 					SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
 					TaskBlockings blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
+					if (system == null || blockings == null)
+						return;
 					Task task = system.getTask(entry.getThreadId());
 					if (task == current)
 						return;
 					current = task;
 					List<TaskBlockingEntry> list = blockings.getEntries().get(task);
+					System.out.println(list);
 					table.setInput(list);
 				}
 			}
 		}
 	};
 
+	private ModelRegistry registry;
+
 	public BlockingView() {
 		super(ID);
+		manager = new JobManager();
 	}
 
 	@Override
@@ -85,7 +94,7 @@ public class BlockingView extends TmfView implements JobListener {
 		Table t = table.getTable();
 		t.setHeaderVisible(true);
 		t.setLinesVisible(true);
-
+		createColumns();
 		table.setInput(null);
 
 		// get selection events
@@ -93,28 +102,52 @@ public class BlockingView extends TmfView implements JobListener {
 				.addPostSelectionListener(selListener);
 
 		// receive signal about processed trace
-		JobManager.getInstance().addListener(this);
+		manager.addListener(this);
 
-        IEditorPart editor = getSite().getPage().getActiveEditor();
-        if (editor instanceof ITmfTraceEditor) {
-            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
-            if (trace != null) {
-                traceSelected(new TmfTraceSelectedSignal(this, trace));
-            }
-        }
+    	IEditorPart editor = getSite().getPage().getActiveEditor();
+    	if (editor instanceof ITmfTraceEditor) {
+    	    ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+    	    if (trace != null) {
+    	    	traceSelected(new TmfTraceSelectedSignal(this, trace));
+    	    }
+    	}
 	}
 
-	public void createColumns(Composite parent) {
+	private void createColumns() {
 		TableViewerColumn col = new TableViewerColumn(table, SWT.NONE);
 		col.getColumn().setWidth(200);
-		col.getColumn().setText("Col 1");
+		col.getColumn().setText("Timestamp");
 		col.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
-				String s = (String) element;
-				return s;
+			    TaskBlockingEntry entry = (TaskBlockingEntry) element;
+			    return String.format("%d", entry.getInterval().getStart());
 			}
 		});
+
+		col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Duration");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				TaskBlockingEntry entry = (TaskBlockingEntry) element;
+				return String.format("%.9f", ((double)entry.getInterval().duration()) /  1000000000 );
+			}
+		});
+
+		col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Syscall");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				TaskBlockingEntry entry = (TaskBlockingEntry) element;
+				System.out.println(entry);
+				return entry.getSyscall().getDeclaration().getName();
+			}
+		});
+
 	}
 
 	@TmfSignalHandler
@@ -122,9 +155,22 @@ public class BlockingView extends TmfView implements JobListener {
 		if (signal.getTrace() == fTrace)
 			return;
 		fTrace = signal.getTrace();
+		registry = null;
 		table.setInput(null);
-		table.getControl().setEnabled(false);
-		JobManager.getInstance().launch(fTrace);
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				System.out.println("ugly hack: waiting");
+				try {
+					Thread.sleep(10000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				System.out.println("ugly hack: go!");
+				manager.launch(fTrace);
+			}
+		};
+		t.start();
 	}
 
 	public void traceClosed(final TmfTraceClosedSignal signal) {
@@ -157,12 +203,10 @@ public class BlockingView extends TmfView implements JobListener {
 
 	@Override
 	public void ready(ITmfTrace trace) {
-		Display.getDefault().asyncExec(new Runnable() {
-            @Override
-            public void run() {
-            	table.getControl().setEnabled(true);
-            }
-		});
+		System.out.println("trace ready");
+		registry = manager.getRegistry(fTrace);
+		EventCounter model = registry.getModel(IModelKeys.SHARED, EventCounter.class);
+		System.out.println(model.getCounter());
 	}
 
 }
