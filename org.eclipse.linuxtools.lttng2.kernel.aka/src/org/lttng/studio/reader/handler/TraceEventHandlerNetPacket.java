@@ -2,9 +2,7 @@ package org.lttng.studio.reader.handler;
 
 import java.util.HashMap;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
@@ -48,13 +46,12 @@ public class TraceEventHandlerNetPacket extends TraceEventHandlerBase {
 	public void handleComplete(TraceReader reader) {
 	}
 
-	public Event makeEvent(EventDefinition event, Type type) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long sk = ((IntegerDefinition) def.get("_sk")).getValue();
-		int seq = (int) ((IntegerDefinition) def.get("_seq")).getValue();
-		return new Event(event.getTimestamp(), sk, seq, type);
+	public Event makeEvent(CtfTmfEvent event, Type type) {
+		long sk = EventField.getLong(event, "sk");
+		int seq = (int) EventField.getLong(event, "seq");
+		return new Event(event.getTimestamp().getValue(), sk, seq, type);
 	}
-	public void handle_inet_sock_local_in(TraceReader reader, EventDefinition event) {
+	public void handle_inet_sock_local_in(TraceReader reader, CtfTmfEvent event) {
 		Event recv = makeEvent(event, Type.RECV);
 		if (recv.sk == 0)
 			return;
@@ -74,7 +71,7 @@ public class TraceEventHandlerNetPacket extends TraceEventHandlerBase {
 		*/
 	}
 
-	public void handle_inet_sock_local_out(TraceReader reader, EventDefinition event) {
+	public void handle_inet_sock_local_out(TraceReader reader, CtfTmfEvent event) {
 		Event send = makeEvent(event, Type.SEND);
 		//System.out.println("SEND " + send.sk + " " + send.seq);
 		match.put(send.seq, send);

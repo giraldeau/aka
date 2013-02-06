@@ -25,7 +25,7 @@ public class TestTaskBlocking {
 	public void testTaskBlocking() throws Exception {
 		File traceDir = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
 		TraceReader reader = new TraceReader();
-		reader.addTrace(traceDir);
+		reader.setTrace(traceDir);
 
 		// Phase 1: build initial state
 		StatedumpEventHandler h0 = new StatedumpEventHandler();
@@ -47,7 +47,7 @@ public class TestTaskBlocking {
 			if (task.getName().endsWith("sleep")) {
 				List<TaskBlockingEntry> entries = blockings.getEntries().get(task);
 				for (TaskBlockingEntry entry: entries) {
-					if (entry.getSyscall().getDeclaration().getName().equals("sys_nanosleep")) {
+					if (entry.getSyscall().getEventName().equals("sys_nanosleep")) {
 						sleep = entry;
 						break;
 					}

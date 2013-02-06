@@ -1,11 +1,8 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.HashMap;
 import java.util.Set;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceHook;
@@ -34,30 +31,29 @@ public class WakeupContextHandler extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("irq_handler_exit"));
 	}
 
-	public void handle_softirq_entry(TraceReader reader, EventDefinition event) {
+	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
 		context[event.getCPU()] = Context.SOFTIRQ;
 	}
 
-	public void handle_softirq_exit(TraceReader reader, EventDefinition event) {
+	public void handle_softirq_exit(TraceReader reader, CtfTmfEvent event) {
 		context[event.getCPU()] = Context.DEFAULT;
 	}
 
-	public void handle_irq_handler_entry(TraceReader reader, EventDefinition event) {
+	public void handle_irq_handler_entry(TraceReader reader, CtfTmfEvent event) {
 		context[event.getCPU()] = Context.IRQ;
 	}
 
-	public void handle_irq_handler_exit(TraceReader reader, EventDefinition event) {
+	public void handle_irq_handler_exit(TraceReader reader, CtfTmfEvent event) {
 		context[event.getCPU()] = Context.DEFAULT;
 	}
 
-	public void handle_sched_wakeup(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition wakee = (IntegerDefinition) def.get("_tid");
+	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
+		long wakeeTid = EventField.getLong(event, "tid");
 		long curr = system.getCurrentTid(event.getCPU());
 		Task currTask = system.getTask(curr);
-		Task wakeeTask = system.getTask(wakee.getValue());
+		Task wakeeTask = system.getTask(wakeeTid);
 		Set<Long> tids = filter.getTids();
-		if (tids.contains(curr) || tids.contains(wakee.getValue())) {
+		if (tids.contains(curr) || tids.contains(wakeeTid)) {
 			System.out.println(String.format("wakeup %10s %10s %10s", currTask, wakeeTask, context[event.getCPU()]));
 		}
 	}

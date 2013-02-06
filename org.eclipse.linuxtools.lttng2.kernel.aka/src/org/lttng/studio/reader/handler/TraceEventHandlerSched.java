@@ -2,11 +2,7 @@ package org.lttng.studio.reader.handler;
 
 import java.util.HashMap;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.ArrayDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.StringDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.CloneFlags;
 import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.FDSet;
@@ -59,7 +55,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("sched_switch"));
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));
-		//hooks.add(new TraceHook(""));
 		hooks.add(new TraceHook()); // get all events to check sys_* events
 		hooks.add(new TraceHook("sys_execve"));
 		hooks.add(new TraceHook("sys_clone"));
@@ -84,71 +79,67 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		};
 	}
 
-	public void handle_sched_switch(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
-		IntegerDefinition next = (IntegerDefinition) def.get("_next_tid");
-		IntegerDefinition prev = (IntegerDefinition) def.get("_prev_tid");
-		IntegerDefinition prev_state = (IntegerDefinition) def.get("_prev_state");
+		long next = EventField.getLong(event, "next_tid");
+		long prev = EventField.getLong(event, "prev_tid");
+		long prev_state = EventField.getLong(event, "prev_state");
 
-		system.setCurrentTid(cpu, next.getValue());
+		system.setCurrentTid(cpu, next);
 
-		_update_task_state(next.getValue(), process_status.RUN);
+		_update_task_state(next, process_status.RUN);
 
 		// prev_state == 0 means runnable, thus waits for cpu
-		if (prev_state.getValue() == 0) {
-			_update_task_state(prev.getValue(), process_status.WAIT_CPU);
+		if (prev_state == 0) {
+			_update_task_state(prev, process_status.WAIT_CPU);
 		} else {
-			_update_task_state(prev.getValue(), process_status.WAIT_BLOCKED);
+			_update_task_state(prev, process_status.WAIT_BLOCKED);
 		}
 	}
 
-	public void handle_sched_process_fork(TraceReader reader, EventDefinition event) {
+	public void handle_sched_process_fork(TraceReader reader, CtfTmfEvent event) {
 		// TODO: add child to parent's children list
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition parent = (IntegerDefinition) def.get("_parent_tid");
-		IntegerDefinition child = (IntegerDefinition) def.get("_child_tid");
-		ArrayDefinition name = (ArrayDefinition) def.get("_child_comm");
+		long parent = EventField.getLong(event, "parent_tid");
+		long child = EventField.getLong(event, "child_tid");
+		String name = EventField.getString(event, "child_comm");
 		Task task = new Task();
-		task.setName(name.toString());
-		task.setPid(parent.getValue());
-		task.setPpid(parent.getValue());
-		task.setTid(child.getValue());
-		task.setStart(event.getTimestamp());
+		task.setName(name);
+		task.setPid(parent);
+		task.setPpid(parent);
+		task.setTid(child);
+		task.setStart(event.getTimestamp().getValue());
 		system.putTask(task);
 
 		// copy any outstanding event data to handle sys_clone exit
-		EventData data = evHistory.get(parent.getValue());
-		evHistory.put(child.getValue(), data);
+		EventData data = evHistory.get(parent);
+		evHistory.put(child, data);
 	}
 
-	public void handle_sched_process_exit(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition tid = (IntegerDefinition) def.get("_tid");
-		Task task = system.getTask(tid.getValue());
+	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {
+		long tid = EventField.getLong(event, "tid");
+		Task task = system.getTask(tid);
 		if (task == null)
 			return;
-		task.setEnd(event.getTimestamp());
+		task.setEnd(event.getTimestamp().getValue());
 		task.setProcessStatus(process_status.EXIT);
 	}
 
-	public void handle_all_event(TraceReader reader, EventDefinition event) {
+	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		// ugly event matching, may clash
-		if (!event.getDeclaration().getName().startsWith("sys_"))
-			return;
-		int cpu = event.getCPU();
-		long tid = system.getCurrentTid(cpu);
-		Task curr = system.getTask(tid);
-		if (curr == null)
-			return;
-		curr.setExecutionMode(execution_mode.SYSCALL);
+		if (event.getEventName().startsWith("sys_")) {
+			int cpu = event.getCPU();
+			long tid = system.getCurrentTid(cpu);
+			Task curr = system.getTask(tid);
+			if (curr == null)
+				return;
+			curr.setExecutionMode(execution_mode.SYSCALL);
+		}
 	}
 
-	public void handle_sys_execve(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_sys_execve(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
-		String filename = ((StringDefinition) def.get("_filename")).toString();
+		String filename = EventField.getString(event, "filename");
 		EventData data = new EventData();
 		data.type = EventType.SYS_EXECVE;
 		String cleanFile = StringHelper.unquote(filename);
@@ -156,23 +147,20 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		evHistory.put(tid, data);
 	}
 
-	public void handle_sys_clone(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_sys_clone(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
 		if (tid == 0) {
-			long time = TraceReader.clockTime(event);
-			System.err.println("WARNING: swapper clone cpu=" + cpu + " at " + time);
+			System.err.println("WARNING: swapper clone cpu=" + cpu + " at " + event.getTimestamp().getValue());
 		}
-		long flags = ((IntegerDefinition) def.get("_clone_flags")).getValue();
+		long flags = EventField.getLong(event, "clone_flags");
 		EventData data = new EventData();
 		data.flags = flags;
 		data.type = EventType.SYS_CLONE;
 		evHistory.put(tid, data); // tid of the clone caller
 	}
 
-	public void handle_exit_syscall(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
 		Task task = system.getTask(tid);
@@ -182,7 +170,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		// return to user-space
 		task.setExecutionMode(execution_mode.USER_MODE);
 
-		long ret = ((IntegerDefinition) def.get("_ret")).getValue();
+		long ret = EventField.getLong(event, "ret");
 		EventData ev = evHistory.remove(task.getTid());
 		if (ev == null)
 			return;

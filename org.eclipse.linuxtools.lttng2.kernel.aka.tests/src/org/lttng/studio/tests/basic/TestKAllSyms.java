@@ -1,5 +1,7 @@
 package org.lttng.studio.tests.basic;
 
+import static org.junit.Assert.assertTrue;
+
 import java.math.BigInteger;
 
 import org.junit.Test;
@@ -18,7 +20,7 @@ public class TestKAllSyms {
 		syms.parseLine(line2);
 		syms.parseLine(line3);
 		String sym = syms.getSymbol(new BigInteger("b03A", 16));
-		System.out.println("sym " + sym);
+		assertTrue(sym.compareTo("cpu_core_map") == 0);
 	}
 
 }

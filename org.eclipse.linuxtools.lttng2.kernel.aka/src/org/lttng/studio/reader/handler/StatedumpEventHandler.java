@@ -1,12 +1,6 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.HashMap;
-
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.ArrayDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.StringDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -39,41 +33,40 @@ public class StatedumpEventHandler extends TraceEventHandlerBase {
 	public void handleComplete(TraceReader reader) {
 	}
 
-	public void handle_lttng_statedump_start(TraceReader reader, EventDefinition event) {
+	public void handle_lttng_statedump_start(TraceReader reader, CtfTmfEvent event) {
 	}
 
-	public void handle_lttng_statedump_end(TraceReader reader, EventDefinition event) {
+	public void handle_lttng_statedump_end(TraceReader reader, CtfTmfEvent event) {
 		reader.cancel();
 	}
 
-	public void handle_lttng_statedump_file_descriptor(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition pid = (IntegerDefinition) def.get("_pid");
-		StringDefinition filename = (StringDefinition) def.get("_filename");
-		IntegerDefinition fd = (IntegerDefinition) def.get("_fd");
-		Task task = system.getTask(pid.getValue());
-		system.addTaskFD(task, new FD(fd.getValue(), filename.getValue()));
+	public void handle_lttng_statedump_file_descriptor(TraceReader reader, CtfTmfEvent event) {
+		long pid = EventField.getLong(event, "pid");
+		String filename = EventField.getString(event, "filename");
+		long fd = EventField.getLong(event, "fd");
+		Task task = system.getTask(pid);
+		system.addTaskFD(task, new FD(fd, filename));
 	}
 
-	public void handle_lttng_statedump_process_state(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition pid = (IntegerDefinition) def.get("_pid");
-		IntegerDefinition tid = (IntegerDefinition) def.get("_tid");
-		IntegerDefinition ppid = (IntegerDefinition) def.get("_ppid");
-		IntegerDefinition type = (IntegerDefinition) def.get("_type");
-		IntegerDefinition mode = (IntegerDefinition) def.get("_mode");
-		IntegerDefinition submode = (IntegerDefinition) def.get("_submode");
-		IntegerDefinition status = (IntegerDefinition) def.get("_status");
-		ArrayDefinition name = (ArrayDefinition) def.get("_name");
+	public void handle_lttng_statedump_process_state(TraceReader reader, CtfTmfEvent event) {
+		long pid = EventField.getLong(event, "pid");
+		long tid = EventField.getLong(event, "tid");
+		long ppid = EventField.getLong(event, "ppid");
+		long type = EventField.getLong(event, "type");
+		long mode = EventField.getLong(event, "mode");
+		long submode = EventField.getLong(event, "submode");
+		long status = EventField.getLong(event, "status");
 
-		Task task = new Task(tid.getValue());
-		task.setPid(pid.getValue());
-		task.setPpid(ppid.getValue());
-		task.setExecutionMode(mode.getValue());
-		task.setExecutionSubmode(submode.getValue());
-		task.setProcessStatus(status.getValue());
-		task.setThreadType(type.getValue());
-		task.setName(name.toString());
+		String name = EventField.getString(event, "name");
+
+		Task task = new Task(tid);
+		task.setPid(pid);
+		task.setPpid(ppid);
+		task.setExecutionMode(mode);
+		task.setExecutionSubmode(submode);
+		task.setProcessStatus(status);
+		task.setThreadType(type);
+		task.setName(name);
 		system.putTask(task);
 	}
 }

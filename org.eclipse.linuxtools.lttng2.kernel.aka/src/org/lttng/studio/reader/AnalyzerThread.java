@@ -1,13 +1,15 @@
 package org.lttng.studio.reader;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
-import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
+import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
 public class AnalyzerThread extends Thread {
-	private final ArrayList<CtfTmfTrace> traces;
+
 	private TimeListener listener;
 	private final Collection<AnalysisPhase> phases;
 	private final TraceReader reader;
@@ -16,16 +18,12 @@ public class AnalyzerThread extends Thread {
 		super();
 		setListener(null);
 		reader = new TraceReader();
-		traces = new ArrayList<CtfTmfTrace>();
 		phases = new ArrayList<AnalysisPhase>();
 	}
 
 	@Override
 	public void run() {
 		int curr = 0;
-		for (CtfTmfTrace t: traces) {
-			reader.addReader(new CTFTraceReader(t.getCTFTrace()));
-		}
 		for (AnalysisPhase phase: phases) {
 			listener.phase(curr);
 			processOnePhase(phase);
@@ -58,20 +56,6 @@ public class AnalyzerThread extends Thread {
 			this.listener = new DummyTimeListener();
 	}
 
-	public void addTrace(CtfTmfTrace info) {
-		traces.add(info);
-	}
-
-	public void addAllTraces(Collection<CtfTmfTrace> info) {
-		if (info == null)
-			return;
-		traces.addAll(info);
-	}
-
-	public Collection<CtfTmfTrace> getTraces() {
-		return traces;
-	}
-
 	public TraceReader getReader() {
 		return reader;
 	}
@@ -86,6 +70,14 @@ public class AnalyzerThread extends Thread {
 		if (this.phases != null)
 			return this.phases.size();
 		return 0;
+	}
+
+	public void setTrace(ITmfTrace trace) {
+		reader.setTrace(trace);
+	}
+
+	public void setTrace(File trace) throws TmfTraceException, IOException {
+		reader.setTrace(trace);
 	}
 
 }

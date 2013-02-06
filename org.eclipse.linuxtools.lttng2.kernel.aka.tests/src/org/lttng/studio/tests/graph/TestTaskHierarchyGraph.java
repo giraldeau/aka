@@ -1,6 +1,6 @@
 package org.lttng.studio.tests.graph;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,7 +32,7 @@ public class TestTaskHierarchyGraph {
 
 		System.out.println(phase2);
 
-		thread.addTrace(ctfTmfTrace);
+		thread.setTrace(ctfTmfTrace);
 		thread.addPhase(new AnalysisPhase("test", phase1));
 		thread.addPhase(new AnalysisPhase("test", phase2));
 		thread.start();

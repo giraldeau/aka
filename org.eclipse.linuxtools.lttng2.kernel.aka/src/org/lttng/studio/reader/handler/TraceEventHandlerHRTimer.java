@@ -1,10 +1,6 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.HashMap;
-
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.HRTimer;
 import org.lttng.studio.model.kernel.HRTimer.HRTimerState;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -38,27 +34,26 @@ public class TraceEventHandlerHRTimer extends TraceEventHandlerBase {
 		HRTimer timer = system.getHRTimers().get(id);
 		if (timer == null) {
 			timer = new HRTimer(id, HRTimerState.INIT);
-			system.getHRTimers().put(id, timer);	
+			system.getHRTimers().put(id, timer);
 		}
 		return timer;
 	}
 
-	private void handleHRTimerEventGeneric(EventDefinition event, HRTimerState state) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition hrtimerIdDef = (IntegerDefinition) def.get("_hrtimer");
-		HRTimer timer = getOrCreateHRTimer(hrtimerIdDef.getValue());
+	private void handleHRTimerEventGeneric(CtfTmfEvent event, HRTimerState state) {
+		long hrtimer = EventField.getLong(event, "hrtimer");
+		HRTimer timer = getOrCreateHRTimer(hrtimer);
 		timer.setState(state);
 	}
-	
-	public void handle_hrtimer_init(TraceReader reader, EventDefinition event) {
+
+	public void handle_hrtimer_init(TraceReader reader, CtfTmfEvent event) {
 		handleHRTimerEventGeneric(event, HRTimerState.INIT);
 	}
 
-	public void handle_hrtimer_start(TraceReader reader, EventDefinition event) {
+	public void handle_hrtimer_start(TraceReader reader, CtfTmfEvent event) {
 		handleHRTimerEventGeneric(event, HRTimerState.START);
 	}
 
-	public void handle_hrtimer_cancel(TraceReader reader, EventDefinition event) {
+	public void handle_hrtimer_cancel(TraceReader reader, CtfTmfEvent event) {
 		handleHRTimerEventGeneric(event, HRTimerState.CANCEL);
 	}
 

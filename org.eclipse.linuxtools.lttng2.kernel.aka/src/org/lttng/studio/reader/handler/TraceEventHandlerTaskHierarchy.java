@@ -1,10 +1,6 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.HashMap;
-
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.lttng.studio.model.graph.TaskHierarchyGraph;
@@ -30,14 +26,12 @@ public class TraceEventHandlerTaskHierarchy  extends TraceEventHandlerBase {
 		system.init(reader);
 	}
 
-	public void handle_sched_process_fork(TraceReader reader, EventDefinition event) {
+	public void handle_sched_process_fork(TraceReader reader, CtfTmfEvent event) {
 		// TODO: add child to parent's children list
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition parentTidDef = (IntegerDefinition) def.get("_parent_tid");
-		IntegerDefinition childTidDef = (IntegerDefinition) def.get("_child_tid");
-		//ArrayDefinition name = (ArrayDefinition) def.get("_child_comm");
-		Task parent = system.getTask(parentTidDef.getValue());
-		Task child = system.getTask(childTidDef.getValue());
+		long parentTid = EventField.getLong(event, "parent_tid");
+		long childTid = EventField.getLong(event, "child_tid");
+		Task parent = system.getTask(parentTid);
+		Task child = system.getTask(childTid);
 
 		if (parent == null || child == null) {
 			System.err.println("parent " + parent + " child " + child);

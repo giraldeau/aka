@@ -1,10 +1,6 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.HashMap;
-
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.Inet4Sock;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -32,18 +28,17 @@ public class StatedumpInetSockEventHandler extends TraceEventHandlerBase {
 
 	}
 
-	public void handle_lttng_statedump_inet_sock(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition pid = (IntegerDefinition) def.get("_pid");
-		//IntegerDefinition fd = (IntegerDefinition) def.get("_fd");
-		IntegerDefinition sk = (IntegerDefinition) def.get("_sk");
+	public void handle_lttng_statedump_inet_sock(TraceReader reader, CtfTmfEvent event) {
+		long pid = EventField.getLong(event, "pid");
+		long sk = EventField.getLong(event, "sk");
+		//long fd = EventField.getLong(event, "fd");
 		Inet4Sock sock = new Inet4Sock();
-		sock.setSk(sk.getValue());
-		Task task = system.getTask(pid.getValue());
+		sock.setSk(sk);
+		Task task = system.getTask(pid);
 		system.addInetSock(task, sock);
 	}
 
-	public void handle_lttng_statedump_end(TraceReader reader, EventDefinition event) {
+	public void handle_lttng_statedump_end(TraceReader reader, CtfTmfEvent event) {
 		reader.cancel();
 	}
 }

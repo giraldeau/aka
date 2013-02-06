@@ -1,10 +1,6 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.HashMap;
-
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.graph.EdgeType;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
@@ -96,13 +92,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createEdge(v11, v10, EdgeType.DEFAULT);
 	}
 
-	public void handle_sched_process_fork(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long timestamps = event.getTimestamp();
-		IntegerDefinition parentTidDef = (IntegerDefinition) def.get("_parent_tid");
-		IntegerDefinition childTidDef = (IntegerDefinition) def.get("_child_tid");
-		Task parent = system.getTask(parentTidDef.getValue());
-		Task child = system.getTask(childTidDef.getValue());
+	public void handle_sched_process_fork(TraceReader reader, CtfTmfEvent event) {
+		long timestamps = event.getTimestamp().getValue();
+		long parentTid = EventField.getLong(event, "parent_tid");
+		long childTid = EventField.getLong(event, "child_tid");
+		Task parent = system.getTask(parentTid);
+		Task child = system.getTask(childTid);
 
 		if (parent == null || child == null) {
 			System.err.println("parent " + parent + " child " + child);
@@ -113,11 +108,10 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createSplit(parent, child, timestamps);
 	}
 
-	public void handle_sched_process_exit(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long timestamps = event.getTimestamp();
-		IntegerDefinition tidDef = (IntegerDefinition) def.get("_tid");
-		Task task = system.getTask(tidDef.getValue());
+	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {
+		long timestamps = event.getTimestamp().getValue();
+		long tid = EventField.getLong(event, "tid");
+		Task task = system.getTask(tid);
 
 		if (task == null)
 			return;
@@ -131,11 +125,10 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createEdge(v0, v1, EdgeType.RUNNING);
 	}
 
-	public void handle_sched_wakeup(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long timestamps = event.getTimestamp();
-		IntegerDefinition tidDef = (IntegerDefinition) def.get("_tid");
-		Task target = system.getTask(tidDef.getValue());
+	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
+		long timestamps = event.getTimestamp().getValue();
+		long tid = EventField.getLong(event, "tid");
+		Task target = system.getTask(tid);
 
 		if (!filter.containsTaskTid(target))
 			return;
@@ -166,25 +159,23 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createMerge(source, target, timestamps);
 	}
 
-	public void handle_hrtimer_init(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition hrtimerField = (IntegerDefinition) def.get("_hrtimer");
-		HRTimer timer = system.getHRTimers().get(hrtimerField.getValue());
+	public void handle_hrtimer_init(TraceReader reader, CtfTmfEvent event) {
+		long  hrtimer = EventField.getLong(event, "hrtimer");
+		HRTimer timer = system.getHRTimers().get(hrtimer);
 		Task current = system.getTaskCpu(event.getCPU());
 		if (current == null)
 			return;
 		if (!filter.containsTaskTid(current))
 			return;
-		createSplit(current, timer, event.getTimestamp());
+		createSplit(current, timer, event.getTimestamp().getValue());
 	}
 
-	public void handle_hrtimer_expire_entry(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		IntegerDefinition hrtimerField = (IntegerDefinition) def.get("_hrtimer");
-		hrtimerExpire[event.getCPU()] = system.getHRTimers().get(hrtimerField.getValue());
+	public void handle_hrtimer_expire_entry(TraceReader reader, CtfTmfEvent event) {
+		long hrtimer = EventField.getLong(event, "hrtimer");
+		hrtimerExpire[event.getCPU()] = system.getHRTimers().get(hrtimer);
 	}
 
-	public void handle_hrtimer_expire_exit(TraceReader reader, EventDefinition event) {
+	public void handle_hrtimer_expire_exit(TraceReader reader, CtfTmfEvent event) {
 		hrtimerExpire[event.getCPU()] = null;
 	}
 

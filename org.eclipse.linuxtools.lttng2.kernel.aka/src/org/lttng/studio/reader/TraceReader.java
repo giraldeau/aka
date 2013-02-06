@@ -1,22 +1,26 @@
 package org.lttng.studio.reader;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.trace.CTFReaderException;
-import org.eclipse.linuxtools.ctf.core.trace.CTFTrace;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
+import org.eclipse.linuxtools.ctf.core.trace.StreamInputReader;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
+import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
+import org.eclipse.linuxtools.tmf.core.event.TmfTimeRange;
+import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
+import org.eclipse.linuxtools.tmf.core.request.TmfDataRequest;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
+import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerBase;
@@ -29,28 +33,22 @@ public class TraceReader {
 	}
 
 	private final ModelRegistry registry;
-	private final List<CTFTraceReader> readers;
 	private final Map<Class<?>, ITraceEventHandler> handlers;
 	private final Map<String, TreeSet<TraceHook>> eventHookMap;
 	private final TreeSet<TraceHook> catchAllHook;
-	private static Class<?>[] argTypes = new Class<?>[] { TraceReader.class, EventDefinition.class };
-	private final TimeKeeper timeKeeper;
+	private static Class<?>[] argTypes = new Class<?>[] { TraceReader.class, CtfTmfEvent.class };
+	private ITmfTrace trace;
+	private long now;
 	private boolean cancel;
 	private int nbCpus;
 	private Exception exception;
-	private CTFTraceReader currentReader;
+	private TmfDataRequest request;
 
 	public TraceReader() {
 		handlers = new HashMap<Class<?>, ITraceEventHandler>();
 		eventHookMap = new HashMap<String, TreeSet<TraceHook>>();
 		catchAllHook = new TreeSet<TraceHook>();
-		readers = new ArrayList<CTFTraceReader>();
-		timeKeeper = TimeKeeper.getInstance();
 		registry = new ModelRegistry();
-	}
-
-	public void loadTrace() throws CTFReaderException {
-		checkNumStreams();
 	}
 
 	public void registerHook(ITraceEventHandler handler, TraceHook hook) {
@@ -115,36 +113,14 @@ public class TraceReader {
 		process(new DummyTimeListener());
 	}
 
-	public void process(TimeListener listener) throws Exception {
-		loadTrace();
-		EventDefinition event;
-		String eventName;
+	public void process(final TimeListener listener) throws Exception {
 		cancel = false;
+		if (trace == null)
+			throw new RuntimeException("Trace can't be null");
 
-		long min = Long.MAX_VALUE;
-		long max = Long.MIN_VALUE;
-		for (CTFTraceReader reader: readers) {
-			// FIXME: bug that returns null event:
-			// reader.goToLastEvent()
-			// reader.seek(reader.getEndTime())
-			// reader.getCurrentEventDef() ---> returns null, shouldn't
-			// FIXME: other bug: start1 != start2
-			// FIXME: other bug: second call to goToLastEvent() returns null event
-			reader.seek(0);
-			//long start1 = reader.getStartTime() + reader.getTrace().getOffset();
-			long start2 = reader.getCurrentEventDef().getTimestamp() + reader.getTrace().getOffset();
-			//System.out.println(String.format("start t1=%d t2=%d diff=%d", start1, start2, start1 - start2));
-
-			reader.goToLastEvent();
-			long end1 = reader.getEndTime();
-			//long end2 = reader.getCurrentEventDef().getTimestamp() + reader.getTrace().getOffset();
-			//System.out.println(String.format("end t1=%d t2=%d diff=%d", end1, end2, end1 - end2));
-
-			min = Math.min(min, start2);
-			max = Math.max(max, end1);
-			reader.seek(0);
-		}
-		listener.begin(min, max);
+		trace.seekEvent(Integer.MAX_VALUE);
+		TmfTimeRange timeRange = trace.getTimeRange();
+		listener.begin(timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue());
 
 		for(ITraceEventHandler handler: handlers.values()) {
 			if (cancel == true)
@@ -155,29 +131,36 @@ public class TraceReader {
 		if (exception != null)
 			throw exception;
 
-		PriorityQueue<CTFTraceReader> prio = new PriorityQueue<CTFTraceReader>(readers.size(), new CTFTraceReaderComparator());
-		prio.addAll(readers);
-		//while((event=getReader().getCurrentEventDef()) != null && cancel == false) {
-		while((setCurrentReader(prio.poll())) != null) {
-			if (listener.isCanceled()) {
-				break;
+		request = new TmfDataRequest(ITmfEvent.class) {
+			@Override
+			public void handleData(final ITmfEvent event) {
+				if (cancel == true || exception != null || listener.isCanceled())
+					request.cancel();
+				if (event instanceof CtfTmfEvent) {
+					CtfTmfEvent ctf = (CtfTmfEvent) event;
+					now = ctf.getTimestamp().getValue();
+					listener.progress(now);
+					String evName = ctf.getEventName();
+					TreeSet<TraceHook> treeSet = eventHookMap.get(evName);
+					if (treeSet != null)
+						TraceReader.this.runHookSet(treeSet, ctf);
+					TraceReader.this.runHookSet(catchAllHook, ctf);
+				}
 			}
-			event = getCurrentCtfReader().getCurrentEventDef();
-			if (event == null)
-				continue;
-			if (cancel == true || exception != null)
-				break;
-			long now = event.getTimestamp()+getCurrentCtfReader().getTrace().getOffset();
-			timeKeeper.setCurrentTime(now);
-			listener.progress(now);
-			eventName = event.getDeclaration().getName();
-			TreeSet<TraceHook> treeSet = eventHookMap.get(eventName);
-			if (treeSet != null)
-				runHookSet(treeSet, event);
-			runHookSet(catchAllHook, event);
-			getCurrentCtfReader().advance();
-			prio.add(getCurrentCtfReader());
-		}
+			@Override
+			public void handleCancel() {
+				cancel = true;
+			}
+			@Override
+			public void handleSuccess() {
+			}
+			@Override
+			public void handleFailure() {
+				cancel = true;
+			}
+		};
+		trace.sendRequest(request);
+		request.waitForCompletion();
 
 		// Re-throw any handler exception
 		if (exception != null)
@@ -190,7 +173,7 @@ public class TraceReader {
 		listener.finished();
 	}
 
-	public void runHookSet(TreeSet<TraceHook> hooks, EventDefinition event) {
+	public void runHookSet(TreeSet<TraceHook> hooks, CtfTmfEvent event) {
 		for (TraceHook h: hooks){
 			if (cancel == true)
 				break;
@@ -227,37 +210,51 @@ public class TraceReader {
 		return this.cancel;
 	}
 
-	public void addReader(CTFTraceReader reader) {
-		readers.add(reader);
-	}
-
-	public void checkNumStreams() {
-		if (readers.isEmpty())
-			return;
-		int min = Integer.MAX_VALUE;
-		int max = Integer.MIN_VALUE;
-		for (CTFTraceReader reader: readers) {
-			int num = getNumStreams(reader);
-			min = Math.min(num, min);
-			max = Math.max(num, max);
-		}
-		if (min != max) {
-			throw new RuntimeException("All traces must have the same number of streams");
-		}
-		setNbCpus(max);
-	}
-
-	public static int getNumStreams(CTFTraceReader reader) {
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public int getNumCpuFromCtfTrace(CtfTmfTrace ctf) {
+		int cpus = 0;
+		CTFTraceReader reader = new CTFTraceReader(ctf.getCTFTrace());
 		Field field;
+		Vector<StreamInputReader> v;
 		try {
 			field = reader.getClass().getDeclaredField("streamInputReaders");
 			field.setAccessible(true);
-			Vector v = (Vector) field.get(reader);
-			return v.size();
+			v = (Vector) field.get(reader);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("Error trying to retreive the number of CPUs of the trace");
 		}
+		for (StreamInputReader input: v) {
+			cpus = Math.max(cpus, input.getCPU() + 1);
+		}
+		return cpus;
+	}
+
+	public void updateNbCpus() {
+		int max = 0;
+		if (trace instanceof CtfTmfTrace) {
+			CtfTmfTrace ctf = (CtfTmfTrace) trace;
+			max = getNumCpuFromCtfTrace(ctf);
+		} else if (trace instanceof TmfExperiment) {
+			TmfExperiment exp = (TmfExperiment) trace;
+			for (ITmfTrace t: exp.getTraces()) {
+				if (t instanceof CtfTmfTrace) {
+					max = Math.max(max, getNumCpuFromCtfTrace((CtfTmfTrace)t));
+				}
+			}
+		}
+		setNbCpus(max);
+	}
+
+	public void setTrace(ITmfTrace trace) {
+		this.trace = trace;
+		updateNbCpus();
+	}
+
+	public void setTrace(File file) throws TmfTraceException, IOException {
+		CtfTmfTrace ctfTrace = new CtfTmfTrace();
+		ctfTrace.initTrace(null, file.getCanonicalPath(), ITmfEvent.class);
+		setTrace(ctfTrace);
 	}
 
 	public int getNumCpus() {
@@ -273,24 +270,7 @@ public class TraceReader {
 		this.eventHookMap.clear();
 	}
 
-	public void addTrace(File file) throws CTFReaderException {
-		CTFTraceReader reader = new CTFTraceReader(new CTFTrace(file));
-		addReader(reader);
-	}
-
-	public List<CTFTraceReader> getCTFTraceReaders() {
-		return readers;
-	}
-
-	public CTFTraceReader getCurrentCtfReader() {
-		return currentReader;
-	}
-
-	public CTFTraceReader setCurrentReader(CTFTraceReader currentReader) {
-		this.currentReader = currentReader;
-		return currentReader;
-	}
-
+	/* CtfTmfEvent already contains the offset
 	public static long clockTime(EventDefinition event) {
 		return (Long) event.getStreamInputReader()
 							.getParent()
@@ -298,8 +278,27 @@ public class TraceReader {
 							.getClock()
 							.getProperty("offset") + event.getTimestamp();
 	}
+	*/
 
 	public ModelRegistry getRegistry() {
 		return registry;
 	}
+
+	public long getCurrentTime() {
+		return now;
+	}
+
+	public static TmfExperiment makeTmfExperiment(ITmfTrace[] traceSet) {
+		return new TmfExperiment(ITmfEvent.class, "none", traceSet);
+	}
+
+	public static TmfExperiment makeTmfExperiment(File[] files) throws TmfTraceException, IOException {
+		CtfTmfTrace[] ctf = new CtfTmfTrace[files.length];
+		for (int i = 0; i < files.length; i++) {
+			ctf[i] = new CtfTmfTrace();
+			ctf[i].initTrace(null, files[i].getCanonicalPath(), ITmfEvent.class);
+		}
+		return makeTmfExperiment(ctf);
+	}
+
 }

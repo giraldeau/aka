@@ -12,6 +12,7 @@ public class TraceEventHandlerFactory {
 
 	public static Collection<ITraceEventHandler> makeBasic() {
 		ArrayList<ITraceEventHandler> list = new ArrayList<ITraceEventHandler>();
+		list.add(new TraceEventHandlerInvariant());
 		list.add(new TraceEventHandlerCounter());
 		return list;
 	}

@@ -41,11 +41,7 @@ public class JobManager {
 
 		// Our analyzer only accepts CtfTmfTrace
 		final AnalyzerThread thread = new AnalyzerThread();
-		if (trace instanceof CtfTmfTrace) {
-			thread.addTrace((CtfTmfTrace)trace);
-		} else {
-			return null;
-		}
+		thread.setTrace(trace);
 
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
 		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeFull();

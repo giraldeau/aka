@@ -1,6 +1,6 @@
 package org.lttng.studio.reader.handler;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
@@ -24,7 +24,7 @@ public class TraceEventHandlerCounter extends TraceEventHandlerBase {
 		counter.reset();
 	}
 
-	public void handle_all_event(TraceReader reader, EventDefinition event) {
+	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		counter.increment();
 	}
 

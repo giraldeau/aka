@@ -144,7 +144,7 @@ public class BlockingView extends TmfView implements JobListener {
 			public String getText(Object element) {
 				TaskBlockingEntry entry = (TaskBlockingEntry) element;
 				System.out.println(entry);
-				return entry.getSyscall().getDeclaration().getName();
+				return entry.getSyscall().getEventName();
 			}
 		});
 

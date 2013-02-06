@@ -1,13 +1,13 @@
 package org.lttng.studio.model.kernel;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 
 /*
  * Represents when a task is blocked waiting
  */
 public class TaskBlockingEntry {
 
-	private EventDefinition syscall;
+	private CtfTmfEvent syscall;
 	private WakeupInfo wakeup;
 	private Task task;
 	private final TimeInterval interval;
@@ -16,11 +16,11 @@ public class TaskBlockingEntry {
 		interval = new TimeInterval(0, 0);
 	}
 
-	public EventDefinition getSyscall() {
+	public CtfTmfEvent getSyscall() {
 		return syscall;
 	}
 
-	public void setSyscall(EventDefinition syscall) {
+	public void setSyscall(CtfTmfEvent syscall) {
 		this.syscall = syscall;
 	}
 
@@ -29,7 +29,7 @@ public class TaskBlockingEntry {
 		StringBuilder str = new StringBuilder();
 		str.append("[");
 		if (syscall != null) {
-			str.append(syscall.getDeclaration().getName());
+			str.append(syscall.getEventName());
 		} else {
 			str.append("unknown");
 		}

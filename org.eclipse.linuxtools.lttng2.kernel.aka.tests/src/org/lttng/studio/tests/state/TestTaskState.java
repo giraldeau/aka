@@ -21,7 +21,7 @@ public class TestTaskState {
 	public void testHandleState() throws Exception {
 		File traceDir = TestTraceset.getKernelTrace("burnP6-1x-1sec-k");
 		TraceReader reader = new TraceReader();
-		reader.addTrace(traceDir);
+		reader.setTrace(traceDir);
 
 		SystemModel model = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		// Phase 1: build initial state

@@ -2,10 +2,7 @@ package org.lttng.studio.reader.handler;
 
 import java.util.HashMap;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.StringDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.FDSet;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -44,52 +41,48 @@ public class TraceEventHandlerFD extends TraceEventHandlerBase {
 		evHistory = new HashMap<Long, TraceEventHandlerFD.EventData>();
 	}
 
-	public void handle_sys_open(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_sys_open(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		Task task = system.getTaskCpu(cpu);
 		if (task == null)
 			return;
 		EventData ev = new EventData();
-		ev.name = ((StringDefinition) def.get("_filename")).toString();
+		ev.name = EventField.getString(event, "filename");
 		ev.type = EventType.SYS_OPEN;
 		evHistory.put(task.getTid(), ev);
 	}
 
-	public void handle_sys_close(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_sys_close(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		system.getTaskCpu(cpu);
 		Task task = system.getTaskCpu(cpu);
 		if (task == null)
 			return;
 		EventData ev = new EventData();
-		ev.fd = ((IntegerDefinition) def.get("_fd")).getValue();
+		ev.fd = EventField.getLong(event, "fd");
 		ev.type = EventType.SYS_CLOSE;
 		evHistory.put(task.getTid(), ev);
 	}
 
-	public void handle_sys_dup2(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_sys_dup2(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		system.getTaskCpu(cpu);
 		Task task = system.getTaskCpu(cpu);
 		if (task == null)
 			return;
 		EventData ev = new EventData();
-		ev.oldfd = ((IntegerDefinition) def.get("_oldfd")).getValue();
-		ev.newfd = ((IntegerDefinition) def.get("_newfd")).getValue();
+		ev.oldfd = EventField.getLong(event, "oldfd");
+		ev.newfd = EventField.getLong(event, "newfd");
 		ev.type = EventType.SYS_DUP2;
 		evHistory.put(task.getTid(), ev);
 	}
 
-	public void handle_exit_syscall(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
+	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		Task task = system.getTaskCpu(cpu);
 		if (task == null)
 			return;
-		long ret = ((IntegerDefinition)def.get("_ret")).getValue();
+		long ret = EventField.getLong(event, "ret");
 		EventData ev = evHistory.remove(task.getTid());
 		if (ev == null)
 			return;

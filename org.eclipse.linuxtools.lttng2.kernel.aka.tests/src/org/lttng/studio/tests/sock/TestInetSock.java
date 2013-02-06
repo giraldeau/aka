@@ -5,8 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
-import org.eclipse.linuxtools.ctf.core.trace.CTFTrace;
-import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.Inet4Sock;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -26,7 +24,7 @@ public class TestInetSock {
 	public void testInetSockStatedump() throws Exception {
 		File trace = TestTraceset.getKernelTrace("netcat-tcp-k");
 		TraceReader reader = new TraceReader();
-		reader.addReader(new CTFTraceReader(new CTFTrace(trace)));
+		reader.setTrace(trace);
 		reader.register(new StatedumpInetSockEventHandler());
 		reader.process();
 		SystemModel model = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
@@ -37,7 +35,7 @@ public class TestInetSock {
 	public void testInetSockSteadyState() throws Exception {
 		File trace = TestTraceset.getKernelTrace("netcat-tcp-k");
 		TraceReader reader = new TraceReader();
-		reader.addReader(new CTFTraceReader(new CTFTrace(trace)));
+		reader.setTrace(trace);
 		reader.register(new TraceEventHandlerSched());
 		reader.register(new TraceEventHandlerSock());
 		reader.process();

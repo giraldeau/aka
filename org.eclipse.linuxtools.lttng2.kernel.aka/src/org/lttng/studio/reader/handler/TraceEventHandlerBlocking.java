@@ -2,9 +2,7 @@ package org.lttng.studio.reader.handler;
 
 import java.util.HashMap;
 
-import org.eclipse.linuxtools.ctf.core.event.EventDefinition;
-import org.eclipse.linuxtools.ctf.core.event.types.Definition;
-import org.eclipse.linuxtools.ctf.core.event.types.IntegerDefinition;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.TaskBlockingEntry;
@@ -21,7 +19,7 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 
 	public long count;
 	private TaskBlockings blockings;
-	private HashMap<Task, EventDefinition> syscall;
+	private HashMap<Task, CtfTmfEvent> syscall;
 	private WakeupInfo[] wakeup;
 	private HashMap<Task, TaskBlockingEntry> latestBlockingMap;
 
@@ -46,7 +44,7 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		system.init(reader);
 		blockings = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, TaskBlockings.class);
 		wakeup = new WakeupInfo[reader.getNumCpus()];
-		syscall = new HashMap<Task, EventDefinition>();
+		syscall = new HashMap<Task, CtfTmfEvent>();
 		latestBlockingMap = new HashMap<Task, TaskBlockingEntry>();
 	}
 
@@ -54,35 +52,32 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 	public void handleComplete(TraceReader reader) {
 	}
 
-	public void handle_softirq_entry(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long vec = ((IntegerDefinition) def.get("_vec")).getValue();
+	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
+		long vec = EventField.getLong(event, "vec");
 		WakeupInfo info = new WakeupInfo();
 		info.vec = vec;
 		wakeup[event.getCPU()] = info;
 	}
 
-	public void handle_softirq_exit(TraceReader reader, EventDefinition event) {
+	public void handle_softirq_exit(TraceReader reader, CtfTmfEvent event) {
 		wakeup[event.getCPU()] = null;
 	}
 
-	public void handle_hrtimer_expire_entry(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long timer = ((IntegerDefinition) def.get("_hrtimer")).getValue();
+	public void handle_hrtimer_expire_entry(TraceReader reader, CtfTmfEvent event) {
+		long timer = EventField.getLong(event, "hrtimer");
 		WakeupInfo info = new WakeupInfo();
 		info.type = Type.TIMER;
 		info.timer = timer;
 		wakeup[event.getCPU()] = info;
 	}
 
-	public void handle_hrtimer_expire_exit(TraceReader reader, EventDefinition event) {
+	public void handle_hrtimer_expire_exit(TraceReader reader, CtfTmfEvent event) {
 		wakeup[event.getCPU()] = null;
 	}
 
-	public void handle_inet_sock_local_in(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long sk = ((IntegerDefinition) def.get("_sk")).getValue();
-		long seq = ((IntegerDefinition) def.get("_seq")).getValue();
+	public void handle_inet_sock_local_in(TraceReader reader, CtfTmfEvent event) {
+		long sk = EventField.getLong(event, "sk");
+		long seq = EventField.getLong(event, "seq");
 		WakeupInfo info = wakeup[event.getCPU()];
 		if (info != null) {
 			info.type = WakeupInfo.Type.SOCK;
@@ -91,10 +86,9 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		}
 	}
 
-	public void handle_sched_switch(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long state = ((IntegerDefinition) def.get("_prev_state")).getValue();
-		long prevTid = ((IntegerDefinition) def.get("_prev_tid")).getValue();
+	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
+		long state = EventField.getLong(event, "prev_state");
+		long prevTid = EventField.getLong(event, "prev_tid");
 		Task task = system.getTask(prevTid);
 		// process is blocking
 		if (state >= 1) {
@@ -102,27 +96,26 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		}
 	}
 
-	public void handle_all_event(TraceReader reader, EventDefinition event) {
+	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		Task task = system.getTaskCpu(event.getCPU());
-		String name = event.getDeclaration().getName();
+		String name = event.getEventName();
 		// record the current system call
 		if (name.startsWith("sys_")) {
 			syscall.put(task, event);
 		}
 	}
 
-	public void handle_exit_syscall(TraceReader reader, EventDefinition event) {
+	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
 		Task task = system.getTaskCpu(event.getCPU());
-		EventDefinition syscallEntry = syscall.remove(task);
+		CtfTmfEvent syscallEntry = syscall.remove(task);
 		TaskBlockingEntry blockingEntry = latestBlockingMap.remove(task);
 		if (syscallEntry != null && blockingEntry != null) {
-			blockingEntry.getInterval().setStart(syscallEntry.getTimestamp());
-			blockingEntry.getInterval().setEnd(event.getTimestamp());
+			blockingEntry.getInterval().setStart(syscallEntry.getTimestamp().getValue());
+			blockingEntry.getInterval().setEnd(event.getTimestamp().getValue());
 		}
 	}
-	public void handle_sched_wakeup(TraceReader reader, EventDefinition event) {
-		HashMap<String, Definition> def = event.getFields().getDefinitions();
-		long tid = ((IntegerDefinition) def.get("_tid")).getValue();
+	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
+		long tid = EventField.getLong(event, "tid");
 		Task blockedTask = system.getTask(tid);
 
 		if (blockedTask == null)
@@ -137,7 +130,6 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		TaskBlockingEntry blocking = latestBlockingMap.get(blockedTask);
 		if (blocking == null)
 			return;
-		//blocking.setInterval(new Interval(entry.getTimestamp(), exit.getTimestamp()));
 		blocking.setSyscall(syscall.get(blockedTask));
 		blocking.setTask(blockedTask);
 		blocking.setWakeupInfo(wakeup[event.getCPU()]);

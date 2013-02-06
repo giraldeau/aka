@@ -51,4 +51,13 @@ public class TestTmfTraceReader {
 		request.waitForCompletion();
 		assertEquals(1, count);
 	}
+
+	@Test
+	public void testTraceReaderTmf() throws IOException, TmfTraceException {
+		File trace = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
+		CtfTmfTrace ctfTrace = new CtfTmfTrace();
+		ctfTrace.initTrace(null, trace.getCanonicalPath(), CtfTmfEvent.class);
+		ctfTrace.seekEvent(Integer.MAX_VALUE);
+		System.out.println(ctfTrace.getTimeRange());
+	}
 }
