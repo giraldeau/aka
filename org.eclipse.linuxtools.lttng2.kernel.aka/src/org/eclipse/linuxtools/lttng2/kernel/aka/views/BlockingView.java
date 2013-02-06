@@ -11,6 +11,7 @@ import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.linuxtools.internal.lttng2.kernel.ui.views.controlflow.ControlFlowEntry;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobListener;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.signal.TmfRangeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
@@ -143,8 +144,10 @@ public class BlockingView extends TmfView implements JobListener {
 			@Override
 			public String getText(Object element) {
 				TaskBlockingEntry entry = (TaskBlockingEntry) element;
-				System.out.println(entry);
-				return entry.getSyscall().getEventName();
+				CtfTmfEvent syscall = entry.getSyscall();
+				if (syscall == null)
+					return "unknown";
+				return syscall.getEventName();
 			}
 		});
 
@@ -157,20 +160,7 @@ public class BlockingView extends TmfView implements JobListener {
 		fTrace = signal.getTrace();
 		registry = null;
 		table.setInput(null);
-		Thread t = new Thread() {
-			@Override
-			public void run() {
-				System.out.println("ugly hack: waiting");
-				try {
-					Thread.sleep(10000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				System.out.println("ugly hack: go!");
-				manager.launch(fTrace);
-			}
-		};
-		t.start();
+		manager.launch(fTrace);
 	}
 
 	public void traceClosed(final TmfTraceClosedSignal signal) {
