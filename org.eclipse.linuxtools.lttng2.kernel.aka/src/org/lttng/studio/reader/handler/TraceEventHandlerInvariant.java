@@ -8,13 +8,9 @@ public class TraceEventHandlerInvariant extends TraceEventHandlerBase {
 
 	private long prev = 0;
 
-	public TraceEventHandlerInvariant(Integer priority) {
-		super(priority);
-		hooks.add(new TraceHook());
-	}
-
 	public TraceEventHandlerInvariant() {
-		this(0);
+		super();
+		hooks.add(new TraceHook());
 	}
 
 	@Override
@@ -24,6 +20,7 @@ public class TraceEventHandlerInvariant extends TraceEventHandlerBase {
 
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		long ts = event.getTimestamp().getValue();
+		//System.out.println(prev + " " + ts);
 		if (prev > ts) {
 			reader.cancel(new RuntimeException("Error: prev timestamps is greater than current timestamps"));
 		}

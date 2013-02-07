@@ -28,13 +28,13 @@ public class TestTaskHierarchyGraph {
 		ctfTmfTrace.initTrace(null, traceDir.getCanonicalPath(), CtfTmfEvent.class);
 
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
-		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeFull();
+		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeMain();
 
 		System.out.println(phase2);
 
 		thread.setTrace(ctfTmfTrace);
-		thread.addPhase(new AnalysisPhase("test", phase1));
-		thread.addPhase(new AnalysisPhase("test", phase2));
+		thread.addPhase(new AnalysisPhase(1, "test", phase1));
+		thread.addPhase(new AnalysisPhase(2, "test", phase2));
 		thread.start();
 		thread.join();
 

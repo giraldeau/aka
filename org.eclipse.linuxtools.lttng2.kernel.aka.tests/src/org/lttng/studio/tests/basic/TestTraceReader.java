@@ -89,7 +89,7 @@ public class TestTraceReader {
 		Collection<ITraceEventHandler> basic = TraceEventHandlerFactory.makeBasic();
 		AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(trace);
-		thread.addPhase(new AnalysisPhase("test", basic));
+		thread.addPhase(new AnalysisPhase(1, "test", basic));
 		thread.start();
 		thread.join();
 		assertTrue(true);
@@ -109,7 +109,7 @@ public class TestTraceReader {
 	@Test
 	public void testFull() throws Exception {
 		File trace = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
-		Collection<ITraceEventHandler> handlers = TraceEventHandlerFactory.makeFull();
+		Collection<ITraceEventHandler> handlers = TraceEventHandlerFactory.makeMain();
 		TraceReader reader = new TraceReader();
 		reader.setTrace(trace);
 		reader.registerAll(handlers);

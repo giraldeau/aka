@@ -90,8 +90,8 @@ public class WakeupContext {
 		phase2.add(new TraceEventHandlerSched());
 
 		thread.setTrace(ctfTmfTrace);
-		thread.addPhase(new AnalysisPhase("test", phase1));
-		thread.addPhase(new AnalysisPhase("test", phase2));
+		thread.addPhase(new AnalysisPhase(1, "test", phase1));
+		thread.addPhase(new AnalysisPhase(2, "test", phase2));
 		thread.start();
 		thread.join();
 

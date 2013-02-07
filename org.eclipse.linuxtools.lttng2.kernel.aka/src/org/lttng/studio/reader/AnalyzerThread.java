@@ -2,8 +2,9 @@ package org.lttng.studio.reader;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
@@ -11,14 +12,14 @@ import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 public class AnalyzerThread extends Thread {
 
 	private TimeListener listener;
-	private final Collection<AnalysisPhase> phases;
+	private final SortedSet<AnalysisPhase> phases;
 	private final TraceReader reader;
 
 	public AnalyzerThread() {
 		super();
 		setListener(null);
 		reader = new TraceReader();
-		phases = new ArrayList<AnalysisPhase>();
+		phases = new TreeSet<AnalysisPhase>();
 	}
 
 	@Override
@@ -64,6 +65,12 @@ public class AnalyzerThread extends Thread {
 		if (phase == null)
 			return;
 		this.phases.add(phase);
+	}
+
+	public void addAllPhases(Collection<AnalysisPhase> phases) {
+		if (phases == null)
+			return;
+		this.phases.addAll(phases);
 	}
 
 	public int getNumPhases() {

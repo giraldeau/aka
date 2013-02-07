@@ -32,7 +32,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	HashMap<Long, EventData> evHistory;
 
 	SystemModel system;
-	private int schedSwitchUnkownTask;
 
 	private AnalysisFilter filter;
 
@@ -66,7 +65,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
-		schedSwitchUnkownTask = 0;
 		evHistory = new HashMap<Long, EventData>();
 	}
 
@@ -75,7 +73,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		if (task != null) {
 			task.setProcessStatus(state);
 		} else {
-			schedSwitchUnkownTask++;
+			system.incrementSwitchUnkownTask();
 		};
 	}
 
@@ -216,10 +214,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	@Override
 	public void handleComplete(TraceReader reader) {
-	}
-
-	public int getSchedSwitchUnkownTask() {
-		return schedSwitchUnkownTask;
 	}
 
 }

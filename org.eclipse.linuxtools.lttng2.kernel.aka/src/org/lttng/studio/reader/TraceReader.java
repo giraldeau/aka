@@ -269,6 +269,7 @@ public class TraceReader {
 	public void clearHandlers() {
 		this.handlers.clear();
 		this.eventHookMap.clear();
+		this.catchAllHook.clear();
 	}
 
 	/* CtfTmfEvent already contains the offset

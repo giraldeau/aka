@@ -91,7 +91,7 @@ public class TestState {
 
 		SystemModel model2 = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		assertSame(model1, model2);
-		assertEquals(0, h1.getSchedSwitchUnkownTask());
+		assertEquals(0, model2.getSwitchUnkowntask());
 	}
 
 	@Test

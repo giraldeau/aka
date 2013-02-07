@@ -23,6 +23,7 @@ public class SystemModel implements ITraceModel {
 	private int numCpus;
 	private boolean isInitialized = false;
 	private HashMap<Long, HRTimer> hrtimers;
+	private int switchUnkownTask;
 
 	public SystemModel() {
 	}
@@ -31,6 +32,7 @@ public class SystemModel implements ITraceModel {
 	public void init(TraceReader reader) {
 		if (isInitialized == false){
 			// FIXME: should avoid the model coupling with tracing classes
+			switchUnkownTask = 0;
 			numCpus = reader.getNumCpus();
 			tasks = new HashMap<Long, Task>();
 			taskFdSet = new HashMap<Task, FDSet>();
@@ -60,7 +62,7 @@ public class SystemModel implements ITraceModel {
 	public HashMap<Long, HRTimer> getHRTimers() {
 		return hrtimers;
 	}
-	
+
 	public void setCurrentTid(int cpu, long tid) {
 		current[cpu] = tid;
 	}
@@ -272,6 +274,14 @@ public class SystemModel implements ITraceModel {
 			}
 		}
 		return str.toString();
+	}
+
+	public void incrementSwitchUnkownTask() {
+		switchUnkownTask++;
+	}
+
+	public int getSwitchUnkowntask() {
+		return switchUnkownTask;
 	}
 
 }

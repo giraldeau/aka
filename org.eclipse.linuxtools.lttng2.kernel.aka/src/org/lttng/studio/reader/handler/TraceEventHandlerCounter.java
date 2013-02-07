@@ -9,13 +9,9 @@ public class TraceEventHandlerCounter extends TraceEventHandlerBase {
 
 	EventCounter counter;
 
-	public TraceEventHandlerCounter(Integer priority) {
-		super(priority);
-		hooks.add(new TraceHook());
-	}
-
 	public TraceEventHandlerCounter() {
-		this(0);
+		super();
+		hooks.add(new TraceHook());
 	}
 
 	@Override
@@ -30,9 +26,5 @@ public class TraceEventHandlerCounter extends TraceEventHandlerBase {
 
 	@Override
 	public void handleComplete(TraceReader reader) {
-	}
-
-	public long getCounter() {
-		return counter.getCounter();
 	}
 }

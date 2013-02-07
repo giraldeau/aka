@@ -83,8 +83,8 @@ public class TestTimeLoadingProgress {
 		Collection<ITraceEventHandler> basic = TraceEventHandlerFactory.makeBasic();
 
 		thread.setTrace(ctfTmfTrace);
-		thread.addPhase(new AnalysisPhase("test", basic));
-		thread.addPhase(new AnalysisPhase("test", basic));
+		thread.addPhase(new AnalysisPhase(1, "test", basic));
+		thread.addPhase(new AnalysisPhase(2, "test", basic));
 		thread.setListener(listener);
 		thread.start();
 		thread.join();
