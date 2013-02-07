@@ -43,6 +43,7 @@ public class TraceReader {
 	private int nbCpus;
 	private Exception exception;
 	private TmfDataRequest request;
+	private TmfTimeRange timeRange;
 
 	public TraceReader() {
 		handlers = new HashMap<Class<?>, ITraceEventHandler>();
@@ -119,7 +120,7 @@ public class TraceReader {
 			throw new RuntimeException("Trace can't be null");
 
 		trace.seekEvent(Integer.MAX_VALUE);
-		TmfTimeRange timeRange = trace.getTimeRange();
+		timeRange = trace.getTimeRange();
 		listener.begin(timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue());
 
 		for(ITraceEventHandler handler: handlers.values()) {
@@ -299,6 +300,10 @@ public class TraceReader {
 			ctf[i].initTrace(null, files[i].getCanonicalPath(), ITmfEvent.class);
 		}
 		return makeTmfExperiment(ctf);
+	}
+
+	public TmfTimeRange getTimeRange() {
+		return timeRange;
 	}
 
 }
