@@ -18,6 +18,7 @@ import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.FD;
+import org.lttng.studio.model.kernel.FDSet;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -26,8 +27,10 @@ import org.lttng.studio.reader.TraceReader;
 import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.StatedumpEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFD;
+import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
 import org.lttng.studio.tests.basic.TestTraceset;
+import org.lttng.studio.utils.AnalysisFilter;
 
 public class TestState {
 
@@ -55,6 +58,36 @@ public class TestState {
 		SystemModel system = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Collection<FD> fds = system.getFDs();
 		assertTrue(fds.size() > 0);
+	}
+
+	@Test
+	public void testStatedumpFDs2() throws Exception {
+		File traceDir = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
+		TraceReader reader = new TraceReader();
+		AnalysisFilter filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
+		filter.addCommand(".*lttng.*");
+		filter.setFollowChild(true);
+
+		reader.setTrace(traceDir);
+		reader.registerAll(TraceEventHandlerFactory.makeStatedump());
+		reader.process();
+
+		reader.clearHandlers();
+		reader.registerAll(TraceEventHandlerFactory.makeInitialState());
+		reader.process();
+
+		SystemModel system = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
+		Task task = system.getTask(5029);
+		System.out.println(task);
+		FDSet fdSet = system.getFDSet(task);
+		for (FD fd: fdSet.getFDs()) {
+			System.out.println(fd);
+		}
+
+		reader.clearHandlers();
+		reader.register(new TraceEventHandlerSched());
+		reader.register(new TraceEventHandlerFD());
+		reader.process();
 	}
 
 	@Test

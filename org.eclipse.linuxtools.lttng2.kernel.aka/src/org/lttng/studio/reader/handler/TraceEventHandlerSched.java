@@ -54,8 +54,9 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("sched_switch"));
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));
+		hooks.add(new TraceHook("sched_process_exec"));
 		hooks.add(new TraceHook()); // get all events to check sys_* events
-		hooks.add(new TraceHook("sys_execve"));
+		//hooks.add(new TraceHook("sys_execve"));
 		hooks.add(new TraceHook("sys_clone"));
 		hooks.add(new TraceHook("exit_syscall"));
 	}
@@ -122,6 +123,21 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		task.setProcessStatus(process_status.EXIT);
 	}
 
+	public void handle_sched_process_exec(TraceReader reader, CtfTmfEvent event) {
+		System.out.println("exec");
+		String filename = EventField.getString(event, "filename");
+		Task task = system.getTaskCpu(event.getCPU());
+		task.setName(filename);
+
+		// check if this task needs to be monitored
+		for (String c: filter.getCommands()) {
+			if (filename.matches(c)) {
+				filter.addTid(task.getTid());
+				break;
+			}
+		}
+	}
+
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		// ugly event matching, may clash
 		if (event.getEventName().startsWith("sys_")) {
@@ -158,6 +174,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		evHistory.put(tid, data); // tid of the clone caller
 	}
 
+	// FIXME: cleanup dead code
 	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
@@ -175,14 +192,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		switch (ev.type) {
 		case SYS_EXECVE:
 			if (ret == 0) {
-				task.setName(ev.cmd);
-				// check if this task needs to be monitored
-				for (String c: filter.getCommands()) {
-					if (ev.cmd.matches(c)) {
-						filter.addTid(task.getTid());
-						break;
-					}
-				}
+
 			}
 			break;
 		case SYS_CLONE:
@@ -191,7 +201,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 				if (filter.isFollowChild() && filter.getTids().contains(task.getTid())) {
 					filter.addTid(ret);
 				}
-				if (!CloneFlags.isFlagSet(ev.flags, CloneFlags.CLONE_FILES)) {
+				if (!CloneFlags.CLONE_FILES.isFlagSet(ev.flags)) {
 					// detach file descriptors from parent
 					Task parent = system.getTask(task.getPpid());
 					FDSet parentFDs = system.getFDSet(parent);
@@ -201,7 +211,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 					}
 					system.setTaskFDSet(task, childFDs);
 				}
-				if (!CloneFlags.isFlagSet(ev.flags, CloneFlags.CLONE_THREAD)) {
+				if (!CloneFlags.CLONE_THREAD.isFlagSet(ev.flags)) {
 					// Promote a thread to process
 					task.setPid(task.getTid());
 				}

@@ -143,7 +143,7 @@ public class SystemModel implements ITraceModel {
 		FD ofd = getFD(task, oldfd);
 		String name = null;
 		if (ofd == null) {
-			System.err.println("WARNING: dup2 of unkown fd");
+			System.err.println("WARNING: dup2 of unkown fd " + task + " " + oldfd + " " + newfd);
 		} else {
 			name = ofd.getName();
 		}
