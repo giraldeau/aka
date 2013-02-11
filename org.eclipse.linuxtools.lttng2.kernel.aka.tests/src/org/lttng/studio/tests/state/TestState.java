@@ -76,18 +76,21 @@ public class TestState {
 		reader.registerAll(TraceEventHandlerFactory.makeInitialState());
 		reader.process();
 
+		reader.clearHandlers();
+		reader.register(new TraceEventHandlerSched());
+		reader.register(new TraceEventHandlerFD());
+		reader.process();
+
 		SystemModel system = reader.getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
-		Task task = system.getTask(5029);
+		assertEquals(0, system.getDupUnkownFD());
+	}
+
+	public static void dumpFDs(SystemModel system, Task task) {
 		System.out.println(task);
 		FDSet fdSet = system.getFDSet(task);
 		for (FD fd: fdSet.getFDs()) {
 			System.out.println(fd);
 		}
-
-		reader.clearHandlers();
-		reader.register(new TraceEventHandlerSched());
-		reader.register(new TraceEventHandlerFD());
-		reader.process();
 	}
 
 	@Test

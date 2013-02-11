@@ -109,9 +109,33 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		task.setStart(event.getTimestamp().getValue());
 		system.putTask(task);
 
-		// copy any outstanding event data to handle sys_clone exit
-		EventData data = evHistory.get(parent);
-		evHistory.put(child, data);
+		// handle filtering
+		Task parentTask = system.getTask(parent);
+		if (parentTask != null && filter.isFollowChild() &&
+				filter.getTids().contains(parentTask.getTid())) {
+			filter.addTid(child);
+		}
+
+		// we know clone succeed, thus copy file descriptors according to flags
+		EventData data = evHistory.remove(parent);
+		if (data != null) {
+			if (!CloneFlags.CLONE_FILES.isFlagSet(data.flags)) {
+				// detach file descriptors from parent
+				FDSet parentFDs = system.getFDSet(parentTask);
+				FDSet childFDs = new FDSet();
+				for (FD fd: parentFDs.getFDs()) {
+					childFDs.addFD(new FD(fd));
+				}
+				system.setTaskFDSet(task, childFDs);
+			}
+			if (!CloneFlags.CLONE_THREAD.isFlagSet(data.flags)) {
+				// Promote a thread to process
+				task.setPid(task.getTid());
+			}
+		}
+		// FIXME: in some cases, sys_clone is not matched to exit_syscall
+		// thus let's make sure it returns in user mode
+		task.setExecutionMode(execution_mode.USER_MODE);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {
@@ -124,7 +148,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_process_exec(TraceReader reader, CtfTmfEvent event) {
-		System.out.println("exec");
 		String filename = EventField.getString(event, "filename");
 		Task task = system.getTaskCpu(event.getCPU());
 		task.setName(filename);
@@ -174,7 +197,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		evHistory.put(tid, data); // tid of the clone caller
 	}
 
-	// FIXME: cleanup dead code
 	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
@@ -184,42 +206,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 		// return to user-space
 		task.setExecutionMode(execution_mode.USER_MODE);
-
-		long ret = EventField.getLong(event, "ret");
-		EventData ev = evHistory.remove(task.getTid());
-		if (ev == null)
-			return;
-		switch (ev.type) {
-		case SYS_EXECVE:
-			if (ret == 0) {
-
-			}
-			break;
-		case SYS_CLONE:
-			if (ret > 0) { // child
-				// handle filtering
-				if (filter.isFollowChild() && filter.getTids().contains(task.getTid())) {
-					filter.addTid(ret);
-				}
-				if (!CloneFlags.CLONE_FILES.isFlagSet(ev.flags)) {
-					// detach file descriptors from parent
-					Task parent = system.getTask(task.getPpid());
-					FDSet parentFDs = system.getFDSet(parent);
-					FDSet childFDs = new FDSet();
-					for (FD fd: parentFDs.getFDs()) {
-						childFDs.addFD(new FD(fd));
-					}
-					system.setTaskFDSet(task, childFDs);
-				}
-				if (!CloneFlags.CLONE_THREAD.isFlagSet(ev.flags)) {
-					// Promote a thread to process
-					task.setPid(task.getTid());
-				}
-			}
-			break;
-		default:
-			break;
-		}
 	}
 
 	@Override

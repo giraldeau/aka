@@ -24,6 +24,7 @@ public class SystemModel implements ITraceModel {
 	private boolean isInitialized = false;
 	private HashMap<Long, HRTimer> hrtimers;
 	private int switchUnkownTask;
+	private int dupUnkownFD;
 
 	public SystemModel() {
 	}
@@ -33,6 +34,7 @@ public class SystemModel implements ITraceModel {
 		if (isInitialized == false){
 			// FIXME: should avoid the model coupling with tracing classes
 			switchUnkownTask = 0;
+			dupUnkownFD = 0;
 			numCpus = reader.getNumCpus();
 			tasks = new HashMap<Long, Task>();
 			taskFdSet = new HashMap<Task, FDSet>();
@@ -144,13 +146,14 @@ public class SystemModel implements ITraceModel {
 		String name = null;
 		if (ofd == null) {
 			System.err.println("WARNING: dup2 of unkown fd " + task + " " + oldfd + " " + newfd);
+			dupUnkownFD++;
 		} else {
 			name = ofd.getName();
 		}
 		FD nfd = new FD(newfd, name);
 		removeTaskFD(task, ofd);
 		addTaskFD(task, nfd);
-
+		//System.out.println("dup2 " + task + " " + ofd + " " + nfd);
 		// TODO: manage sock relationship
 
 	}
@@ -282,6 +285,10 @@ public class SystemModel implements ITraceModel {
 
 	public int getSwitchUnkowntask() {
 		return switchUnkownTask;
+	}
+
+	public int getDupUnkownFD() {
+		return dupUnkownFD;
 	}
 
 }
