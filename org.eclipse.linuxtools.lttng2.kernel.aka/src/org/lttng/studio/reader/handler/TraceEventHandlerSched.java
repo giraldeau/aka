@@ -88,6 +88,10 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 		_update_task_state(next, process_status.RUN);
 
+		Task task = system.getTask(prev);
+		if (task.getProcessStatus() != process_status.RUN) {
+			System.out.println("WARNING: prev task was not running " + task + " " + event.getTimestamp());
+		}
 		// prev_state == 0 means runnable, thus waits for cpu
 		if (prev_state == 0) {
 			_update_task_state(prev, process_status.WAIT_CPU);

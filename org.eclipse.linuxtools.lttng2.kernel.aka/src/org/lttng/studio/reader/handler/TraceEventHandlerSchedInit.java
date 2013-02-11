@@ -49,17 +49,11 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 			return;
 		}
 
+		// initial state of this CPU
 		long prev = EventField.getLong(event, "prev_tid");
-		long prev_state = EventField.getLong(event, "prev_state");
-
 		system.setCurrentTid(cpu, prev);
+		_update_task_state(prev, process_status.RUN);
 
-		// prev_state == 0 means runnable, thus waits for cpu
-		if (prev_state == 0) {
-			_update_task_state(prev, process_status.WAIT_CPU);
-		} else {
-			_update_task_state(prev, process_status.WAIT_BLOCKED);
-		}
 		found++;
 		cpus[cpu] = FOUND;
 		// we found all initial CPUs state, let's stop

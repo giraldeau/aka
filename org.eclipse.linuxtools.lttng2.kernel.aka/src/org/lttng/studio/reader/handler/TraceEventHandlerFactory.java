@@ -57,4 +57,14 @@ public class TraceEventHandlerFactory {
 		return list;
 	}
 
+	public static Collection<AnalysisPhase> makeStandardAnalysisDebug() {
+		ArrayList<AnalysisPhase> list = new ArrayList<AnalysisPhase>();
+		list.add(new AnalysisPhase(1, "statedump", makeStatedump()));
+		list.add(new AnalysisPhase(2, "initial state", makeInitialState()));
+		Collection<ITraceEventHandler> main = makeMain();
+		main.add(new TraceEventHandlerDebug());
+		list.add(new AnalysisPhase(3, "main analysis", main));
+		return list;
+	}
+
 }

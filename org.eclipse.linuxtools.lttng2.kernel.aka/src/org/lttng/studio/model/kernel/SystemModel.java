@@ -14,6 +14,7 @@ import com.google.common.collect.Multimap;
 
 public class SystemModel implements ITraceModel {
 
+	private Task[] swappers;
 	private HashMap<Long, Task> tasks; // (tid, task)
 	//private Table<Long, Long, FD> fdsTable; // (pid, id, fd)
 	private HashMap<Task, FDSet> taskFdSet;
@@ -25,6 +26,7 @@ public class SystemModel implements ITraceModel {
 	private HashMap<Long, HRTimer> hrtimers;
 	private int switchUnkownTask;
 	private int dupUnkownFD;
+	private int cpu;
 
 	public SystemModel() {
 	}
@@ -42,13 +44,17 @@ public class SystemModel implements ITraceModel {
 			taskSock = HashMultimap.create();
 			hrtimers = new HashMap<Long, HRTimer>();
 			current = new long[numCpus];
-			// Swapper task is always present
-			Task swapper = new Task();
-			swapper.setName("swapper");
-			swapper.setPid(0);
-			swapper.setTid(0);
-			swapper.setPpid(0);
-			tasks.put(0L, swapper);
+			// Swapper task is always present on each CPU
+			swappers = new Task[numCpus];
+			for (int i = 0; i < numCpus; i++) {
+				Task swapper = new Task();
+				swapper.setName("swapper/" + i);
+				swapper.setPid(0);
+				swapper.setTid(0);
+				swapper.setPpid(0);
+				swappers[i] = swapper;
+			}
+			cpu = 0;
 		}
 		isInitialized = true;
 	}
@@ -82,16 +88,26 @@ public class SystemModel implements ITraceModel {
 	}
 
 	public Task getTask(long tid) {
-		return tasks.get(tid);
+		if (tid > 0)
+			return tasks.get(tid);
+		return swappers[cpu];
 	}
 
 	public Task getTaskCpu(int cpu) {
 		long currentTid = getCurrentTid(cpu);
-		return tasks.get(currentTid);
+		return getTask(currentTid);
 	}
 
 	public int getNumCpus() {
 		return numCpus;
+	}
+
+	public int getContextCPU() {
+		return cpu;
+	}
+
+	public void setContextCPU(int cpu) {
+		this.cpu = cpu;
 	}
 
 	@Override
