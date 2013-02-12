@@ -43,9 +43,11 @@ public class JobManager {
 		thread.setTrace(trace);
 
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
-		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeMain();
+		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeInitialState();
+		Collection<ITraceEventHandler> phase3 = TraceEventHandlerFactory.makeMain();
 		thread.addPhase(new AnalysisPhase(1, "Statedump", phase1));
-		thread.addPhase(new AnalysisPhase(2, "Model recovery", phase2));
+		thread.addPhase(new AnalysisPhase(2, "Initial state", phase2));
+		thread.addPhase(new AnalysisPhase(3, "Model recovery", phase3));
 
 		Job job = new Job("Advanced Kernel Analysis") {
 			@Override
