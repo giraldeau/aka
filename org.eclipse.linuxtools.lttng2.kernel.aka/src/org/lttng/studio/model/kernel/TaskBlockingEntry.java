@@ -31,7 +31,7 @@ public class TaskBlockingEntry {
 		if (syscall != null) {
 			str.append(syscall.getEventName());
 		} else {
-			str.append("unknown");
+			str.append("none");
 		}
 		str.append("]");
 		return str.toString();

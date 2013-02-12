@@ -92,12 +92,22 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
 		long state = EventField.getLong(event, "prev_state");
 		long prevTid = EventField.getLong(event, "prev_tid");
-		Task task = system.getTask(prevTid);
+		long nextTid = EventField.getLong(event, "next_tid");
+
 		// process is blocking
 		if (state >= 1) {
-			latestBlockingMap.put(task, new TaskBlockingEntry());
-			if (filter.containsTaskTid(task)) {
+			Task prevTask = system.getTask(prevTid);
+			TaskBlockingEntry entry = new TaskBlockingEntry();
+			entry.getInterval().setStart(event.getTimestamp().getValue());
+			latestBlockingMap.put(prevTask, entry);
+			if (filter.containsTaskTid(prevTask)) {
 				//System.out.println("sched_switch task is blocking " + task + " " + event.getTimestamp());
+			}
+		} else {
+			Task nextTask = system.getTask(nextTid);
+			TaskBlockingEntry entry = latestBlockingMap.get(nextTask);
+			if (entry != null) {
+				entry.getInterval().setEnd(event.getTimestamp().getValue());
 			}
 		}
 	}
@@ -113,12 +123,7 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 
 	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
 		Task task = system.getTaskCpu(event.getCPU());
-		CtfTmfEvent syscallEntry = syscall.remove(task);
-		TaskBlockingEntry blockingEntry = latestBlockingMap.remove(task);
-		if (syscallEntry != null && blockingEntry != null) {
-			blockingEntry.getInterval().setStart(syscallEntry.getTimestamp().getValue());
-			blockingEntry.getInterval().setEnd(event.getTimestamp().getValue());
-		}
+		syscall.remove(task);
 	}
 	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
 		long tid = EventField.getLong(event, "tid");
