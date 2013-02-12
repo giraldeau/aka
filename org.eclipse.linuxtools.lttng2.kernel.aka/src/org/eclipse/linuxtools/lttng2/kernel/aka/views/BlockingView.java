@@ -1,5 +1,7 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -12,6 +14,7 @@ import org.eclipse.linuxtools.internal.lttng2.kernel.ui.views.controlflow.Contro
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobListener;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.event.TmfTimeRange;
 import org.eclipse.linuxtools.tmf.core.signal.TmfRangeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
@@ -47,7 +50,11 @@ public class BlockingView extends TmfView implements JobListener {
 
 	private ITmfTrace fTrace;
 
-	private Task current;
+	private long current;
+
+	private ModelRegistry registry;
+
+	private TmfTimeRange currentRange;
 
 	private final JobManager manager;
 
@@ -60,25 +67,14 @@ public class BlockingView extends TmfView implements JobListener {
 						.getFirstElement();
 				if (element instanceof ControlFlowEntry) {
 					ControlFlowEntry entry = (ControlFlowEntry) element;
-					if (registry == null)
+					if (current == entry.getThreadId())
 						return;
-					SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
-					TaskBlockings blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
-					if (system == null || blockings == null)
-						return;
-					Task task = system.getTask(entry.getThreadId());
-					if (task == current)
-						return;
-					current = task;
-					List<TaskBlockingEntry> list = blockings.getEntries().get(task);
-					System.out.println(list);
-					table.setInput(list);
+					current = entry.getThreadId();
+					updateEntries();
 				}
 			}
 		}
 	};
-
-	private ModelRegistry registry;
 
 	public BlockingView() {
 		super(ID);
@@ -174,7 +170,8 @@ public class BlockingView extends TmfView implements JobListener {
 
 	@TmfSignalHandler
 	public void synchToRange(final TmfRangeSynchSignal signal) {
-
+		currentRange = signal.getCurrentRange();
+		updateEntries();
 	}
 
 	@Override
@@ -197,6 +194,55 @@ public class BlockingView extends TmfView implements JobListener {
 		registry = manager.getRegistry(fTrace);
 		EventCounter model = registry.getModel(IModelKeys.SHARED, EventCounter.class);
 		System.out.println(model.getCounter());
+	}
+
+	protected void updateEntries() {
+		if (registry == null)
+			return;
+		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
+		TaskBlockings blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
+		if (system == null || blockings == null)
+			return;
+		Task task = system.getTask(current);
+		if (task == null)
+			return;
+		List<TaskBlockingEntry> list = blockings.getEntries().get(task);
+
+		currentRangeSubset(list);
+
+		table.setInput(list);
+	}
+
+	private List<TaskBlockingEntry> currentRangeSubset(List<TaskBlockingEntry> list) {
+		if (currentRange == null)
+			return list;
+
+		TaskBlockingEntry t0 = new TaskBlockingEntry();
+		t0.getInterval().setStart(currentRange.getStartTime().getValue());
+
+		TaskBlockingEntry t1 = new TaskBlockingEntry();
+		t1.getInterval().setEnd(currentRange.getEndTime().getValue());
+
+		int idx0 = Collections.binarySearch(list, t0, new Comparator<TaskBlockingEntry>() {
+			@Override
+			public int compare(TaskBlockingEntry e0, TaskBlockingEntry e1) {
+				long s0 = e0.getInterval().getStart();
+				long s1 = e1.getInterval().getStart();
+				return s0 > s1 ? 1 : ( s0 == s1 ? 0 : -1);
+			}
+		});
+
+		int idx1 = Collections.binarySearch(list, t1, new Comparator<TaskBlockingEntry>() {
+			@Override
+			public int compare(TaskBlockingEntry e0, TaskBlockingEntry e1) {
+				long s0 = e0.getInterval().getEnd();
+				long s1 = e1.getInterval().getEnd();
+				return s0 > s1 ? 1 : ( s0 == s1 ? 0 : -1);
+			}
+		});
+		System.out.println(String.format("(%d,%d)", idx0, idx1));
+		//return list.subList(idx0, idx1);
+		return list;
 	}
 
 }

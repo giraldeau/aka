@@ -56,4 +56,5 @@ public class TaskBlockingEntry {
 	public TimeInterval getInterval() {
 		return interval;
 	}
+
 }
