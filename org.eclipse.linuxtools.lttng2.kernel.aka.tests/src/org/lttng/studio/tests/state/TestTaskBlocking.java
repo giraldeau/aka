@@ -74,9 +74,9 @@ public class TestTaskBlocking {
 		File traceDir = TestTraceset.getKernelTrace(name);
 		AnalyzerThread thread = new AnalyzerThread();
 		AnalysisFilter filter = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
-		filter.addTid(1358L);
+		filter.addTid(0L);
 
-		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysisDebug());
+		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysis());
 		thread.setTrace(traceDir);
 		thread.start();
 		thread.join();

@@ -4,11 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.Vector;
 
 import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
@@ -25,6 +27,8 @@ import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerBase;
 
+import com.google.common.collect.ArrayListMultimap;
+
 public class TraceReader {
 
 	class MinMax {
@@ -34,8 +38,9 @@ public class TraceReader {
 
 	private final ModelRegistry registry;
 	private final Map<Class<?>, ITraceEventHandler> handlers;
-	private final Map<String, TreeSet<TraceHook>> eventHookMap;
-	private final TreeSet<TraceHook> catchAllHook;
+	private final ArrayList<TraceHook> catchAllHook;
+	private final ArrayListMultimap<String, TraceHook> eventHookMap;
+	private final ArrayListMultimap<String, TraceHook> eventHookCacheMap;
 	private static Class<?>[] argTypes = new Class<?>[] { TraceReader.class, CtfTmfEvent.class };
 	private ITmfTrace trace;
 	private long now;
@@ -47,9 +52,10 @@ public class TraceReader {
 
 	public TraceReader() {
 		handlers = new HashMap<Class<?>, ITraceEventHandler>();
-		eventHookMap = new HashMap<String, TreeSet<TraceHook>>();
-		catchAllHook = new TreeSet<TraceHook>();
+		catchAllHook = new ArrayList<TraceHook>();
 		registry = new ModelRegistry();
+		eventHookMap = ArrayListMultimap.create();
+		eventHookCacheMap = ArrayListMultimap.create();
 	}
 
 	public void registerHook(ITraceEventHandler handler, TraceHook hook) {
@@ -60,7 +66,6 @@ public class TraceReader {
 			methodName = "handle_" + hook.eventName;
 		}
 		boolean isHookOk = true;
-		TreeSet<TraceHook> eventHooks;
 		hook.instance = handler;
 		try {
 			hook.method = handler.getClass().getMethod(methodName, argTypes);
@@ -77,12 +82,7 @@ public class TraceReader {
 		if(hook.isAllEvent()) {
 			catchAllHook.add(hook);
 		} else {
-			eventHooks = eventHookMap.get(hook.eventName);
-			if (eventHooks == null) {
-				eventHooks = new TreeSet<TraceHook>();
-				eventHookMap.put(hook.eventName, eventHooks);
-			}
-			eventHooks.add(hook);
+			eventHookMap.put(hook.eventName, hook);
 		}
 	}
 
@@ -142,10 +142,8 @@ public class TraceReader {
 					now = ctf.getTimestamp().getValue();
 					listener.progress(now);
 					String evName = ctf.getEventName();
-					TreeSet<TraceHook> treeSet = eventHookMap.get(evName);
-					if (treeSet != null)
-						TraceReader.this.runHookSet(treeSet, ctf);
-					TraceReader.this.runHookSet(catchAllHook, ctf);
+					List<TraceHook> hookSet = getEventHookSet(evName);
+					TraceReader.this.runHookSet(hookSet, ctf);
 				}
 			}
 			@Override
@@ -174,7 +172,17 @@ public class TraceReader {
 		listener.finished();
 	}
 
-	public void runHookSet(TreeSet<TraceHook> hooks, CtfTmfEvent event) {
+	private List<TraceHook> getEventHookSet(String evName) {
+		List<TraceHook> list = eventHookCacheMap.get(evName);
+		if (list.isEmpty()) {
+			list.addAll(eventHookMap.get(evName));
+			list.addAll(catchAllHook);
+			Collections.sort(list);
+		}
+		return list;
+	}
+
+	public void runHookSet(List<TraceHook> hooks, CtfTmfEvent event) {
 		for (TraceHook h: hooks){
 			if (cancel == true)
 				break;
@@ -268,6 +276,7 @@ public class TraceReader {
 
 	public void clearHandlers() {
 		this.handlers.clear();
+		this.eventHookCacheMap.clear();
 		this.eventHookMap.clear();
 		this.catchAllHook.clear();
 	}

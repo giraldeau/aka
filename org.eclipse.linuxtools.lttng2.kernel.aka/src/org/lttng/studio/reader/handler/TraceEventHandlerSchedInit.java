@@ -14,10 +14,8 @@ import org.lttng.studio.reader.TraceReader;
 public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 
 	SystemModel system;
-	int[] cpus;
+	long[] cpus;
 	int found;
-	private static final int UNKNOWN = 0;
-	private static final int FOUND = 1;
 
 	public TraceEventHandlerSchedInit() {
 		super();
@@ -29,9 +27,9 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 		found = 0;
-		cpus = new int[reader.getNumCpus()];
+		cpus = new long[reader.getNumCpus()];
 		for (int i = 0; i < cpus.length; i++)
-			cpus[i] = UNKNOWN;
+			cpus[i] = -1;
 	}
 
 	private void _update_task_state(long tid, process_status state) {
@@ -45,17 +43,18 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
-		if (cpus[cpu] == FOUND) {
+		if (cpus[cpu] >= 0) {
 			return;
 		}
 
 		// initial state of this CPU
 		long prev = EventField.getLong(event, "prev_tid");
+		//System.out.println("initial state: " + event.getTimestamp() + " " + event.getCPU() + " " + prev);
 		system.setCurrentTid(cpu, prev);
 		_update_task_state(prev, process_status.RUN);
 
 		found++;
-		cpus[cpu] = FOUND;
+		cpus[cpu] = prev;
 		// we found all initial CPUs state, let's stop
 		if (found == cpus.length) {
 			reader.cancel();
@@ -64,6 +63,14 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 
 	@Override
 	public void handleComplete(TraceReader reader) {
+		// FIXME: debug mode should output this
+		/*
+		System.out.println("initial state");
+		for (int i = 0; i < reader.getNumCpus(); i++) {
+			system.setContextCPU(i);
+			System.out.println("cpu " + i + " " + system.getTask(cpus[i]));
+		}
+		*/
 	}
 
 }

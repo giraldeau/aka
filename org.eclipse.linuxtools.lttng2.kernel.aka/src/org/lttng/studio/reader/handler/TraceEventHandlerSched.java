@@ -80,6 +80,9 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
+		if (system.getContextCPU() != cpu) {
+			reader.cancel(new RuntimeException("ERROR: system.cpu != event.cpu"));
+		}
 		long next = EventField.getLong(event, "next_tid");
 		long prev = EventField.getLong(event, "prev_tid");
 		long prev_state = EventField.getLong(event, "prev_state");
@@ -89,8 +92,9 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		_update_task_state(next, process_status.RUN);
 
 		Task task = system.getTask(prev);
-		if (task.getProcessStatus() != process_status.RUN) {
-			System.out.println("WARNING: prev task was not running " + task + " " + event.getTimestamp());
+		process_status status = task.getProcessStatus();
+		if (status != process_status.RUN && status != process_status.EXIT) {
+			System.out.println("WARNING: prev task was not running " + task + " " + task.getProcessStatus() + " " + event.getTimestamp());
 		}
 		// prev_state == 0 means runnable, thus waits for cpu
 		if (prev_state == 0) {
