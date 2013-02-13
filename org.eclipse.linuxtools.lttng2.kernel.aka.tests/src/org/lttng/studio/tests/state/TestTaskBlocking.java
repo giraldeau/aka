@@ -25,6 +25,8 @@ import org.lttng.studio.reader.handler.TraceEventHandlerSched;
 import org.lttng.studio.tests.basic.TestTraceset;
 import org.lttng.studio.utils.AnalysisFilter;
 
+import com.google.common.collect.ArrayListMultimap;
+
 public class TestTaskBlocking {
 
 	public static long NANO = 1000000000;
@@ -74,7 +76,8 @@ public class TestTaskBlocking {
 		File traceDir = TestTraceset.getKernelTrace(name);
 		AnalyzerThread thread = new AnalyzerThread();
 		AnalysisFilter filter = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
-		filter.addTid(0L);
+		//filter.addTid(0L);
+		filter.addCommand(".*sleep-1x-1sec");
 
 		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysis());
 		thread.setTrace(traceDir);
@@ -84,15 +87,26 @@ public class TestTaskBlocking {
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		TaskBlockings blockings = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, TaskBlockings.class);
 		Set<Task> tasks = model.getTaskByNameSuffix("lttng-sessiond");
+
+		assertTrue(check(blockings));
+
+
+	}
+
+	public boolean check(TaskBlockings blockings) {
 		boolean ok = true;
-		for (Task task: tasks) {
+		ArrayListMultimap<Task, TaskBlockingEntry> entries = blockings.getEntries();
+		for (Task task: entries.keySet()) {
 			List<TaskBlockingEntry> list = blockings.getEntries().get(task);
-			System.out.println(task + " " + list);
 			for (TaskBlockingEntry entry: list) {
-				if (entry.getInterval().duration() == 0)
+				if (entry.getInterval().duration() <= 0) {
 					ok = false;
+					System.out.println(task + " " + entry + " " + entry.getInterval().getStart()
+							+ " " + entry.getInterval().getEnd() + " " + entry.getInterval().duration());
+				}
 			}
 		}
-		assertTrue(ok);
+		return ok;
 	}
+
 }

@@ -38,22 +38,4 @@ public class TestBinarySearch {
 		}
 	}
 
-	@Test
-	public void testBinarySearch2() {
-		int[][] ranges = new int[][] {
-				{Integer.MIN_VALUE, Integer.MIN_VALUE + 1, 0},
-				{-1,	1,		0},
-				{0, 	99, 	0},
-				{0, 	100,	0},
-				{100, 	101,	1},
-				{0, 	900,	8},
-				{0, 	901,	9},
-				{801, 	1000,	2},
-		};
-		for (int i = 0; i < ranges.length; i++) {
-			assertEquals(ranges[i][2], BinarySearch.range(list, ranges[i][0], ranges[i][1]).size());
-			//System.out.println("" + BinarySearch.range(list, ranges[i][0], ranges[i][1]));
-		}
-	}
-
 }

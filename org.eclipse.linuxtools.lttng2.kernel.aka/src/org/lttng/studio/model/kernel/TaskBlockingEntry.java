@@ -1,5 +1,7 @@
 package org.lttng.studio.model.kernel;
 
+import java.util.Comparator;
+
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 
 /*
@@ -11,6 +13,24 @@ public class TaskBlockingEntry {
 	private WakeupInfo wakeup;
 	private Task task;
 	private final TimeInterval interval;
+
+	public static final Comparator<TaskBlockingEntry> cmpStart = new Comparator<TaskBlockingEntry>() {
+		@Override
+		public int compare(TaskBlockingEntry e0, TaskBlockingEntry e1) {
+			long s0 = e0.getInterval().getStart();
+			long s1 = e1.getInterval().getStart();
+			return s0 > s1 ? 1 : ( s0 == s1 ? 0 : -1);
+		}
+	};
+
+	public static final Comparator<TaskBlockingEntry> cmpEnd = new Comparator<TaskBlockingEntry>() {
+		@Override
+		public int compare(TaskBlockingEntry e0, TaskBlockingEntry e1) {
+			long s0 = e0.getInterval().getEnd();
+			long s1 = e1.getInterval().getEnd();
+			return s0 > s1 ? 1 : ( s0 == s1 ? 0 : -1);
+		}
+	};
 
 	public TaskBlockingEntry() {
 		interval = new TimeInterval(0, 0);

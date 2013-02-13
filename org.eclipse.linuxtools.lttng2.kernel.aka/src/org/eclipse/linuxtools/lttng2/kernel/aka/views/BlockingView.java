@@ -1,7 +1,5 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -98,6 +96,9 @@ public class BlockingView extends TmfView implements JobListener {
 		getSite().getWorkbenchWindow().getSelectionService()
 				.addPostSelectionListener(selListener);
 
+		// FIXME: get the current ControlFlowEntry selected
+		// FIXME: get current time range
+
 		// receive signal about processed trace
 		manager.addListener(this);
 
@@ -160,6 +161,8 @@ public class BlockingView extends TmfView implements JobListener {
 	}
 
 	public void traceClosed(final TmfTraceClosedSignal signal) {
+		// FIXME: synchronize
+		registry = null;
 		table.setInput(null);
 	}
 
@@ -170,6 +173,7 @@ public class BlockingView extends TmfView implements JobListener {
 
 	@TmfSignalHandler
 	public void synchToRange(final TmfRangeSynchSignal signal) {
+		// FIXME: synchronize
 		currentRange = signal.getCurrentRange();
 		updateEntries();
 	}
@@ -197,6 +201,7 @@ public class BlockingView extends TmfView implements JobListener {
 	}
 
 	protected void updateEntries() {
+		// FIXME: synchronize
 		if (registry == null)
 			return;
 		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
@@ -206,43 +211,9 @@ public class BlockingView extends TmfView implements JobListener {
 		Task task = system.getTask(current);
 		if (task == null)
 			return;
-		List<TaskBlockingEntry> list = blockings.getEntries().get(task);
-
-		currentRangeSubset(list);
-
+		List<? extends TaskBlockingEntry> list = blockings.getEntries().get(task);
 		table.setInput(list);
-	}
-
-	private List<TaskBlockingEntry> currentRangeSubset(List<TaskBlockingEntry> list) {
-		if (currentRange == null)
-			return list;
-
-		TaskBlockingEntry t0 = new TaskBlockingEntry();
-		t0.getInterval().setStart(currentRange.getStartTime().getValue());
-
-		TaskBlockingEntry t1 = new TaskBlockingEntry();
-		t1.getInterval().setEnd(currentRange.getEndTime().getValue());
-
-		int idx0 = Collections.binarySearch(list, t0, new Comparator<TaskBlockingEntry>() {
-			@Override
-			public int compare(TaskBlockingEntry e0, TaskBlockingEntry e1) {
-				long s0 = e0.getInterval().getStart();
-				long s1 = e1.getInterval().getStart();
-				return s0 > s1 ? 1 : ( s0 == s1 ? 0 : -1);
-			}
-		});
-
-		int idx1 = Collections.binarySearch(list, t1, new Comparator<TaskBlockingEntry>() {
-			@Override
-			public int compare(TaskBlockingEntry e0, TaskBlockingEntry e1) {
-				long s0 = e0.getInterval().getEnd();
-				long s1 = e1.getInterval().getEnd();
-				return s0 > s1 ? 1 : ( s0 == s1 ? 0 : -1);
-			}
-		});
-		System.out.println(String.format("(%d,%d)", idx0, idx1));
-		//return list.subList(idx0, idx1);
-		return list;
+		table.refresh();
 	}
 
 }

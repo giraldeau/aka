@@ -94,21 +94,23 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		long prevTid = EventField.getLong(event, "prev_tid");
 		long nextTid = EventField.getLong(event, "next_tid");
 
-		// process is blocking
+		// task is blocking
 		if (state >= 1) {
 			Task prevTask = system.getTask(prevTid);
 			TaskBlockingEntry entry = new TaskBlockingEntry();
 			entry.getInterval().setStart(event.getTimestamp().getValue());
 			latestBlockingMap.put(prevTask, entry);
 			if (filter.containsTaskTid(prevTask)) {
-				//System.out.println("sched_switch task is blocking " + task + " " + event.getTimestamp());
+				System.out.println("sched_switch task is blocking " + prevTask + " " + event.getTimestamp());
 			}
-		} else {
-			Task nextTask = system.getTask(nextTid);
-			TaskBlockingEntry entry = latestBlockingMap.get(nextTask);
-			if (entry != null) {
-				entry.getInterval().setEnd(event.getTimestamp().getValue());
-			}
+		}
+		// task may be scheduled after wake-up
+		Task nextTask = system.getTask(nextTid);
+		TaskBlockingEntry entry = latestBlockingMap.remove(nextTask);
+		if (entry != null) {
+			entry.getInterval().setEnd(event.getTimestamp().getValue());
+			if (filter.containsTaskTid(nextTask))
+				System.out.println("sched_switch task is waking up " + nextTask + " " + event.getTimestamp());
 		}
 	}
 
@@ -125,8 +127,9 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		Task task = system.getTaskCpu(event.getCPU());
 		syscall.remove(task);
 	}
+
 	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
-		long tid = EventField.getLong(event, "tid");
+ 		long tid = EventField.getLong(event, "tid");
 		Task blockedTask = system.getTask(tid);
 
 		if (blockedTask == null)
@@ -141,6 +144,8 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 		TaskBlockingEntry blocking = latestBlockingMap.get(blockedTask);
 		if (blocking == null)
 			return;
+		if (filter.containsTaskTid(blockedTask))
+			System.out.println("sched_wakeup " + blockedTask + " " + blockedTask.getProcessStatus() + " " + blocking);
 		blocking.setSyscall(syscall.get(blockedTask));
 		blocking.setTask(blockedTask);
 		blocking.setWakeupInfo(wakeup[event.getCPU()]);

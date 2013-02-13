@@ -31,24 +31,4 @@ public class BinarySearch {
 		return x;
 	}
 
-	public static <T> List<? extends Comparable<? super T>> range(List<? extends Comparable<? super T>> list, T from, T to) {
-		int fromIndex = BinarySearch.floor(list, from);
-		int toIndex = BinarySearch.ceiling(list, to);
-		if (fromIndex < 0)
-			fromIndex = 0;
-		if (toIndex < 0)
-			toIndex = list.size();
-		return list.subList(fromIndex, toIndex);
-	}
-
-	public static <T> List<? extends T> range(List<? extends T> list, T from, T to, Comparator<? super T> c) {
-		int fromIndex = BinarySearch.floor(list, from, c);
-		int toIndex = BinarySearch.ceiling(list, to, c);
-		if (fromIndex < 0)
-			fromIndex = 0;
-		if (toIndex < 0)
-			toIndex = list.size();
-		return list.subList(fromIndex, toIndex);
-	}
-
 }
