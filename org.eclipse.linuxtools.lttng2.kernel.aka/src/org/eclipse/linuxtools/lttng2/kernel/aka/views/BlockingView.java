@@ -36,7 +36,6 @@ import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPart;
 import org.lttng.studio.collect.BinarySearch;
-import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -237,10 +236,13 @@ public class BlockingView extends TmfView implements JobListener {
 
 	@Override
 	public void ready(ITmfTrace trace) {
-		System.out.println("trace ready");
-		registry = manager.getRegistry(fTrace);
-		EventCounter model = registry.getModel(IModelKeys.SHARED, EventCounter.class);
-		System.out.println(model.getCounter());
+		// Our trace is not ready
+		if (trace != fTrace) {
+			return;
+		}
+		synchronized (fSyncObj) {
+			registry = manager.getRegistry(fTrace);
+		}
 	}
 
 	protected void updateTable() {
