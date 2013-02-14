@@ -16,6 +16,14 @@
             name="Blocking"
             restorable="true">
       </view>
+      <view
+            allowMultiple="false"
+            category="org.eclipse.linuxtools.lttng2.kernel.aka"
+            class="org.eclipse.linuxtools.lttng2.kernel.aka.views.CriticalPathView"
+            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalpath"
+            name="Critical Path"
+            restorable="true">
+      </view>
    </extension>
    <extension
          point="org.eclipse.ui.perspectiveExtensions">

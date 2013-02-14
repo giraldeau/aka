@@ -11,32 +11,18 @@ import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
-import org.eclipse.linuxtools.internal.lttng2.kernel.ui.views.controlflow.ControlFlowEntry;
-import org.eclipse.linuxtools.lttng2.kernel.aka.JobListener;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTimestamp;
-import org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.event.TmfTimeRange;
 import org.eclipse.linuxtools.tmf.core.event.TmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.signal.TmfRangeSynchSignal;
-import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
-import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
-import org.eclipse.linuxtools.tmf.core.signal.TmfTraceClosedSignal;
-import org.eclipse.linuxtools.tmf.core.signal.TmfTraceSelectedSignal;
-import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
-import org.eclipse.linuxtools.tmf.ui.editors.ITmfTraceEditor;
-import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Table;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISelectionService;
-import org.eclipse.ui.IWorkbenchPart;
 import org.lttng.studio.collect.BinarySearch;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.TaskBlockingEntry;
@@ -44,8 +30,7 @@ import org.lttng.studio.model.kernel.TaskBlockings;
 import org.lttng.studio.model.kernel.TimeInterval;
 import org.lttng.studio.reader.handler.IModelKeys;
 
-@SuppressWarnings("restriction")
-public class BlockingView extends TmfView implements JobListener {
+public class BlockingView extends AbstractAKAView {
 
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.blocking"; //$NON-NLS-1$
 
@@ -53,51 +38,22 @@ public class BlockingView extends TmfView implements JobListener {
 
 	private TableViewer table;
 
-	private ITmfTrace fTrace;
-
-	private long currentTid;
-
-	private ModelRegistry registry;
-
 	private final double marginFactor = 0.1;
-
-	//private TmfTimeRange currentRange;
-
-	private final JobManager manager;
-
-	private List<? extends TaskBlockingEntry> fBlockingEntries;
-
-	private Task fCurrentTask;
-
-	private final Object fSyncObj = new Object();
-
-	ISelectionListener selListener = new ISelectionListener() {
-		@Override
-		public void selectionChanged(IWorkbenchPart part, ISelection selection) {
-			if (part != BlockingView.this
-					&& selection instanceof IStructuredSelection) {
-				Object element = ((IStructuredSelection) selection)
-						.getFirstElement();
-				if (element instanceof ControlFlowEntry) {
-					ControlFlowEntry entry = (ControlFlowEntry) element;
-					setCurrentTid(entry.getThreadId());
-				}
-			}
-		}
-	};
-
-	private long fCurrentTime;
 
 	private boolean update;
 
+	private Task fCurrentTask;
+
+	private List<TaskBlockingEntry> fBlockingEntries;
+
 	public BlockingView() {
 		super(ID);
-		manager = new JobManager();
 		update = false;
 	}
 
 	@Override
 	public void createPartControl(Composite parent) {
+		super.createPartControl(parent);
 		composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new FillLayout());
 		table = new TableViewer(composite, SWT.H_SCROLL | SWT.V_SCROLL
@@ -131,23 +87,9 @@ public class BlockingView extends TmfView implements JobListener {
 			}
 		});
 
-		// get selection events
-		getSite().getWorkbenchWindow().getSelectionService()
-				.addPostSelectionListener(selListener);
-
 		// FIXME: get the current ControlFlowEntry selected
 		// FIXME: get current time range
 
-		// receive signal about processed trace
-		manager.addListener(this);
-
-    	IEditorPart editor = getSite().getPage().getActiveEditor();
-    	if (editor instanceof ITmfTraceEditor) {
-    	    ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
-    	    if (trace != null) {
-    	    	traceSelected(new TmfTraceSelectedSignal(this, trace));
-    	    }
-    	}
 	}
 
 	private void createColumns() {
@@ -189,37 +131,6 @@ public class BlockingView extends TmfView implements JobListener {
 
 	}
 
-	@TmfSignalHandler
-	public void traceSelected(final TmfTraceSelectedSignal signal) {
-		if (signal.getTrace() == fTrace)
-			return;
-		currentTid = -1;
-		fTrace = signal.getTrace();
-		synchronized(fSyncObj) {
-			registry = null;
-		}
-		table.setInput(null);
-		manager.launch(fTrace);
-	}
-
-	public void traceClosed(final TmfTraceClosedSignal signal) {
-		synchronized(fSyncObj) {
-			registry = null;
-		}
-		table.setInput(null);
-	}
-
-	@TmfSignalHandler
-	public void synchToTime(final TmfTimeSynchSignal signal) {
-		System.out.println("syncToTime " + signal.getCurrentTime());
-		fCurrentTime = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
-		updateTable();
-	}
-
-	@TmfSignalHandler
-	public void synchToRange(final TmfRangeSynchSignal signal) {
-	}
-
 	@Override
 	public void setFocus() {
 		composite.setFocus();
@@ -235,17 +146,7 @@ public class BlockingView extends TmfView implements JobListener {
 	}
 
 	@Override
-	public void ready(ITmfTrace trace) {
-		// Our trace is not ready
-		if (trace != fTrace) {
-			return;
-		}
-		synchronized (fSyncObj) {
-			registry = manager.getRegistry(fTrace);
-		}
-	}
-
-	protected void updateTable() {
+	protected void updateData() {
 		SystemModel system;
 		TaskBlockings blockings;
 		synchronized(fSyncObj) {
@@ -282,11 +183,4 @@ public class BlockingView extends TmfView implements JobListener {
 		}
 	}
 
-	protected void setCurrentTid(int threadId) {
-		if (currentTid == threadId)
-			return;
-		System.out.println("setCurrentTid " + threadId);
-		currentTid = threadId;
-		updateTable();
-	}
 }
