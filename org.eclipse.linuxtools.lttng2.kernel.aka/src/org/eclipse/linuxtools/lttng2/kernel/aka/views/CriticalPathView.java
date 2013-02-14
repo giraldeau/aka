@@ -8,12 +8,18 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.lttng.studio.model.graph.ExecGraph;
+import org.lttng.studio.model.kernel.SystemModel;
+import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.reader.handler.IModelKeys;
 
 public class CriticalPathView extends AbstractAKAView {
 
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalpath"; //$NON-NLS-1$
 
 	private TreeViewer tv;
+
+	private Task fCurrentTask;
 
 	class CriticalPathContentProvider implements ITreeContentProvider {
 
@@ -89,6 +95,7 @@ public class CriticalPathView extends AbstractAKAView {
 
 	@Override
 	public void createPartControl(Composite parent) {
+		super.createPartControl(parent);
 		parent.setLayout(new GridLayout(1, false));
 		tv = new TreeViewer(parent);
 		tv.setContentProvider(new CriticalPathContentProvider());
@@ -101,8 +108,18 @@ public class CriticalPathView extends AbstractAKAView {
 	}
 
 	@Override
-	protected void updateData() {
-		System.out.println("CriticalPathView updateData");
+	protected void updateDataSafe() {
+		System.out.println("CriticalPathView updateData " + registry);
+		if (registry == null)
+			return;
+		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
+		ExecGraph graph = registry.getModel(IModelKeys.SHARED, ExecGraph.class);
+		if (system == null || graph == null)
+			return;
+		Task task = system.getTask(currentTid);
+		// change input of table if task has changed
+		if (task != null || task != fCurrentTask) {
+		}
 	}
 
 }

@@ -146,41 +146,37 @@ public class BlockingView extends AbstractAKAView {
 	}
 
 	@Override
-	protected void updateData() {
-		SystemModel system;
-		TaskBlockings blockings;
-		synchronized(fSyncObj) {
-			if (registry == null)
+	protected void updateDataSafe() {
+		System.out.println("BlockingView updateData " + registry);
+		if (registry == null)
 				return;
-			system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
-			blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
-			if (system == null || blockings == null)
-				return;
-			Task task = system.getTask(currentTid);
-			// change input of table if task has changed
-			if (task != null || task != fCurrentTask) {
-				fCurrentTask = task;
-				fBlockingEntries = blockings.getEntries().get(fCurrentTask);
-				table.setInput(fBlockingEntries);
-				table.refresh();
-			}
-			// scroll to nearest item according to current time
-			TaskBlockingEntry entry = new TaskBlockingEntry();
-			entry.getInterval().setStart(fCurrentTime);
-			if (fBlockingEntries != null && !fBlockingEntries.isEmpty()) {
-				int idx = BinarySearch.floor(fBlockingEntries, entry, TaskBlockingEntry.cmpStart);
-				if (idx < 0)
-					idx = BinarySearch.ceiling(fBlockingEntries, entry, TaskBlockingEntry.cmpStart);
-				Object element = table.getElementAt(idx);
-				System.out.println("selection index=" + idx + " " + element);
-				if (element != null) {
-					update = true;
-					table.setSelection(new StructuredSelection(element), true);
-					update = false;
-					table.getTable().showSelection();
-				}
+		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
+		TaskBlockings blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
+		if (system == null || blockings == null)
+			return;
+		Task task = system.getTask(currentTid);
+		// change input of table if task has changed
+		if (task != null || task != fCurrentTask) {
+			fCurrentTask = task;
+			fBlockingEntries = blockings.getEntries().get(fCurrentTask);
+			table.setInput(fBlockingEntries);
+			table.refresh();
+		}
+		// scroll to nearest item according to current time
+		TaskBlockingEntry entry = new TaskBlockingEntry();
+		entry.getInterval().setStart(fCurrentTime);
+		if (fBlockingEntries != null && !fBlockingEntries.isEmpty()) {
+			int idx = BinarySearch.floor(fBlockingEntries, entry, TaskBlockingEntry.cmpStart);
+			if (idx < 0)
+				idx = BinarySearch.ceiling(fBlockingEntries, entry, TaskBlockingEntry.cmpStart);
+			Object element = table.getElementAt(idx);
+			System.out.println("selection index=" + idx + " " + element);
+			if (element != null) {
+				update = true;
+				table.setSelection(new StructuredSelection(element), true);
+				update = false;
+				table.getTable().showSelection();
 			}
 		}
 	}
-
 }

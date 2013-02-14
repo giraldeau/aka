@@ -121,7 +121,13 @@ public abstract class AbstractAKAView extends TmfView implements JobListener {
 		}
 	}
 
-	protected void updateData() {
+	private void updateData() {
+		synchronized (fSyncObj) {
+			updateDataSafe();
+		}
+	}
+
+	protected void updateDataSafe() {
 	}
 
 }
