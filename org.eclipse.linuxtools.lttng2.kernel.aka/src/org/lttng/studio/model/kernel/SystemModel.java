@@ -90,7 +90,9 @@ public class SystemModel implements ITraceModel {
 	public Task getTask(long tid) {
 		if (tid > 0)
 			return tasks.get(tid);
-		return swappers[cpu];
+		if (tid == 0)
+			return swappers[cpu];
+		return null;
 	}
 
 	public Task getTaskCpu(int cpu) {

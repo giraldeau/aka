@@ -5,14 +5,20 @@ import java.util.List;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.linuxtools.internal.lttng2.kernel.ui.views.controlflow.ControlFlowEntry;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobListener;
 import org.eclipse.linuxtools.lttng2.kernel.aka.JobManager;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTimestamp;
+import org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.event.TmfTimeRange;
+import org.eclipse.linuxtools.tmf.core.event.TmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.signal.TmfRangeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
@@ -29,12 +35,14 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPart;
+import org.lttng.studio.collect.BinarySearch;
 import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.TaskBlockingEntry;
 import org.lttng.studio.model.kernel.TaskBlockings;
+import org.lttng.studio.model.kernel.TimeInterval;
 import org.lttng.studio.reader.handler.IModelKeys;
 
 @SuppressWarnings("restriction")
@@ -48,13 +56,21 @@ public class BlockingView extends TmfView implements JobListener {
 
 	private ITmfTrace fTrace;
 
-	private long current;
+	private long currentTid;
 
 	private ModelRegistry registry;
 
-	private TmfTimeRange currentRange;
+	private final double marginFactor = 0.1;
+
+	//private TmfTimeRange currentRange;
 
 	private final JobManager manager;
+
+	private List<? extends TaskBlockingEntry> fBlockingEntries;
+
+	private Task fCurrentTask;
+
+	private final Object fSyncObj = new Object();
 
 	ISelectionListener selListener = new ISelectionListener() {
 		@Override
@@ -65,18 +81,20 @@ public class BlockingView extends TmfView implements JobListener {
 						.getFirstElement();
 				if (element instanceof ControlFlowEntry) {
 					ControlFlowEntry entry = (ControlFlowEntry) element;
-					if (current == entry.getThreadId())
-						return;
-					current = entry.getThreadId();
-					updateEntries();
+					setCurrentTid(entry.getThreadId());
 				}
 			}
 		}
 	};
 
+	private long fCurrentTime;
+
+	private boolean update;
+
 	public BlockingView() {
 		super(ID);
 		manager = new JobManager();
+		update = false;
 	}
 
 	@Override
@@ -91,6 +109,28 @@ public class BlockingView extends TmfView implements JobListener {
 		t.setLinesVisible(true);
 		createColumns();
 		table.setInput(null);
+		table.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				// avoid nesting
+				if (update)
+					return;
+				ISelection selection = table.getSelection();
+				if (selection instanceof IStructuredSelection) {
+					Object item = ((IStructuredSelection) selection).getFirstElement();
+					if (item instanceof TaskBlockingEntry) {
+						TimeInterval interval = ((TaskBlockingEntry) item).getInterval();
+						long margin = (long) (interval.duration() * marginFactor);
+		                final long startTime = interval.getStart() - margin;
+		                final long endTime = interval.getEnd() + margin;
+		                long center = (endTime - startTime) / 2 + startTime;
+		                TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
+		                TmfTimestamp time = new CtfTmfTimestamp(center);
+		                broadcast(new TmfRangeSynchSignal(BlockingView.this, range, time));
+					}
+				}
+			}
+		});
 
 		// get selection events
 		getSite().getWorkbenchWindow().getSelectionService()
@@ -154,28 +194,31 @@ public class BlockingView extends TmfView implements JobListener {
 	public void traceSelected(final TmfTraceSelectedSignal signal) {
 		if (signal.getTrace() == fTrace)
 			return;
+		currentTid = -1;
 		fTrace = signal.getTrace();
-		registry = null;
+		synchronized(fSyncObj) {
+			registry = null;
+		}
 		table.setInput(null);
 		manager.launch(fTrace);
 	}
 
 	public void traceClosed(final TmfTraceClosedSignal signal) {
-		// FIXME: synchronize
-		registry = null;
+		synchronized(fSyncObj) {
+			registry = null;
+		}
 		table.setInput(null);
 	}
 
 	@TmfSignalHandler
 	public void synchToTime(final TmfTimeSynchSignal signal) {
-
+		System.out.println("syncToTime " + signal.getCurrentTime());
+		fCurrentTime = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+		updateTable();
 	}
 
 	@TmfSignalHandler
 	public void synchToRange(final TmfRangeSynchSignal signal) {
-		// FIXME: synchronize
-		currentRange = signal.getCurrentRange();
-		updateEntries();
 	}
 
 	@Override
@@ -200,20 +243,48 @@ public class BlockingView extends TmfView implements JobListener {
 		System.out.println(model.getCounter());
 	}
 
-	protected void updateEntries() {
-		// FIXME: synchronize
-		if (registry == null)
-			return;
-		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
-		TaskBlockings blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
-		if (system == null || blockings == null)
-			return;
-		Task task = system.getTask(current);
-		if (task == null)
-			return;
-		List<? extends TaskBlockingEntry> list = blockings.getEntries().get(task);
-		table.setInput(list);
-		table.refresh();
+	protected void updateTable() {
+		SystemModel system;
+		TaskBlockings blockings;
+		synchronized(fSyncObj) {
+			if (registry == null)
+				return;
+			system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
+			blockings = registry.getModel(IModelKeys.SHARED, TaskBlockings.class);
+			if (system == null || blockings == null)
+				return;
+			Task task = system.getTask(currentTid);
+			// change input of table if task has changed
+			if (task != null || task != fCurrentTask) {
+				fCurrentTask = task;
+				fBlockingEntries = blockings.getEntries().get(fCurrentTask);
+				table.setInput(fBlockingEntries);
+				table.refresh();
+			}
+			// scroll to nearest item according to current time
+			TaskBlockingEntry entry = new TaskBlockingEntry();
+			entry.getInterval().setStart(fCurrentTime);
+			if (fBlockingEntries != null && !fBlockingEntries.isEmpty()) {
+				int idx = BinarySearch.floor(fBlockingEntries, entry, TaskBlockingEntry.cmpStart);
+				if (idx < 0)
+					idx = BinarySearch.ceiling(fBlockingEntries, entry, TaskBlockingEntry.cmpStart);
+				Object element = table.getElementAt(idx);
+				System.out.println("selection index=" + idx + " " + element);
+				if (element != null) {
+					update = true;
+					table.setSelection(new StructuredSelection(element), true);
+					update = false;
+					table.getTable().showSelection();
+				}
+			}
+		}
 	}
 
+	protected void setCurrentTid(int threadId) {
+		if (currentTid == threadId)
+			return;
+		System.out.println("setCurrentTid " + threadId);
+		currentTid = threadId;
+		updateTable();
+	}
 }

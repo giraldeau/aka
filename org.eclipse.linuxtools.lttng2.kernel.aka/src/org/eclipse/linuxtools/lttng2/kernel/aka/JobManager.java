@@ -36,7 +36,6 @@ public class JobManager {
 	public synchronized Job launch(final ITmfTrace trace) {
 		if (trace == null)
 			return null;
-
 		// Our analyzer only accepts CtfTmfTrace
 		final AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(trace);
