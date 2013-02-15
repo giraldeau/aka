@@ -10,14 +10,13 @@ import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
-import org.lttng.studio.utils.AnalysisFilter;
 
 public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	SystemModel system;
 	ExecGraph graph;
 	HRTimer[] hrtimerExpire;
-	private AnalysisFilter filter;
+	private CtfTmfEvent[] softirq;
 
 	public TraceEventHandlerExecutionGraph() {
 		super();
@@ -27,15 +26,17 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("hrtimer_init"));
 		hooks.add(new TraceHook("hrtimer_expire_entry"));
 		hooks.add(new TraceHook("hrtimer_expire_exit"));
+		hooks.add(new TraceHook("softirq_entry"));
+		hooks.add(new TraceHook("softirq_exit"));
 	}
 
 	@Override
 	public void handleInit(TraceReader reader) {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		graph = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ExecGraph.class);
-		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
 		system.init(reader);
 		hrtimerExpire = new HRTimer[reader.getNumCpus()];
+		softirq = new CtfTmfEvent[reader.getNumCpus()];
 	}
 
 	public ExecVertex createVertex(Object owner, long timestamps) {
@@ -103,8 +104,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			System.err.println("parent " + parent + " child " + child);
 		}
 
-		if (!filter.containsTaskTid(parent))
-			return;
+		//if (!filter.containsTaskTid(parent))
+		//	return;
 		createSplit(parent, child, timestamps);
 	}
 
@@ -115,8 +116,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 		if (task == null)
 			return;
-		if (!filter.containsTaskTid(task))
-			return;
+		//if (!filter.containsTaskTid(task))
+		//	return;
 
 		// v0 ---> v1
 
@@ -130,8 +131,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		long tid = EventField.getLong(event, "tid");
 		Task target = system.getTask(tid);
 
-		if (!filter.containsTaskTid(target))
-			return;
+		//if (!filter.containsTaskTid(target))
+		//	return;
 
 		Object source = null;
 
@@ -142,18 +143,26 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			source = timer;
 		}
 
-		// 2 - waitpid wakeup
+		// 2 - softirq wakeup
+		CtfTmfEvent sirq = softirq[event.getCPU()];
+		if (sirq != null) {
+			// lookup the source of this SoftIRQ
+			return;
+		}
+
+		// 3 - waitpid wakeup
 		if (source == null) {
 			Task current = system.getTaskCpu(event.getCPU());
-			System.out.println("sched_wakeup emitted by " + current + " " + current.getProcessStatus() + " " + current.getExecutionMode());
+			//System.out.println("sched_wakeup emitted by " + current + " " + current.getProcessStatus() + " " + current.getExecutionMode());
 			if (current.getExecutionMode() == Task.execution_mode.SYSCALL &&
-					current.getProcessStatus() == Task.process_status.EXIT) {
+					(current.getProcessStatus() == Task.process_status.EXIT ||
+					current.getProcessStatus() == Task.process_status.RUN)) {
 				source = current;
 			}
 		}
 
 		if (target == null || source == null) {
-			System.err.println("ERROR: null wakeup endpoint: source " + source + " target " + target);
+			//System.err.println("WARNING: null wakeup endpoint: source:" + source + " target:" + target + " " + event.getTimestamp());
 			return;
 		}
 		createMerge(source, target, timestamps);
@@ -165,8 +174,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		Task current = system.getTaskCpu(event.getCPU());
 		if (current == null)
 			return;
-		if (!filter.containsTaskTid(current))
-			return;
+		//if (!filter.containsTaskTid(current))
+		//	return;
 		createSplit(current, timer, event.getTimestamp().getValue());
 	}
 
@@ -177,6 +186,14 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	public void handle_hrtimer_expire_exit(TraceReader reader, CtfTmfEvent event) {
 		hrtimerExpire[event.getCPU()] = null;
+	}
+
+	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
+		softirq[event.getCPU()] = event;
+	}
+
+	public void handle_softirq_exit(TraceReader reader, CtfTmfEvent event) {
+		softirq[event.getCPU()] = null;
 	}
 
 	@Override

@@ -12,10 +12,12 @@ public class AnalysisFilter  implements ITraceModel {
 	HashSet<Long> tids;
 	HashSet<String> commands;
 	private boolean followChild;
+	private boolean wildcard;
 
 	public AnalysisFilter() {
 		tids = new HashSet<Long>();
 		commands = new HashSet<String>();
+		setWildcard(false);
 	}
 
 	@Override
@@ -55,7 +57,17 @@ public class AnalysisFilter  implements ITraceModel {
 	public boolean containsTaskTid(Task task) {
 		if (task == null)
 			return false;
+		if (isWildcard())
+			return true;
 		return tids.contains(task.getTid());
+	}
+
+	public boolean isWildcard() {
+		return wildcard;
+	}
+
+	public void setWildcard(boolean wildcard) {
+		this.wildcard = wildcard;
 	}
 
 }

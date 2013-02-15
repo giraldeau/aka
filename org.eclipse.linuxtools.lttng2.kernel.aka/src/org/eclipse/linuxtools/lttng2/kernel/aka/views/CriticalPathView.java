@@ -1,5 +1,7 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
+import java.util.HashMap;
+
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.jface.viewers.ILabelProviderListener;
 import org.eclipse.jface.viewers.ITreeContentProvider;
@@ -8,7 +10,12 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.jgrapht.traverse.AbstractGraphIterator;
+import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
+import org.lttng.studio.model.graph.ExecVertex;
+import org.lttng.studio.model.graph.ForwardClosestIterator;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.handler.IModelKeys;
@@ -117,9 +124,28 @@ public class CriticalPathView extends AbstractAKAView {
 		if (system == null || graph == null)
 			return;
 		Task task = system.getTask(currentTid);
-		// change input of table if task has changed
+		// change input if task has changed
 		if (task != null || task != fCurrentTask) {
+			computeCriticalPath(graph, task);
 		}
+	}
+
+	private void computeCriticalPath(ExecGraph graph, Task task) {
+		ExecVertex head = graph.getStartVertexOf(task);
+		if (!graph.getGraph().containsVertex(head)) {
+			System.err.println("WARNING: head vertex is null for task " + task);
+			System.out.println(graph.getVertexMap());
+			return;
+		}
+		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
+				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
+		iter.addTraversalListener(traversal);
+		// FIXME: spawn a thread for background processing
+		while (iter.hasNext())
+			iter.next();
+		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
+		System.out.println(map);
 	}
 
 }
