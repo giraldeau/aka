@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
@@ -55,17 +56,20 @@ public class TestTaskExecGraph {
 		File file = new File(getGraphOutDir(string), task.getTid() + ".dot");
 		FileWriter f = new FileWriter(file);
 		f.write("digraph G {\n");
-		for (ExecVertex vertex: graph.getGraph().vertexSet()) {
+		HashSet<ExecVertex> set = new HashSet<ExecVertex>();
+		for (ExecEdge edge: map.keySet()) {
+			ExecVertex src = graph.getGraph().getEdgeSource(edge);
+			ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
+			set.add(src);
+			set.add(dst);
+			f.write(String.format("%d -> %d [ label=\"%d,%s\" ];\n",src.getId(), dst.getId(), map.get(edge), edge.getType()));
+		}
+		for (ExecVertex vertex: set) {
 			String str = vertex.getOwner().toString();
 			if (vertex.getOwner() instanceof Task) {
 				str = "" + ((Task)vertex.getOwner()).getTid();
 			}
 			f.write(String.format("%d [ label=\"[%d] %s\" ];\n", vertex.getId(), vertex.getId(), str));
-		}
-		for (ExecEdge edge: map.keySet()) {
-			ExecVertex src = graph.getGraph().getEdgeSource(edge);
-			ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
-			f.write(String.format("%d -> %d [ label=\"%d,%s\" ];\n",src.getId(), dst.getId(), map.get(edge), edge.getType()));
 		}
 		f.write("}\n");
 		f.flush();
@@ -128,6 +132,7 @@ public class TestTaskExecGraph {
 		while (iter.hasNext())
 			iter.next();
 		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
+		System.out.println(map);
 		saveEdges(graph, map, task, name + "-edges");
 	}
 

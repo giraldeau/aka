@@ -1,6 +1,6 @@
 package org.lttng.studio.tests.graph;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,47 +24,61 @@ public class TestGraphAnnotation {
 	static HashMap<String, String> exp = new HashMap<String, String>();
 	static {
 		exp.put(BasicGraph.GRAPH_BASIC,		"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
-		exp.put(BasicGraph.GRAPH_CONCAT,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;" + 
+		exp.put(BasicGraph.GRAPH_CONCAT,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;" +
 											"A3-C3;C3-C4;C4-A4;A4-A5;");
 		exp.put(BasicGraph.GRAPH_EMBEDED,	"A0-A1;A1-C1;C1-C4;C4-A4;A4-A5");
 		exp.put(BasicGraph.GRAPH_INTERLEAVE,"A0-A1;A1-A2;A2-C2;C2-C4;C4-A4;A4-A5;");
 		exp.put(BasicGraph.GRAPH_NESTED,	"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-B3;B3-B4;B4-A4;A4-A5");
+		exp.put(BasicGraph.GRAPH_GARBAGE1,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
+		exp.put(BasicGraph.GRAPH_GARBAGE2,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;A3-A4");
 		exp.put(BasicGraph.GRAPH_SHELL,		"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-C4;C4-C5;C5-C6;C6-C7;" +
 											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
 											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
 											"B17-A17;A17-A18;");
 	}
-	
+
 	@Test
 	public void testGraphAnnotateClosestFirstAll() {
 		for (String name: exp.keySet()) {
+			//System.out.println("processing " + name);
 			testGraphAnnotateClosestFirst(name);
 		}
 	}
-	
+
+	@Test
+	public void testOne() {
+		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_SHELL);
+	}
+
 	public void testGraphAnnotateClosestFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
 		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
 		ExecVertex head = graph.getStartVertexOf(base.getOwner());
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
 		iter.addTraversalListener(traversal);
-		while (iter.hasNext())
+		while (iter.hasNext() && !traversal.isDone()) {
 			iter.next();
+			// FIXME: stop condition based on max timestamps
+			/*
+			if (vertex.getTimestamp() >= stopTimestamps)
+				break;
+			*/
+		}
 		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
 		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
 		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
 		checkPath(curr, expRed, actRed);
 	}
-	
+
 	@Test
 	public void testGraphDepthFirstAll() {
 		for (String name: exp.keySet()) {
 			testGraphAnnotateDepthFirst(name);
 		}
 	}
-	
+
 	public void testGraphAnnotateDepthFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
@@ -73,7 +87,7 @@ public class TestGraphAnnotation {
 		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
 		checkPath(curr, expRed, actRed);
 	}
-	
+
 	public void checkPath(String name, HashSet<ExecEdge> expRed, HashSet<ExecEdge> actRed) {
 		SetView<ExecEdge> diff = Sets.symmetricDifference(expRed, actRed);
 		if (diff.size() != 0) {
@@ -90,7 +104,7 @@ public class TestGraphAnnotation {
 		}
 		assertEquals(0, diff.size());
 	}
-	
+
 	static HashSet<ExecEdge> getExpectedRedEdges(ExecGraph graph, String name) {
 		String s = exp.get(name);
 		String[] splits = s.split(";");
@@ -104,7 +118,7 @@ public class TestGraphAnnotation {
 		}
 		return set;
 	}
-	
+
 	static HashSet<ExecEdge> getEdgesByType(HashMap<ExecEdge, Integer> map, Integer type) {
 		HashSet<ExecEdge> set = new HashSet<ExecEdge>();
 		for (Entry<ExecEdge, Integer> entry: map.entrySet()) {
@@ -114,5 +128,5 @@ public class TestGraphAnnotation {
 		}
 		return set;
 	}
-	
+
 }

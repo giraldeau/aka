@@ -19,13 +19,15 @@ public class BasicGraph {
 
 	public static String GRAPH_BASIC 		= "basic";
 	public static String GRAPH_CONCAT 		= "concat";
-	public static String GRAPH_EMBEDED 	= "embeded";
+	public static String GRAPH_EMBEDED 		= "embeded";
 	public static String GRAPH_INTERLEAVE 	= "interleave";
 	public static String GRAPH_NESTED 		= "nested";
 	public static String GRAPH_OPEN1 		= "open_1";
 	public static String GRAPH_OPEN2 		= "open_2";
+	public static String GRAPH_GARBAGE1 	= "garbage1";
+	public static String GRAPH_GARBAGE2 	= "garbage2";
 	public static String GRAPH_SHELL 		= "shell";
-	
+
 	private static HashMap<String, Method> func = new HashMap<String, Method>();
 	static {
 		try {
@@ -36,12 +38,14 @@ public class BasicGraph {
 			func.put(GRAPH_NESTED, 		BasicGraph.class.getDeclaredMethod("makeNested"));
 			func.put(GRAPH_OPEN1, 		BasicGraph.class.getDeclaredMethod("makeOpened1"));
 			func.put(GRAPH_OPEN2, 		BasicGraph.class.getDeclaredMethod("makeOpened2"));
+			func.put(GRAPH_GARBAGE1,	BasicGraph.class.getDeclaredMethod("makeGarbage1"));
+			func.put(GRAPH_GARBAGE2,	BasicGraph.class.getDeclaredMethod("makeGarbage2"));
 			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);
 		}
 	};
-	
+
 	public static ExecGraph makeLengthUnequal() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
@@ -49,24 +53,24 @@ public class BasicGraph {
 
 		ExecVertex vA0 = new ExecVertex(A, 0);
 		ExecVertex vA2 = new ExecVertex(A, 2);
-		
+
 		ExecVertex vB0 = new ExecVertex(B, 0);
 		ExecVertex vB1 = new ExecVertex(B, 1);
 		ExecVertex vB2 = new ExecVertex(B, 2);
 		ExecVertex vB3 = new ExecVertex(B, 3);
-		
+
 		graph.appendVertexByOwner(vA0);
 		graph.appendVertexByOwner(vA2);
 		graph.appendVertexByOwner(vB0);
 		graph.appendVertexByOwner(vB1);
 		graph.appendVertexByOwner(vB2);
 		graph.appendVertexByOwner(vB3);
-		
+
 		graph.addVerticalEdge(vA0, vB0);
 		graph.addVerticalEdge(vB2, vA2);
 		return graph;
 	}
-	
+
 	public static ExecGraph makeBasic() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
@@ -84,7 +88,7 @@ public class BasicGraph {
 		setEdgeBlocked(graph, "A1", "A2");
 		return graph;
 	}
-	
+
 	public static ExecGraph makeConcat() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
@@ -250,6 +254,80 @@ public class BasicGraph {
 		return graph;
 	}
 
+	public static ExecGraph makeGarbage1() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+		Object C = "C";
+
+		ExecVertex vA0 = new ExecVertex(A, 0);
+		ExecVertex vA1 = new ExecVertex(A, 1);
+		ExecVertex vA2 = new ExecVertex(A, 2);
+		ExecVertex vA3 = new ExecVertex(A, 3);
+		graph.appendVertexByOwner(vA0);
+		graph.appendVertexByOwner(vA1);
+		graph.appendVertexByOwner(vA2);
+		graph.appendVertexByOwner(vA3);
+
+		ExecVertex vB1 = new ExecVertex(B, 1);
+		ExecVertex vB2 = new ExecVertex(B, 2);
+		graph.appendVertexByOwner(vB1);
+		graph.appendVertexByOwner(vB2);
+
+		ExecVertex vC2 = new ExecVertex(C, 2);
+		ExecVertex vC3 = new ExecVertex(C, 3);
+		ExecVertex vC4 = new ExecVertex(C, 4);
+		graph.appendVertexByOwner(vC2);
+		graph.appendVertexByOwner(vC3);
+		graph.appendVertexByOwner(vC4);
+
+		graph.addVerticalEdge(vA1, vB1);
+		graph.addVerticalEdge(vB2, vA2);
+		graph.addVerticalEdge(vA3, vC3);
+
+		setEdgeBlocked(graph, "A1", "A2");
+
+		return graph;
+	}
+
+	public static ExecGraph makeGarbage2() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+		Object C = "C";
+
+		ExecVertex vA0 = new ExecVertex(A, 0);
+		ExecVertex vA1 = new ExecVertex(A, 1);
+		ExecVertex vA2 = new ExecVertex(A, 2);
+		ExecVertex vA3 = new ExecVertex(A, 3);
+		ExecVertex vA4 = new ExecVertex(A, 4);
+		graph.appendVertexByOwner(vA0);
+		graph.appendVertexByOwner(vA1);
+		graph.appendVertexByOwner(vA2);
+		graph.appendVertexByOwner(vA3);
+		graph.appendVertexByOwner(vA4);
+
+		ExecVertex vB1 = new ExecVertex(B, 1);
+		ExecVertex vB2 = new ExecVertex(B, 2);
+		graph.appendVertexByOwner(vB1);
+		graph.appendVertexByOwner(vB2);
+
+		ExecVertex vC2 = new ExecVertex(C, 2);
+		ExecVertex vC3 = new ExecVertex(C, 3);
+		ExecVertex vC4 = new ExecVertex(C, 4);
+		graph.appendVertexByOwner(vC2);
+		graph.appendVertexByOwner(vC3);
+		graph.appendVertexByOwner(vC4);
+
+		graph.addVerticalEdge(vA1, vB1);
+		graph.addVerticalEdge(vB2, vA2);
+		graph.addVerticalEdge(vA3, vC3);
+
+		setEdgeBlocked(graph, "A1", "A2");
+
+		return graph;
+	}
+
 	public static ExecGraph makeExecShell() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
@@ -257,31 +335,31 @@ public class BasicGraph {
 		Object C = "C";
 		Object D = "D";
 		Object E = "E";
-		
+
 		ExecVertex[] vA = genSeq(graph, A, 19);
 		ExecVertex[] vB = genSeq(graph, B, 19);
 		ExecVertex[] vC = genSeq(graph, C, 19);
 		ExecVertex[] vD = genSeq(graph, D, 19);
 		ExecVertex[] vE = genSeq(graph, E, 19);
-		
+
 		// first shell
 		graph.addVerticalEdge(vA[1], vB[1]);
 		graph.addVerticalEdge(vE[13], vA[13]);
 		graph.addVerticalEdge(vB[17], vA[17]);
-		
+
 		// second shell
 		graph.addVerticalEdge(vB[2], vC[2]);
 		graph.addVerticalEdge(vB[3], vD[3]);
 		graph.addVerticalEdge(vB[5], vE[5]);
-		
+
 		// child 1
 		graph.addVerticalEdge(vC[7], vD[7]);
 		graph.addVerticalEdge(vC[8], vB[8]);
-		
+
 		// child 2
 		graph.addVerticalEdge(vD[10], vE[10]);
 		graph.addVerticalEdge(vD[11], vB[11]);
-		
+
 		// child 3
 		graph.addVerticalEdge(vE[15], vB[15]);
 
@@ -311,28 +389,28 @@ public class BasicGraph {
 		}
 		return null;
 	}
-	
+
 	public static ExecVertex getVertexByName(ExecGraph graph, String name) {
 		ExecVertex base = null;
 		ArrayListMultimap<Object, ExecVertex> vertexMap = graph.getVertexMap();
 		for (ExecVertex v : vertexMap.values()) {
-			String s = "" + v.getOwner() + v.getTimestamp(); 
+			String s = "" + v.getOwner() + v.getTimestamp();
 			if (s.compareTo(name) == 0)
 				base = v;
 		}
 		return base;
 	}
-	
+
 	public static ExecEdge getEdgeByName(ExecGraph graph, String s1, String s2) {
 		ExecVertex v1 = getVertexByName(graph, s1);
 		ExecVertex v2 = getVertexByName(graph, s2);
 		return graph.getGraph().getEdge(v1, v2);
 	}
-	
+
 	public static Set<String> getGraphName() {
 		return func.keySet();
 	}
-	
+
 	private static ExecVertex[] genSeq(ExecGraph graph, Object owner, int num) {
 		ExecVertex[] v = new ExecVertex[num];
 		for (int i = 0; i < num; i++) {
@@ -349,14 +427,14 @@ public class BasicGraph {
 	private static void setEdgeBlocked(ExecGraph graph, String s1, String s2) {
 		graph.getGraph()
 		.getEdge(getVertexByName(graph, s1), getVertexByName(graph, s2))
-		.setType(EdgeType.BLOCKED);		
+		.setType(EdgeType.BLOCKED);
 	}
-	
+
 	public static void main(String[] args) throws IOException {
 		String base = "graph" + File.separator + "tests" + File.separator;
 		for (String name: func.keySet()) {
 			GraphUtils.saveGraphDefault(makeGraphByName(name), base + name);
 		}
 	}
-	
+
 }

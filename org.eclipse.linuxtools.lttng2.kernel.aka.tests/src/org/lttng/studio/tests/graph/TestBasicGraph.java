@@ -28,7 +28,7 @@ public class TestBasicGraph {
 
 		final StringBuilder str = new StringBuilder();
 		ExecVertex tail = graph.getEndVertexOf(base.getOwner());
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ReverseClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
 		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
 			@Override
@@ -40,7 +40,7 @@ public class TestBasicGraph {
 
 		while (iter.hasNext())
 			iter.next();
-		
+
 		assertTrue(str.toString().matches("A2B2B1B0A0"));
 	}
 
@@ -68,7 +68,7 @@ public class TestBasicGraph {
 			return vertex + 42 * edge;
 		}
 	}
-	
+
 	@Test
 	public void testForwardClosestTraversalVertexEdgeCount() {
 		HashMap<String, ItemCount> exp = new HashMap<String, ItemCount>();
@@ -79,6 +79,7 @@ public class TestBasicGraph {
 		exp.put(BasicGraph.GRAPH_NESTED, 		new ItemCount(10, 11));
 		exp.put(BasicGraph.GRAPH_OPEN1, 		new ItemCount(5, 4));
 		exp.put(BasicGraph.GRAPH_OPEN2, 		new ItemCount(3, 2));
+		exp.put(BasicGraph.GRAPH_GARBAGE1, 		new ItemCount(8, 8));
 		exp.put(BasicGraph.GRAPH_SHELL, 		new ItemCount(84, 90));
 
 		// check that regex matches
@@ -90,14 +91,14 @@ public class TestBasicGraph {
 			assertTrue(count.equals(exp.get(name)));
 		}
 	}
-	
+
 	private ItemCount getItemCount(final ExecGraph graph) {
 		// retrieve the base object
 		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
 
 		final ItemCount count = new ItemCount(0, 0);
 		ExecVertex tail = graph.getStartVertexOf(base.getOwner());
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
 		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
 			@Override
@@ -114,14 +115,14 @@ public class TestBasicGraph {
 
 		while (iter.hasNext())
 			iter.next();
-		
+
 		return count;
 	}
 
 	@Test
 	public void testForwardClosestTraversal() {
 		HashMap<String, String> exp = new HashMap<String, String>();
-		String any = "(([A-Z][0-9]+) )*"; 
+		String any = "(([A-Z][0-9]+) )*";
 		exp.put(BasicGraph.GRAPH_BASIC, 		"A0 A1 B1 B2 A2 A3 ");
 		exp.put(BasicGraph.GRAPH_CONCAT, 		"A0 A1 B1 B2 A2 A3 C3 C4 A4 A5 ");
 		exp.put(BasicGraph.GRAPH_EMBEDED, 		"A0 A1 C1 A2 B2 B3 A3 C4 A4 A5 ");
@@ -129,6 +130,7 @@ public class TestBasicGraph {
 		exp.put(BasicGraph.GRAPH_NESTED,		"A0 A1 B1 B2 C2 C3 B3 B4 A4 A5 ");
 		exp.put(BasicGraph.GRAPH_OPEN1, 		"A0 A1 B1 ((A2|B2) ){2}");
 		exp.put(BasicGraph.GRAPH_OPEN2, 		"A0 A1 A2 ");
+		exp.put(BasicGraph.GRAPH_GARBAGE1, 		"A0 A1 B1 B2 A2 A3 C3 C4 ");
 		exp.put(BasicGraph.GRAPH_SHELL, 		any + "A1 " + any + "B1 " +
 												any + "B2 " + any + "C2 " +
 												any + "B3 " + any + "D3 " +
@@ -151,7 +153,7 @@ public class TestBasicGraph {
 			assertTrue(str.toString().matches(exp.get(name)));
 		}
 	}
-	
+
 	private String getForwardClosestTraversalString(ExecGraph graph) {
 		// retrieve the base object
 		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
@@ -160,7 +162,7 @@ public class TestBasicGraph {
 		// check that every node is encountered only once
 		final StringBuilder str = new StringBuilder();
 		ExecVertex tail = graph.getStartVertexOf(base.getOwner());
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter = 
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), tail);
 		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
 			long time = 0;
@@ -178,7 +180,7 @@ public class TestBasicGraph {
 
 		while (iter.hasNext())
 			iter.next();
-		
+
 		return str.toString();
 	}
 
