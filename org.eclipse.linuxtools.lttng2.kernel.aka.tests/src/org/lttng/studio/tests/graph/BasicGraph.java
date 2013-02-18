@@ -66,8 +66,8 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB2);
 		graph.appendVertexByOwner(vB3);
 
-		graph.addVerticalEdge(vA0, vB0);
-		graph.addVerticalEdge(vB2, vA2);
+		graph.addVerticalEdge(vA0, vB0, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vA2, EdgeType.MERGE);
 		return graph;
 	}
 
@@ -83,8 +83,8 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB1);
 		graph.appendVertexByOwner(vB2);
 
-		graph.addVerticalEdge(vA[1], vB1);
-		graph.addVerticalEdge(vB2, vA[2]);
+		graph.addVerticalEdge(vA[1], vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vA[2], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A2");
 		return graph;
 	}
@@ -107,11 +107,11 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vC3);
 		graph.appendVertexByOwner(vC4);
 
-		graph.addVerticalEdge(vA[1], vB1);
-		graph.addVerticalEdge(vB2, vA[2]);
+		graph.addVerticalEdge(vA[1], vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vA[2], EdgeType.MERGE);
 
-		graph.addVerticalEdge(vA[3], vC3);
-		graph.addVerticalEdge(vC4, vA[4]);
+		graph.addVerticalEdge(vA[3], vC3, EdgeType.SPLIT);
+		graph.addVerticalEdge(vC4, vA[4], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A2");
 		setEdgeBlocked(graph, "A3", "A4");
 		return graph;
@@ -135,11 +135,11 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vC2);
 		graph.appendVertexByOwner(vC4);
 
-		graph.addVerticalEdge(vA[1], vB1);
-		graph.addVerticalEdge(vB3, vA[3]);
+		graph.addVerticalEdge(vA[1], vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB3, vA[3], EdgeType.MERGE);
 
-		graph.addVerticalEdge(vA[2], vC2);
-		graph.addVerticalEdge(vC4, vA[4]);
+		graph.addVerticalEdge(vA[2], vC2, EdgeType.SPLIT);
+		graph.addVerticalEdge(vC4, vA[4], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A2", "A3");
 		setEdgeBlocked(graph, "A3", "A4");
 		return graph;
@@ -163,11 +163,11 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vC1);
 		graph.appendVertexByOwner(vC4);
 
-		graph.addVerticalEdge(vA[2], vB2);
-		graph.addVerticalEdge(vB3, vA[3]);
+		graph.addVerticalEdge(vA[2], vB2, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB3, vA[3], EdgeType.MERGE);
 
-		graph.addVerticalEdge(vA[1], vC1);
-		graph.addVerticalEdge(vC4, vA[4]);
+		graph.addVerticalEdge(vA[1], vC1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vC4, vA[4], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A2", "A3");
 		setEdgeBlocked(graph, "A3", "A4");
 		return graph;
@@ -202,11 +202,11 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vC2);
 		graph.appendVertexByOwner(vC3);
 
-		graph.addVerticalEdge(vA1, vB1);
-		graph.addVerticalEdge(vB2, vC2);
+		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vC2, EdgeType.SPLIT);
 
-		graph.addVerticalEdge(vC3, vB3);
-		graph.addVerticalEdge(vB4, vA4);
+		graph.addVerticalEdge(vC3, vB3, EdgeType.MERGE);
+		graph.addVerticalEdge(vB4, vA4, EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A4");
 		setEdgeBlocked(graph, "B2", "B3");
 		return graph;
@@ -229,7 +229,7 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB1);
 		graph.appendVertexByOwner(vB2);
 
-		graph.addVerticalEdge(vA1, vB1);
+		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
 		return graph;
 	}
 
@@ -250,7 +250,7 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB0);
 		graph.appendVertexByOwner(vB1);
 
-		graph.addVerticalEdge(vB1, vA1);
+		graph.addVerticalEdge(vB1, vA1, EdgeType.MERGE);
 		return graph;
 	}
 
@@ -281,9 +281,9 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vC3);
 		graph.appendVertexByOwner(vC4);
 
-		graph.addVerticalEdge(vA1, vB1);
-		graph.addVerticalEdge(vB2, vA2);
-		graph.addVerticalEdge(vA3, vC3);
+		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vA2, EdgeType.MERGE);
+		graph.addVerticalEdge(vA3, vC3, EdgeType.MERGE);
 
 		setEdgeBlocked(graph, "A1", "A2");
 
@@ -319,9 +319,9 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vC3);
 		graph.appendVertexByOwner(vC4);
 
-		graph.addVerticalEdge(vA1, vB1);
-		graph.addVerticalEdge(vB2, vA2);
-		graph.addVerticalEdge(vA3, vC3);
+		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vA2, EdgeType.MERGE);
+		graph.addVerticalEdge(vA3, vC3, EdgeType.MERGE);
 
 		setEdgeBlocked(graph, "A1", "A2");
 
@@ -343,25 +343,25 @@ public class BasicGraph {
 		ExecVertex[] vE = genSeq(graph, E, 19);
 
 		// first shell
-		graph.addVerticalEdge(vA[1], vB[1]);
-		graph.addVerticalEdge(vE[13], vA[13]);
-		graph.addVerticalEdge(vB[17], vA[17]);
+		graph.addVerticalEdge(vA[1], vB[1], EdgeType.SPLIT);
+		graph.addVerticalEdge(vE[13], vA[13], EdgeType.MERGE);
+		graph.addVerticalEdge(vB[17], vA[17], EdgeType.MERGE);
 
 		// second shell
-		graph.addVerticalEdge(vB[2], vC[2]);
-		graph.addVerticalEdge(vB[3], vD[3]);
-		graph.addVerticalEdge(vB[5], vE[5]);
+		graph.addVerticalEdge(vB[2], vC[2], EdgeType.SPLIT);
+		graph.addVerticalEdge(vB[3], vD[3], EdgeType.SPLIT);
+		graph.addVerticalEdge(vB[5], vE[5], EdgeType.SPLIT);
 
 		// child 1
-		graph.addVerticalEdge(vC[7], vD[7]);
-		graph.addVerticalEdge(vC[8], vB[8]);
+		graph.addVerticalEdge(vC[7], vD[7], EdgeType.SPLIT);
+		graph.addVerticalEdge(vC[8], vB[8], EdgeType.MERGE);
 
 		// child 2
-		graph.addVerticalEdge(vD[10], vE[10]);
-		graph.addVerticalEdge(vD[11], vB[11]);
+		graph.addVerticalEdge(vD[10], vE[10], EdgeType.SPLIT);
+		graph.addVerticalEdge(vD[11], vB[11], EdgeType.MERGE);
 
 		// child 3
-		graph.addVerticalEdge(vE[15], vB[15]);
+		graph.addVerticalEdge(vE[15], vB[15], EdgeType.MERGE);
 
 		// blocking edges
 		setEdgeBlocked(graph, "A2", "A3");
@@ -388,6 +388,17 @@ public class BasicGraph {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	public static ExecVertex getVertexByPrefix(ExecGraph graph, String prefix) {
+		ExecVertex vertex = null;
+		ArrayListMultimap<Object, ExecVertex> vertexMap = graph.getVertexMap();
+		for (ExecVertex v : vertexMap.values()) {
+			if (((String)v.getOwner()).startsWith(prefix))
+				vertex = v;
+				break;
+		}
+		return vertex;
 	}
 
 	public static ExecVertex getVertexByName(ExecGraph graph, String name) {

@@ -10,11 +10,13 @@ import java.util.Map.Entry;
 import org.jgrapht.traverse.AbstractGraphIterator;
 import org.junit.Test;
 import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ForwardClosestIterator;
+import org.lttng.studio.model.graph.Span;
 
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -35,6 +37,36 @@ public class TestGraphAnnotation {
 											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
 											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
 											"B17-A17;A17-A18;");
+	}
+	// Total time according to alphabetical order actor (A, B, C, D, E)
+	static HashMap<String, Integer[]> cp = new HashMap<String, Integer[]>();
+	static {
+		cp.put(BasicGraph.GRAPH_BASIC, 		new Integer[] { 2, 1 });
+		cp.put(BasicGraph.GRAPH_CONCAT, 	new Integer[] { 3, 1, 1 });
+	}
+
+	static String[] actors = new String[] { "A", "B", "C", "D", "E" };
+
+	@Test
+	public void testGraphStats() {
+		for (String name: cp.keySet()) {
+			ExecGraph graph = BasicGraph.makeGraphByName(name);
+			ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
+			HashMap<Object, Span> spans = CriticalPathStats.compile(graph, start);
+			String out = CriticalPathStats.formatStats(spans.values());
+			System.out.println(name);
+			System.out.println(out);
+			Integer[] data = cp.get(name);
+			for (int i = 0; i < data.length; i++) {
+				ExecVertex v = BasicGraph.getVertexByPrefix(graph, actors[i]);
+				// FIXME: v is null for actor B
+				/*
+				System.out.println(v);
+				Span span = spans.get(v.getOwner());
+				System.out.println(v.getOwner() + " " + span.getTotal() + " ?= " + data[i]);
+				*/
+			}
+		}
 	}
 
 	@Test

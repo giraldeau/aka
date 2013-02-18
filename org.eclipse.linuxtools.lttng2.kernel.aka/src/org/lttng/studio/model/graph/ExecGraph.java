@@ -49,7 +49,7 @@ public class ExecGraph {
 		}
 		return end;
 	}
-	
+
 	public void appendVertexByOwner(ExecVertex vertex) {
 		graph.addVertex(vertex);
 		ExecVertex tail = getEndVertexOf(vertex.getOwner());
@@ -60,11 +60,12 @@ public class ExecGraph {
 		vertexMap.put(vertex.getOwner(), vertex);
 	}
 
-	public void addVerticalEdge(ExecVertex src, ExecVertex dst) {
+	public void addVerticalEdge(ExecVertex src, ExecVertex dst, EdgeType type) {
 		if (src.getTimestamp() != dst.getTimestamp())
 			throw new RuntimeException("Vertical edge source and testination vertex must have equal timestamps");
 		ExecEdge edge = graph.addEdge(src, dst);
+		edge.setType(type);
 		graph.setEdgeWeight(edge, edge.getWeight());
 	}
-	
+
 }

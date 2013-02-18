@@ -132,7 +132,7 @@ public class TestBasicGraph {
 		exp.put(BasicGraph.GRAPH_OPEN1, 		"A0 A1 B1 ((A2|B2) ){2}");
 		exp.put(BasicGraph.GRAPH_OPEN2, 		"A0 A1 A2 ");
 		exp.put(BasicGraph.GRAPH_GARBAGE1, 		"A0 A1 B1 B2 A2 A3 C3 C4 ");
-		exp.put(BasicGraph.GRAPH_GARBAGE2, 		"A0 A1 B1 B2 A2 A3 C3 ((A4|C4 ){2}");
+		exp.put(BasicGraph.GRAPH_GARBAGE2, 		"A0 A1 B1 B2 A2 A3 C3 ((A4|C4) ){2}");
 		exp.put(BasicGraph.GRAPH_SHELL, 		any + "A1 " + any + "B1 " +
 												any + "B2 " + any + "C2 " +
 												any + "B3 " + any + "D3 " +

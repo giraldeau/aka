@@ -142,7 +142,7 @@ public class CriticalPathView extends AbstractAKAView {
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
 		iter.addTraversalListener(traversal);
 		// FIXME: spawn a thread for background processing
-		while (iter.hasNext())
+		while (iter.hasNext() && !traversal.isDone())
 			iter.next();
 		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
 		System.out.println(map);

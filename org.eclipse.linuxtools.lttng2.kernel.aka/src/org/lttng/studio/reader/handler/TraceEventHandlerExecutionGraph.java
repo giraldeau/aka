@@ -71,7 +71,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 		createEdge(v00, v10, EdgeType.RUNNING);
 		createEdge(v01, v11, EdgeType.DEFAULT);
-		createEdge(v10, v11, EdgeType.DEFAULT);
+		createEdge(v10, v11, EdgeType.SPLIT);
 	}
 
 	public void createMerge(Object source, Object target, long timestamps) {
@@ -90,7 +90,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 		createEdge(v00, v10, EdgeType.BLOCKED);
 		createEdge(v01, v11, EdgeType.RUNNING);
-		createEdge(v11, v10, EdgeType.DEFAULT);
+		createEdge(v11, v10, EdgeType.MERGE);
 	}
 
 	public void handle_sched_process_fork(TraceReader reader, CtfTmfEvent event) {
