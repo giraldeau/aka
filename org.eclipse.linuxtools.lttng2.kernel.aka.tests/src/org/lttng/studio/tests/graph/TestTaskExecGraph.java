@@ -112,8 +112,14 @@ public class TestTaskExecGraph {
 	}
 
 	@Test
-	public void testCPM1path() throws TmfTraceException, IOException, InterruptedException {
-		String name = "wk-cpm1-k";
+	public void testCPMpath() throws TmfTraceException, IOException, InterruptedException {
+		String[][] s = new String[][] { { "wk-cpm1-k", "wk-cpm1" }, { "wk-cpm2-k", "wk-cpm2" } };
+		for (int i = 0; i < s.length; i++) {
+			computeCriticalPath(s[i][0], s[i][1]);
+		}
+	}
+
+	private void computeCriticalPath(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
 		AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(TestTraceset.getKernelTrace(name));
 		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysis());
@@ -122,18 +128,19 @@ public class TestTaskExecGraph {
 
 		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
-		Set<Task> set = model.getTaskByNameSuffix("wk-cpm1");
-		Task task = (Task) set.toArray()[0];
-		ExecVertex head = graph.getStartVertexOf(task);
-		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
-				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
-		iter.addTraversalListener(traversal);
-		while (iter.hasNext())
-			iter.next();
-		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
-		System.out.println(map);
-		saveEdges(graph, map, task, name + "-edges");
+		Set<Task> set = model.getTaskByNameSuffix(comm);
+		for (Task task: set) {
+			ExecVertex head = graph.getStartVertexOf(task);
+			ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
+			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
+					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
+			iter.addTraversalListener(traversal);
+			while (iter.hasNext() && !traversal.isDone())
+				iter.next();
+			HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
+			System.out.println(map);
+			saveEdges(graph, map, task, name + "-edges");
+		}
 	}
 
 }

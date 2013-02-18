@@ -8,7 +8,7 @@ public class DepthFirstCriticalPathAnnotation {
 
 	public DepthFirstCriticalPathAnnotation() {
 	}
-	
+
 	public static HashMap<ExecEdge, Integer> computeCriticalPath(ExecGraph graph, ExecVertex start) {
 		HashMap<ExecEdge, Integer> edgeState = new HashMap<ExecEdge, Integer>();
 		Stack<ExecVertex> splits = new Stack<ExecVertex>();
@@ -21,31 +21,31 @@ public class DepthFirstCriticalPathAnnotation {
 			ExecVertex next = null;
 			Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(curr);
 
-			// stop condition
-			if (out.isEmpty() && curr.getOwner() == start.getOwner()) {
-				//System.out.println("stop condition reached");
-				break;
-			}
-			
 			for (ExecEdge e: out) {
 				ExecVertex target = graph.getGraph().getEdgeTarget(e);
 				if (target.getOwner() != curr.getOwner()) {
 					//System.out.println("push split vertex " + curr);
 					splits.push(curr);
 				} else {
-					//System.out.println("push path edge " + e);
+					//System.out.println("push self edge " + e);
 					selfEdge = e;
 				}
 			}
-			
+
+			// stop condition
+			if (curr.getOwner() == start.getOwner() && selfEdge == null) {
+				//System.out.println("stop condition reached");
+				break;
+			}
+
 			if (selfEdge != null)
 				path.push(selfEdge);
-			
+
 			// detect blocking or dead-end
 			if (path.peek().getType() == EdgeType.BLOCKED || selfEdge == null) {
 				//System.out.println("blocking or dead-end ahead");
 				if (splits.isEmpty()) {
-					System.out.println("splits empty, break, nowhere to go");
+					//System.out.println("splits empty, break, nowhere to go");
 					break;
 				}
 				ExecVertex top = splits.pop();
@@ -81,5 +81,5 @@ public class DepthFirstCriticalPathAnnotation {
 		}
 		return edgeState;
 	}
-	
+
 }

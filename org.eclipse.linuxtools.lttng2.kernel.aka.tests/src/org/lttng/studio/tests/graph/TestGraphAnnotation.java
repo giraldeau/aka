@@ -79,6 +79,11 @@ public class TestGraphAnnotation {
 		}
 	}
 
+	@Test
+	public void testGraphDepthFirstOne() {
+		testGraphAnnotateDepthFirst(BasicGraph.GRAPH_GARBAGE2);
+	}
+
 	public void testGraphAnnotateDepthFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
