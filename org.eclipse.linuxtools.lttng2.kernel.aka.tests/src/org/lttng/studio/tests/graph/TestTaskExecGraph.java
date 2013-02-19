@@ -113,7 +113,11 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testCPMpath() throws TmfTraceException, IOException, InterruptedException {
-		String[][] s = new String[][] { { "wk-cpm1-k", "wk-cpm1" }, { "wk-cpm2-k", "wk-cpm2" } };
+		String[][] s = new String[][] {
+					{ "wk-cpm1-k", "wk-cpm1" },
+					{ "wk-cpm2-k", "wk-cpm2" },
+					{ "burnP6-16x-1sec-k", "burnP6-16x-1sec" }
+				};
 		for (int i = 0; i < s.length; i++) {
 			computeCriticalPath(s[i][0], s[i][1]);
 		}
