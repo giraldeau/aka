@@ -394,9 +394,10 @@ public class BasicGraph {
 		ExecVertex vertex = null;
 		ArrayListMultimap<Object, ExecVertex> vertexMap = graph.getVertexMap();
 		for (ExecVertex v : vertexMap.values()) {
-			if (((String)v.getOwner()).startsWith(prefix))
+			if (((String)v.getOwner()).startsWith(prefix)) {
 				vertex = v;
 				break;
+			}
 		}
 		return vertex;
 	}

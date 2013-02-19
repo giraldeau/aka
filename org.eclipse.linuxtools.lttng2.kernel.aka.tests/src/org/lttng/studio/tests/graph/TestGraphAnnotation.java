@@ -41,8 +41,14 @@ public class TestGraphAnnotation {
 	// Total time according to alphabetical order actor (A, B, C, D, E)
 	static HashMap<String, Integer[]> cp = new HashMap<String, Integer[]>();
 	static {
-		cp.put(BasicGraph.GRAPH_BASIC, 		new Integer[] { 2, 1 });
-		cp.put(BasicGraph.GRAPH_CONCAT, 	new Integer[] { 3, 1, 1 });
+		cp.put(BasicGraph.GRAPH_BASIC, 		new Integer[] { 2, 1, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_CONCAT, 	new Integer[] { 3, 1, 1, 0, 0});
+		cp.put(BasicGraph.GRAPH_EMBEDED, 	new Integer[] { 2, 0, 3, 0, 0 });
+		cp.put(BasicGraph.GRAPH_INTERLEAVE,	new Integer[] { 3, 0, 2, 0, 0 });
+		cp.put(BasicGraph.GRAPH_NESTED, 	new Integer[] { 2, 2, 1, 0, 0 });
+		cp.put(BasicGraph.GRAPH_GARBAGE1, 	new Integer[] { 2, 1, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_GARBAGE2, 	new Integer[] { 3, 1, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_SHELL,	 	new Integer[] { 2, 3, 5, 3, 5 });
 	}
 
 	static String[] actors = new String[] { "A", "B", "C", "D", "E" };
@@ -53,18 +59,19 @@ public class TestGraphAnnotation {
 			ExecGraph graph = BasicGraph.makeGraphByName(name);
 			ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
 			HashMap<Object, Span> spans = CriticalPathStats.compile(graph, start);
-			String out = CriticalPathStats.formatStats(spans.values());
-			System.out.println(name);
-			System.out.println(out);
+			//String out = CriticalPathStats.formatStats(spans.values());
+			//System.out.println(name);
+			//System.out.println(out);
 			Integer[] data = cp.get(name);
 			for (int i = 0; i < data.length; i++) {
 				ExecVertex v = BasicGraph.getVertexByPrefix(graph, actors[i]);
-				// FIXME: v is null for actor B
-				/*
-				System.out.println(v);
+				if (data[i] == 0 && v == null)
+					continue;
 				Span span = spans.get(v.getOwner());
-				System.out.println(v.getOwner() + " " + span.getTotal() + " ?= " + data[i]);
-				*/
+				if (data[i] == 0 && span == null)
+					continue;
+				//System.out.println(v.getOwner() + " " + span.getTotal() + " == " + data[i]);
+				assertEquals((long)data[i], span.getTotal());
 			}
 		}
 	}

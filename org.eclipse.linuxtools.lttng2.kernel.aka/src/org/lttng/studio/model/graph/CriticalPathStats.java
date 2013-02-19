@@ -40,7 +40,7 @@ public class CriticalPathStats {
 				}
 				// update statistics
 				long duration = target.getTimestamp() - source.getTimestamp();
-				System.out.println(edge + " " + duration + " " + spanMap);
+				//System.out.println(edge + " " + duration + " " + spanMap);
 				span.addSelf(duration);
 				break;
 			case MERGE:
