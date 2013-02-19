@@ -123,6 +123,11 @@ public class TestTaskExecGraph {
 		}
 	}
 
+	@Test
+	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
+		computeCriticalPath("burnP6-16x-1sec-k", "burnP6-16x-1sec");
+	}
+
 	private void computeCriticalPath(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
 		AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(TestTraceset.getKernelTrace(name));
@@ -136,6 +141,7 @@ public class TestTaskExecGraph {
 		for (Task task: set) {
 			ExecVertex head = graph.getStartVertexOf(task);
 			ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
+			traversal.setDebug(true);
 			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
 			iter.addTraversalListener(traversal);

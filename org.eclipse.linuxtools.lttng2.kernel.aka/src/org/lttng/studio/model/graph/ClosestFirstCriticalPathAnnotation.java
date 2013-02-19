@@ -16,12 +16,14 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 	private ExecVertex head; // contains the first encountered verted
 	private final HashMap<Object, ExecVertex> tail;
 	private boolean done;
+	private boolean debug;
 
 	public ClosestFirstCriticalPathAnnotation(ExecGraph graph) {
 		edgeState = new HashMap<ExecEdge, Integer>();
 		this.graph = graph;
 		tail = new HashMap<Object, ExecVertex>();
 		setDone(false);
+		setDebug(false);
 	}
 
 	@Override
@@ -42,7 +44,7 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 			int inRed = countRedEdgeIncoming(vertex);
 			color = (numIn > 0 && inRed == 0) ? ExecEdge.BLUE : ExecEdge.RED;
 		}
-		//System.out.println("vertex " + vertex + " color " + color);
+		debug("vertex " + vertex + " color " + color);
 
 		Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(vertex);
 		// look ahead
@@ -81,7 +83,7 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 	}
 
 	private void annotateBlueTail() {
-		//System.out.println("annotateBlueTail");
+		debug("annotateBlueTail");
 		for (Object owner: tail.keySet()) {
 			if (owner == head.getOwner())
 				continue;
@@ -105,7 +107,7 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 			for (ExecEdge e: inc) {
 				queue.add(graph.getGraph().getEdgeSource(e));
 				if (edgeState.containsKey(e)) {
-					//System.out.println("annotateBlue " + e);
+					debug("annotateBlue " + e);
 					edgeState.put(e, ExecEdge.BLUE);
 				}
 			}
@@ -147,6 +149,15 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 
 	public void setDone(boolean done) {
 		this.done = done;
+	}
+
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}
+
+	private void debug(String string) {
+		if (debug)
+			System.out.println(string);
 	}
 
 }
