@@ -2,20 +2,21 @@ package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
 import java.util.HashMap;
 
-import org.eclipse.jface.viewers.ILabelProvider;
-import org.eclipse.jface.viewers.ILabelProviderListener;
-import org.eclipse.jface.viewers.ITreeContentProvider;
-import org.eclipse.jface.viewers.TreeViewer;
-import org.eclipse.jface.viewers.Viewer;
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.TableViewerColumn;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.jgrapht.traverse.AbstractGraphIterator;
-import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
-import org.lttng.studio.model.graph.ExecEdge;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
+import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.ForwardClosestIterator;
+import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.handler.IModelKeys;
@@ -24,77 +25,15 @@ public class CriticalPathView extends AbstractAKAView {
 
 	public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalpath"; //$NON-NLS-1$
 
-	private TreeViewer tv;
+	private TableViewer table;
 
 	private Task fCurrentTask;
 
-	class CriticalPathContentProvider implements ITreeContentProvider {
+	private Composite composite;
 
-		@Override
-		public void dispose() {
-		}
+	private long spanSum;
 
-		@Override
-		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
-		}
-
-		@Override
-		public Object[] getElements(Object inputElement) {
-			return null;
-		}
-
-		@Override
-		public Object[] getChildren(Object parentElement) {
-			return null;
-		}
-
-		@Override
-		public Object getParent(Object element) {
-			return null;
-		}
-
-		@Override
-		public boolean hasChildren(Object element) {
-			return false;
-		}
-	};
-
-	class CriticalPathLabelProvider implements ILabelProvider {
-
-		@Override
-		public void addListener(ILabelProviderListener listener) {
-		}
-
-		@Override
-		public void dispose() {
-			// TODO Auto-generated method stub
-		}
-
-		@Override
-		public boolean isLabelProperty(Object element, String property) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public void removeListener(ILabelProviderListener listener) {
-			// TODO Auto-generated method stub
-
-		}
-
-		@Override
-		public Image getImage(Object element) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getText(Object element) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-	}
+	private SpanColumnSorter comparator;
 
 	public CriticalPathView() {
 		super(ID);
@@ -103,15 +42,88 @@ public class CriticalPathView extends AbstractAKAView {
 	@Override
 	public void createPartControl(Composite parent) {
 		super.createPartControl(parent);
-		parent.setLayout(new GridLayout(1, false));
-		tv = new TreeViewer(parent);
-		tv.setContentProvider(new CriticalPathContentProvider());
-		tv.setLabelProvider(new CriticalPathLabelProvider());
+		composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new FillLayout());
+		table = new TableViewer(composite, SWT.H_SCROLL | SWT.V_SCROLL
+				| SWT.BORDER);
+		table.setContentProvider(ArrayContentProvider.getInstance());
+		Table t = table.getTable();
+		t.setHeaderVisible(true);
+		t.setLinesVisible(true);
+		createColumns();
+		comparator = new SpanColumnSorter();
+		table.setComparator(comparator);
 	}
+
+	private void createColumns() {
+		TableViewerColumn col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Object");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+			    Span entry = (Span) element;
+			    return String.format("%s", entry.getOwner());
+			}
+		});
+		col.getColumn().addSelectionListener(getSelectionAdapter(col.getColumn(), 0));
+
+		col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Segment count");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				Span entry = (Span) element;
+				return String.format("%d", entry.getCount());
+			}
+		});
+		col.getColumn().addSelectionListener(getSelectionAdapter(col.getColumn(), 1));
+
+		col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Self time");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				Span entry = (Span) element;
+				return String.format("%.9f", ((double)entry.getTotal()) / 1000000000);
+			}
+		});
+		col.getColumn().addSelectionListener(getSelectionAdapter(col.getColumn(), 2));
+
+		col = new TableViewerColumn(table, SWT.NONE);
+		col.getColumn().setWidth(200);
+		col.getColumn().setText("Relative (%)");
+		col.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				Span entry = (Span) element;
+				return String.format("%.3f", ((double)entry.getTotal()) / spanSum);
+			}
+		});
+		col.getColumn().addSelectionListener(getSelectionAdapter(col.getColumn(), 3));
+
+	}
+
+	  private SelectionAdapter getSelectionAdapter(final TableColumn column, final int index) {
+		    SelectionAdapter selectionAdapter = new SelectionAdapter() {
+		      @Override
+		      public void widgetSelected(SelectionEvent e) {
+		        comparator.setColumn(index);
+		        int dir = comparator.getDirection();
+		        table.getTable().setSortDirection(dir);
+		        table.getTable().setSortColumn(column);
+		        table.refresh();
+		      }
+		    };
+		    return selectionAdapter;
+		  }
+
 
 	@Override
 	public void setFocus() {
-		tv.getControl().setFocus();
+		table.getControl().setFocus();
 	}
 
 	@Override
@@ -126,6 +138,7 @@ public class CriticalPathView extends AbstractAKAView {
 		Task task = system.getTask(currentTid);
 		// change input if task has changed
 		if (task != null || task != fCurrentTask) {
+			fCurrentTask = task;
 			computeCriticalPath(graph, task);
 		}
 	}
@@ -134,18 +147,21 @@ public class CriticalPathView extends AbstractAKAView {
 		ExecVertex head = graph.getStartVertexOf(task);
 		if (!graph.getGraph().containsVertex(head)) {
 			System.err.println("WARNING: head vertex is null for task " + task);
-			System.out.println(graph.getVertexMap());
 			return;
 		}
-		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
-				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
-		iter.addTraversalListener(traversal);
-		// FIXME: spawn a thread for background processing
-		while (iter.hasNext() && !traversal.isDone())
-			iter.next();
-		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
-		System.out.println(map);
+		setSpans(CriticalPathStats.compile(graph, head));
+	}
+
+	private void setSpans(HashMap<Object, Span> spans) {
+		table.setInput(null);
+		if (spans == null) {
+			return;
+		}
+		spanSum = 0;
+		for (Span span: spans.values()) {
+			spanSum += span.getTotal();
+		}
+		table.setInput(spans.values());
 	}
 
 }
