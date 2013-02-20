@@ -26,6 +26,7 @@ public class BasicGraph {
 	public static String GRAPH_OPEN2 		= "open_2";
 	public static String GRAPH_GARBAGE1 	= "garbage1";
 	public static String GRAPH_GARBAGE2 	= "garbage2";
+	public static String GRAPH_GARBAGE3 	= "garbage3";
 	public static String GRAPH_SHELL 		= "shell";
 
 	private static HashMap<String, Method> func = new HashMap<String, Method>();
@@ -40,6 +41,7 @@ public class BasicGraph {
 			func.put(GRAPH_OPEN2, 		BasicGraph.class.getDeclaredMethod("makeOpened2"));
 			func.put(GRAPH_GARBAGE1,	BasicGraph.class.getDeclaredMethod("makeGarbage1"));
 			func.put(GRAPH_GARBAGE2,	BasicGraph.class.getDeclaredMethod("makeGarbage2"));
+			func.put(GRAPH_GARBAGE3,	BasicGraph.class.getDeclaredMethod("makeGarbage3"));
 			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);
@@ -276,6 +278,40 @@ public class BasicGraph {
 
 		ExecVertex vC2 = new ExecVertex(C, 2);
 		ExecVertex vC3 = new ExecVertex(C, 3);
+		graph.appendVertexByOwner(vC2);
+		graph.appendVertexByOwner(vC3);
+
+		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
+		graph.addVerticalEdge(vB2, vA2, EdgeType.MERGE);
+		graph.addVerticalEdge(vA3, vC3, EdgeType.MERGE);
+
+		setEdgeBlocked(graph, "A1", "A2");
+
+		return graph;
+	}
+
+	public static ExecGraph makeGarbage2() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+		Object C = "C";
+
+		ExecVertex vA0 = new ExecVertex(A, 0);
+		ExecVertex vA1 = new ExecVertex(A, 1);
+		ExecVertex vA2 = new ExecVertex(A, 2);
+		ExecVertex vA3 = new ExecVertex(A, 3);
+		graph.appendVertexByOwner(vA0);
+		graph.appendVertexByOwner(vA1);
+		graph.appendVertexByOwner(vA2);
+		graph.appendVertexByOwner(vA3);
+
+		ExecVertex vB1 = new ExecVertex(B, 1);
+		ExecVertex vB2 = new ExecVertex(B, 2);
+		graph.appendVertexByOwner(vB1);
+		graph.appendVertexByOwner(vB2);
+
+		ExecVertex vC2 = new ExecVertex(C, 2);
+		ExecVertex vC3 = new ExecVertex(C, 3);
 		ExecVertex vC4 = new ExecVertex(C, 4);
 		graph.appendVertexByOwner(vC2);
 		graph.appendVertexByOwner(vC3);
@@ -290,7 +326,7 @@ public class BasicGraph {
 		return graph;
 	}
 
-	public static ExecGraph makeGarbage2() {
+	public static ExecGraph makeGarbage3() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
 		Object B = "B";

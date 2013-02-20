@@ -32,7 +32,8 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_INTERLEAVE,"A0-A1;A1-A2;A2-C2;C2-C4;C4-A4;A4-A5;");
 		exp.put(BasicGraph.GRAPH_NESTED,	"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-B3;B3-B4;B4-A4;A4-A5");
 		exp.put(BasicGraph.GRAPH_GARBAGE1,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
-		exp.put(BasicGraph.GRAPH_GARBAGE2,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;A3-A4");
+		exp.put(BasicGraph.GRAPH_GARBAGE2,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
+		exp.put(BasicGraph.GRAPH_GARBAGE3,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;A3-A4");
 		exp.put(BasicGraph.GRAPH_SHELL,		"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-C4;C4-C5;C5-C6;C6-C7;" +
 											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
 											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
@@ -48,6 +49,7 @@ public class TestGraphAnnotation {
 		cp.put(BasicGraph.GRAPH_NESTED, 	new Integer[] { 2, 2, 1, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE1, 	new Integer[] { 2, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE2, 	new Integer[] { 3, 1, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_GARBAGE3, 	new Integer[] { 3, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_SHELL,	 	new Integer[] { 2, 3, 5, 3, 5 });
 	}
 
@@ -79,20 +81,21 @@ public class TestGraphAnnotation {
 	@Test
 	public void testGraphAnnotateClosestFirstAll() {
 		for (String name: exp.keySet()) {
-			//System.out.println("processing " + name);
+			System.out.println("processing " + name);
 			testGraphAnnotateClosestFirst(name);
 		}
 	}
 
 	@Test
 	public void testOne() {
-		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_SHELL);
+		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_GARBAGE1);
 	}
 
 	public void testGraphAnnotateClosestFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
 		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
+		traversal.setDebug(true);
 		ExecVertex head = graph.getStartVertexOf(base.getOwner());
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);

@@ -39,6 +39,31 @@ public class TestTaskExecGraph {
 		return out;
 	}
 
+	private void saveGraph(ExecGraph graph, String name) throws IOException {
+		File out = getGraphOutDir(name);
+		File file = new File(out, "graph" + ".dot");
+		FileWriter f = new FileWriter(file);
+		f.write("digraph G {\n");
+		HashSet<ExecVertex> set = new HashSet<ExecVertex>();
+		for (ExecEdge edge: graph.getGraph().edgeSet()) {
+			ExecVertex src = graph.getGraph().getEdgeSource(edge);
+			ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
+			set.add(src);
+			set.add(dst);
+			f.write(String.format("%d -> %d [ label=\"%s\" ];\n", src.getId(), dst.getId(), edge.getType()));
+		}
+		for (ExecVertex vertex: set) {
+			String str = vertex.getOwner().toString();
+			if (vertex.getOwner() instanceof Task) {
+				str = "" + ((Task)vertex.getOwner()).getTid();
+			}
+			f.write(String.format("%d [ label=\"[%d] %s\" ];\n", vertex.getId(), vertex.getId(), str));
+		}
+		f.write("}\n");
+		f.flush();
+		f.close();
+	}
+
 	private void saveGraphTasks(ExecGraph graph, Set<Task> task, String name) throws IOException {
 		assertTrue(task.size() > 0);
 		assertTrue(graph.getGraph().vertexSet().size() > 0);
@@ -137,16 +162,18 @@ public class TestTaskExecGraph {
 
 		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
+		saveGraph(graph, comm);
 		Set<Task> set = model.getTaskByNameSuffix(comm);
 		for (Task task: set) {
 			ExecVertex head = graph.getStartVertexOf(task);
 			ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
-			traversal.setDebug(true);
+			//traversal.setDebug(true);
 			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
 			iter.addTraversalListener(traversal);
-			while (iter.hasNext() && !traversal.isDone())
+			while (iter.hasNext() && !traversal.isDone()) {
 				iter.next();
+			}
 			HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
 			System.out.println(map);
 			saveEdges(graph, map, task, name + "-edges");

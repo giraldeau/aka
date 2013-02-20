@@ -52,11 +52,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			edge = graph.getGraph().addEdge(node, next);
 			edge.setType(type);
 		}
+		//System.out.println("createEdge " + edge);
 		return edge;
 	}
 
 	public void createSplit(Object source, Object target, long timestamps) {
-		System.out.println("createSplit " + source + " -> " + target);
+		//System.out.println("createSplit " + source + " -> " + target);
 		/*
 		 * v00 ---> v10
 		 * 			||
@@ -75,7 +76,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void createMerge(Object source, Object target, long timestamps) {
-		System.out.println("createMerge " + source + " -> " + target);
+		//System.out.println("createMerge " + source + " -> " + target);
 		/*
 		 * v00 ---> v10
 		 * 			/\
@@ -134,12 +135,16 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		//if (!filter.containsTaskTid(target))
 		//	return;
 
+		// spurious wakeup
+		if (target.getProcessStatus() != Task.process_status.WAIT_BLOCKED)
+			return;
+
 		Object source = null;
 
 		// 1 - hrtimer wakeup
 		HRTimer timer = hrtimerExpire[event.getCPU()];
 		if (timer != null) {
-			System.out.println("timer wakeup " + target);
+			//System.out.println("timer wakeup " + target);
 			source = timer;
 		}
 

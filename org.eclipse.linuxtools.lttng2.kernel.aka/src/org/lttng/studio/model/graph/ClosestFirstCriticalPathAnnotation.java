@@ -3,6 +3,7 @@ package org.lttng.studio.model.graph;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.jgrapht.event.EdgeTraversalEvent;
@@ -83,11 +84,14 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 	}
 
 	private void annotateBlueTail() {
-		debug("annotateBlueTail");
-		for (Object owner: tail.keySet()) {
+		HashSet<Object> ownerSet = new HashSet<Object>();
+		ownerSet.addAll(tail.keySet());
+		for (Object owner: ownerSet) {
 			if (owner == head.getOwner())
 				continue;
-			annotateBlueBackward(tail.get(owner));
+			ExecVertex vertex = tail.remove(owner);
+			debug("annotateBlueTail " + vertex);
+			annotateBlueBackward(vertex);
 		}
 	}
 
@@ -101,14 +105,19 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 		while(!queue.isEmpty()) {
 			ExecVertex curr = queue.poll();
 			int red = countRedEdgeAll(curr);
-			if (red >= 2)
+			if (red != 1)
 				continue;
+			debug("backtrack " + curr);
 			Set<ExecEdge> inc = graph.getGraph().incomingEdgesOf(curr);
 			for (ExecEdge e: inc) {
-				queue.add(graph.getGraph().getEdgeSource(e));
+				ExecVertex edgeSource = graph.getGraph().getEdgeSource(e);
+				if (!queue.contains(edgeSource))
+					queue.add(edgeSource);
 				if (edgeState.containsKey(e)) {
-					debug("annotateBlue " + e);
-					edgeState.put(e, ExecEdge.BLUE);
+					if (edgeState.get(e) == ExecEdge.RED) {
+						debug("annotateBlue " + e);
+						edgeState.put(e, ExecEdge.BLUE);
+					}
 				}
 			}
 		}
