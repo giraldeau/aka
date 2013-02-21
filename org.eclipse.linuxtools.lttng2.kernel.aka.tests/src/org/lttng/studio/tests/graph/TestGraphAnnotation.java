@@ -31,6 +31,8 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_EMBEDED,	"A0-A1;A1-C1;C1-C4;C4-A4;A4-A5");
 		exp.put(BasicGraph.GRAPH_INTERLEAVE,"A0-A1;A1-A2;A2-C2;C2-C4;C4-A4;A4-A5;");
 		exp.put(BasicGraph.GRAPH_NESTED,	"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-B3;B3-B4;B4-A4;A4-A5");
+		exp.put(BasicGraph.GRAPH_OPEN1,		"A0-A1;A1-A2");
+		exp.put(BasicGraph.GRAPH_OPEN2,		"B0-B1;A1-A2");
 		exp.put(BasicGraph.GRAPH_GARBAGE1,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
 		exp.put(BasicGraph.GRAPH_GARBAGE2,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
 		exp.put(BasicGraph.GRAPH_GARBAGE3,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;A3-A4");
@@ -88,7 +90,7 @@ public class TestGraphAnnotation {
 
 	@Test
 	public void testOne() {
-		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_GARBAGE1);
+		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_OPEN2);
 	}
 
 	public void testGraphAnnotateClosestFirst(String curr) {

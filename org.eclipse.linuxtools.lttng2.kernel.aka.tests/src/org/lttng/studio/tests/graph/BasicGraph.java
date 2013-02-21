@@ -232,6 +232,7 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB2);
 
 		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
+
 		return graph;
 	}
 
@@ -253,6 +254,8 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB1);
 
 		graph.addVerticalEdge(vB1, vA1, EdgeType.MERGE);
+		setEdgeBlocked(graph, "A0", "A1");
+
 		return graph;
 	}
 

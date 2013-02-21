@@ -144,6 +144,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		// FIXME: in some cases, sys_clone is not matched to exit_syscall
 		// thus let's make sure it returns in user mode
 		task.setExecutionMode(execution_mode.USER_MODE);
+		task.setProcessStatus(process_status.WAIT_FORK);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {

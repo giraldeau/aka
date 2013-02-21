@@ -141,7 +141,8 @@ public class TestTaskExecGraph {
 		String[][] s = new String[][] {
 					{ "wk-cpm1-k", "wk-cpm1" },
 					{ "wk-cpm2-k", "wk-cpm2" },
-					{ "burnP6-16x-1sec-k", "burnP6-16x-1sec" }
+					{ "burnP6-16x-1sec-k", "burnP6-16x-1sec" },
+					{ "wk-imbalance-k", "wk-imbalance" }
 				};
 		for (int i = 0; i < s.length; i++) {
 			computeCriticalPath(s[i][0], s[i][1]);
@@ -150,7 +151,7 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
-		computeCriticalPath("burnP6-16x-1sec-k", "burnP6-16x-1sec");
+		computeCriticalPath("wk-imbalance-k", "wk-imbalance");
 	}
 
 	private void computeCriticalPath(String name, String comm) throws TmfTraceException, IOException, InterruptedException {

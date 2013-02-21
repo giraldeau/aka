@@ -17,6 +17,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	ExecGraph graph;
 	HRTimer[] hrtimerExpire;
 	private CtfTmfEvent[] softirq;
+	CtfTmfEvent event;
 
 	public TraceEventHandlerExecutionGraph() {
 		super();
@@ -52,7 +53,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			edge = graph.getGraph().addEdge(node, next);
 			edge.setType(type);
 		}
-		//System.out.println("createEdge " + edge);
+		if (edge != null)
+			System.out.println("createEdge " + edge + " " + edge.getType());
 		return edge;
 	}
 
