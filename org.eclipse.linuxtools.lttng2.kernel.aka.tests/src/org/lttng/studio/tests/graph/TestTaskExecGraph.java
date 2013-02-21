@@ -26,6 +26,7 @@ import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.reader.AnalyzerThread;
+import org.lttng.studio.reader.handler.ALog;
 import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.tests.basic.TestTraceset;
@@ -163,6 +164,10 @@ public class TestTaskExecGraph {
 	private void computeCriticalPath(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
 		AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(TestTraceset.getKernelTrace(name));
+		ALog log = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
+		File outDir = getGraphOutDir(name);
+		log.setPath(new File(outDir, name + ".log").getCanonicalPath());
+		log.setLevel(ALog.DEBUG);
 		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysis());
 		thread.start();
 		thread.join();

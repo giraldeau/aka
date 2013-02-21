@@ -18,9 +18,11 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	HRTimer[] hrtimerExpire;
 	private CtfTmfEvent[] softirq;
 	CtfTmfEvent event;
+	private ALog log;
 
 	public TraceEventHandlerExecutionGraph() {
 		super();
+		hooks.add(new TraceHook("sched_switch"));
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));
 		hooks.add(new TraceHook("sched_wakeup"));
@@ -38,6 +40,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		system.init(reader);
 		hrtimerExpire = new HRTimer[reader.getNumCpus()];
 		softirq = new CtfTmfEvent[reader.getNumCpus()];
+		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
+		log.message("init TraceEventHandlerExecutionGraph");
 	}
 
 	public ExecVertex createVertex(Object owner, long timestamps) {
@@ -54,12 +58,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			edge.setType(type);
 		}
 		if (edge != null)
-			System.out.println("createEdge " + edge + " " + edge.getType());
+			log.debug("createEdge " + edge + " " + edge.getType());
 		return edge;
 	}
 
 	public void createSplit(Object source, Object target, long timestamps) {
-		//System.out.println("createSplit " + source + " -> " + target);
+		log.debug("createSplit " + source + " -> " + target);
 		/*
 		 * v00 ---> v10
 		 * 			||
@@ -78,7 +82,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void createMerge(Object source, Object target, long timestamps) {
-		//System.out.println("createMerge " + source + " -> " + target);
+		log.debug("createMerge " + source + " -> " + target);
 		/*
 		 * v00 ---> v10
 		 * 			/\
@@ -94,6 +98,42 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		createEdge(v00, v10, EdgeType.BLOCKED);
 		createEdge(v01, v11, EdgeType.RUNNING);
 		createEdge(v11, v10, EdgeType.MERGE);
+	}
+
+	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
+		int cpu = event.getCPU();
+		long next = EventField.getLong(event, "next_tid");
+		long prev = EventField.getLong(event, "prev_tid");
+		long prev_state = EventField.getLong(event, "prev_state");
+
+
+		Task nextTask = system.getTask(next);
+		Task prevTask = system.getTask(prev);
+
+		log.debug(String.format("%5d %12s %12s",
+				prevTask.getTid(),
+				prevTask.getProcessStatusPrev(),
+				prevTask.getProcessStatus()));
+		log.debug(String.format("%5d %12s %12s",
+				nextTask.getTid(),
+				nextTask.getProcessStatusPrev(),
+				nextTask.getProcessStatus()));
+
+		/*
+		process_status status = task.getProcessStatus();
+		if (status != process_status.RUN && status != process_status.EXIT) {
+			System.out.println("WARNING: prev task was not running " + task + " " + task.getProcessStatus() + " " + event.getTimestamp());
+		}
+		// prev_state == 0 means runnable, thus waits for cpu
+		graph.getEndVertexOf();
+
+		if (prev_state == 0) {
+			createEdge
+			_update_task_state(prev, process_status.WAIT_CPU);
+		} else {
+			_update_task_state(prev, process_status.WAIT_BLOCKED);
+		}
+		*/
 	}
 
 	public void handle_sched_process_fork(TraceReader reader, CtfTmfEvent event) {
@@ -205,6 +245,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	@Override
 	public void handleComplete(TraceReader reader) {
+		log.message("init TraceEventHandlerExecutionGraph");
 	}
 
 }

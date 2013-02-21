@@ -58,7 +58,7 @@ public class Task {
         LTTNG_RUN = 6,
         LTTNG_DEAD = 7,
 	};
-	
+
 	from include/linux/sched.h
 	#define TASK_RUNNING            0
 	#define TASK_INTERRUPTIBLE      1
@@ -74,7 +74,7 @@ public class Task {
 	#define TASK_WAKING             256
 	#define TASK_STATE_MAX          512
 	 */
-	
+
 	public enum process_status {
 		UNNAMED(0),
 		WAIT_FORK(1),
@@ -100,6 +100,7 @@ public class Task {
 	private String name;
 	private HashMap<Long, String> fdMap;
 	private process_status process_status;
+	private process_status process_status_prev;
 	private execution_mode execution_mode;
 	private execution_submode execution_submode;
 	private thread_type thread_type;
@@ -161,11 +162,24 @@ public class Task {
 		fdMap.remove(fd);
 	}
 
+	/**
+	 * Returns the current process status
+	 * @return
+	 */
 	public process_status getProcessStatus() {
 		return process_status;
 	}
 
+	/**
+	 * Returns the previous state of t
+	 * @return
+	 */
+	public process_status getProcessStatusPrev() {
+		return process_status_prev;
+	}
+
 	public void setProcessStatus(process_status process_status) {
+		this.process_status_prev = this.process_status;
 		this.process_status = process_status;
 	}
 
