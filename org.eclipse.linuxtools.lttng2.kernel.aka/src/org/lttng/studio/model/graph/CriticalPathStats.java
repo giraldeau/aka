@@ -2,6 +2,7 @@ package org.lttng.studio.model.graph;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -14,9 +15,29 @@ public class CriticalPathStats {
 	public static final double NANO = 1000000000.0;
 
 	public static String formatStats(Collection<Span> spans) {
+		int max = 29;
 		StringBuilder str = new StringBuilder();
-		for (Span span: spans) {
-			str.append(String.format("%s %d\n", span.getOwner(), span.getTotal()));
+		ArrayList<Span> arrayList = new ArrayList<Span>(spans);
+		Collections.sort(arrayList);
+		Collections.reverse(arrayList);
+		long sum = 0;
+		for (Span span: arrayList) {
+			sum += span.getTotal();
+		}
+		double sumInv = 1.0 / sum * 100.0;
+		if (arrayList.isEmpty()) {
+			str.append("SPAN EMPTY\n");
+		} else {
+			str.append(String.format("%-30s %-11s %8s\n", "Object", "Time (sec)", "% Rel"));
+			for (Span span: arrayList) {
+				String s = span.getOwner().toString();
+				if (s.length() > max) {
+					s = s.substring(0, max - 3) + "...";
+				}
+				str.append(String.format("%-30s %8.9f %8.3f\n", s,
+						span.getTotal() * 0.000000001, span.getTotal() * sumInv ));
+			}
+			str.append(String.format("Total time: %.9f", sum * 0.000000001));
 		}
 		return str.toString();
 	}

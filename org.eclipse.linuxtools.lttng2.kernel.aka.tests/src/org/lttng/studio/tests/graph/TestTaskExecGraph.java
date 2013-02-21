@@ -16,10 +16,12 @@ import org.jgrapht.graph.Subgraph;
 import org.jgrapht.traverse.AbstractGraphIterator;
 import org.junit.Test;
 import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ForwardClosestIterator;
+import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -142,7 +144,11 @@ public class TestTaskExecGraph {
 					{ "wk-cpm1-k", "wk-cpm1" },
 					{ "wk-cpm2-k", "wk-cpm2" },
 					{ "burnP6-16x-1sec-k", "burnP6-16x-1sec" },
-					{ "wk-imbalance-k", "wk-imbalance" }
+					{ "wk-imbalance-k", "wk-imbalance" },
+					{ "wk-mutex-k", "wk-mutex" },
+					{ "wk-pipeline-k", "wk-pipeline" },
+					{ "wk-inception-3x-100ms-k", "wk-inception" },
+					{ "netcat-tcp-k", "netcat-tcp" },
 				};
 		for (int i = 0; i < s.length; i++) {
 			computeCriticalPath(s[i][0], s[i][1]);
@@ -163,7 +169,7 @@ public class TestTaskExecGraph {
 
 		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
-		saveGraph(graph, comm);
+		saveGraph(graph, name);
 		Set<Task> set = model.getTaskByNameSuffix(comm);
 		for (Task task: set) {
 			ExecVertex head = graph.getStartVertexOf(task);
@@ -176,9 +182,22 @@ public class TestTaskExecGraph {
 				iter.next();
 			}
 			HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
-			System.out.println(map);
-			saveEdges(graph, map, task, name + "-edges");
+			//System.out.println(map);
+			saveEdges(graph, map, task, name);
+			saveStats(graph, head, name, "" + task.getTid());
 		}
+	}
+
+	private void saveStats(ExecGraph graph, ExecVertex head, String name, String tid) throws IOException {
+		HashMap<Object, Span> stats = CriticalPathStats.compile(graph, head);
+		String formatStats = CriticalPathStats.formatStats(stats.values());
+		File graphOutDir = getGraphOutDir(name);
+		File fout = new File(graphOutDir, name + "-" + tid + ".stats");
+		FileWriter writer = new FileWriter(fout);
+		writer.write(name + " " + "tid=" + tid + " " + "head=" + head.getId() + "\n");
+		writer.write(formatStats);
+		writer.flush();
+		writer.close();
 	}
 
 }

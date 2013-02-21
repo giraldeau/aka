@@ -41,7 +41,7 @@ public class Span implements Comparable<Span> {
 
 	@Override
 	public int compareTo(Span other) {
-		return this.total > other.total ? 1 : (this.total == other.total ? 0 : 1);
+		return this.total > other.total ? 1 : (this.total == other.total ? 0 : -1);
 	}
 
 	@Override
