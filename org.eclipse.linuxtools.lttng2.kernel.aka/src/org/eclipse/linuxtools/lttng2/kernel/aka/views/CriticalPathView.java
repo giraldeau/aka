@@ -71,6 +71,7 @@ public class CriticalPathView extends AbstractAKAView {
 		col = new TableViewerColumn(table, SWT.NONE);
 		col.getColumn().setWidth(200);
 		col.getColumn().setText("Segment count");
+		col.getColumn().setAlignment(SWT.RIGHT);
 		col.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
@@ -83,11 +84,12 @@ public class CriticalPathView extends AbstractAKAView {
 		col = new TableViewerColumn(table, SWT.NONE);
 		col.getColumn().setWidth(200);
 		col.getColumn().setText("Self time");
+		col.getColumn().setAlignment(SWT.RIGHT);
 		col.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
 				Span entry = (Span) element;
-				return String.format("%.9f", ((double)entry.getTotal()) / 1000000000);
+				return String.format("%.9f", entry.getTotal() / 1000000000.0);
 			}
 		});
 		col.getColumn().addSelectionListener(getSelectionAdapter(col.getColumn(), 2));
@@ -95,11 +97,12 @@ public class CriticalPathView extends AbstractAKAView {
 		col = new TableViewerColumn(table, SWT.NONE);
 		col.getColumn().setWidth(200);
 		col.getColumn().setText("Relative (%)");
+		col.getColumn().setAlignment(SWT.RIGHT);
 		col.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
 				Span entry = (Span) element;
-				return String.format("%.3f", ((double)entry.getTotal()) / spanSum);
+				return String.format("%.3f", ((double)entry.getTotal()) / spanSum * 100.0);
 			}
 		});
 		col.getColumn().addSelectionListener(getSelectionAdapter(col.getColumn(), 3));
