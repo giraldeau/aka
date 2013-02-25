@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
@@ -179,16 +180,16 @@ public class TestTaskExecGraph {
 					{ "netcat-tcp-k", "netcat-tcp" },
 				};
 		for (int i = 0; i < s.length; i++) {
-			computeCriticalPath(s[i][0], s[i][1]);
+			computeCriticalPathTest(s[i][0], s[i][1]);
 		}
 	}
 
 	@Test
 	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
-		computeCriticalPath("wk-imbalance-k", "wk-imbalance");
+		computeCriticalPathTest("wk-imbalance-k", "wk-imbalance");
 	}
 
-	private void computeCriticalPath(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
+	private void computeCriticalPathTest(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
 		AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(TestTraceset.getKernelTrace(name));
 		ALog log = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
@@ -215,8 +216,18 @@ public class TestTaskExecGraph {
 			}
 			HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
 			//System.out.println(map);
+			checkEdgesDisjoint(graph, head);
 			saveEdges(graph, map, task, name);
 			saveStats(graph, head, name, "" + task.getTid());
+		}
+	}
+
+	private void checkEdgesDisjoint(ExecGraph graph, ExecVertex start) {
+		List<ExecEdge> path = CriticalPathStats.computeCriticalPath(graph, start);
+		for (int i = 0; i < path.size() - 1; i++) {
+			ExecVertex e1 = graph.getGraph().getEdgeTarget(path.get(i));
+			ExecVertex e2 = graph.getGraph().getEdgeSource(path.get(i + 1));
+			assertTrue(e1.getTimestamp() <= e2.getTimestamp());
 		}
 	}
 

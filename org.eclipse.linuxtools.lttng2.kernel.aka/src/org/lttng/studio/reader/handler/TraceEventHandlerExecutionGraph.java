@@ -62,7 +62,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		return edge;
 	}
 
-	public void createSplit(Object source, Object target, long timestamps) {
+	public void createSplit(Object source, Object target, long timestamps, EdgeType prevType) {
 		log.debug("createSplit " + source + " -> " + target);
 		/*
 		 * v00 ---> v10
@@ -77,8 +77,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		ExecVertex v11 = createVertex(target, timestamps);
 
 		createEdge(v00, v10, EdgeType.RUNNING);
-		createEdge(v01, v11, EdgeType.DEFAULT);
+		createEdge(v01, v11, prevType);
 		createEdge(v10, v11, EdgeType.SPLIT);
+	}
+
+	public void createSplit(Object source, Object target, long timestamps) {
+		createSplit(source, target, timestamps, EdgeType.DEFAULT);
 	}
 
 	public void createMerge(Object source, Object target, long timestamps) {
@@ -223,7 +227,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			return;
 		//if (!filter.containsTaskTid(current))
 		//	return;
-		createSplit(current, timer, event.getTimestamp().getValue());
+		createSplit(current, timer, event.getTimestamp().getValue(), EdgeType.BLOCKED);
 	}
 
 	public void handle_hrtimer_expire_entry(TraceReader reader, CtfTmfEvent event) {
