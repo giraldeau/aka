@@ -34,6 +34,8 @@ import org.lttng.studio.tests.basic.TestUtils;
 import org.lttng.studio.utils.AnalysisFilter;
 import org.lttng.studio.utils.GraphUtils;
 
+import com.google.common.collect.ArrayListMultimap;
+
 public class TestTaskExecGraph {
 
 	public File getGraphOutDir(String name) {
@@ -83,21 +85,46 @@ public class TestTaskExecGraph {
 	public void saveEdges(ExecGraph graph, HashMap<ExecEdge, Integer> map, Task task, String string) throws IOException {
 		File file = new File(getGraphOutDir(string), task.getTid() + ".dot");
 		FileWriter f = new FileWriter(file);
-		f.write("digraph G {\n");
-		HashSet<ExecVertex> set = new HashSet<ExecVertex>();
+		ArrayListMultimap<Object, ExecEdge> edgeMap = ArrayListMultimap.create();
 		for (ExecEdge edge: map.keySet()) {
 			ExecVertex src = graph.getGraph().getEdgeSource(edge);
 			ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
-			set.add(src);
-			set.add(dst);
-			f.write(String.format("%d -> %d [ label=\"%d,%s\" ];\n",src.getId(), dst.getId(), map.get(edge), edge.getType()));
+			if (src.getOwner() == dst.getOwner())
+				edgeMap.put(dst.getOwner(), edge);
 		}
-		for (ExecVertex vertex: set) {
-			String str = vertex.getOwner().toString();
-			if (vertex.getOwner() instanceof Task) {
-				str = "" + ((Task)vertex.getOwner()).getTid();
+		String vertexFmt = "    %d [ label=\"[%d]\" ];\n";
+		f.write("digraph G {\n");
+		f.write("  rankdir=LR;\n");
+		int i = 0;
+		HashSet<ExecVertex> seenVertex = new HashSet<ExecVertex>();
+		HashSet<ExecEdge> seenEdge = new HashSet<ExecEdge>();
+		for (Object actor: edgeMap.keySet()) {
+			f.write(String.format("  subgraph \"cluster_%d\" {\n", i));
+			f.write("    rankdir=LR\n");
+			f.write(String.format("    title%d [ label=\"%s\", shape=plaintext ];\n", i, actor));
+			for (ExecEdge edge: edgeMap.get(actor)) {
+				ExecVertex src = graph.getGraph().getEdgeSource(edge);
+				ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
+				if (!seenVertex.contains(src)) {
+					f.write(String.format(vertexFmt, src.getId(), src.getId()));
+					seenVertex.add(src);
+				}
+				if (!seenVertex.contains(dst)) {
+					f.write(String.format(vertexFmt, dst.getId(), dst.getId()));
+					seenVertex.add(dst);
+				}
+				f.write(String.format("    %d -> %d [ label=\"%d,%s\" ];\n", src.getId(), dst.getId(), map.get(edge), edge.getType()));
+				seenEdge.add(edge);
 			}
-			f.write(String.format("%d [ label=\"[%d] %s\" ];\n", vertex.getId(), vertex.getId(), str));
+			i++;
+			f.write("}\n");
+		}
+		for (ExecEdge edge: map.keySet()) {
+			if (!seenEdge.contains(edge)) {
+				ExecVertex src = graph.getGraph().getEdgeSource(edge);
+				ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
+				f.write(String.format("    %d -> %d [ label=\"%d,%s\" ];\n", src.getId(), dst.getId(), map.get(edge), edge.getType()));
+			}
 		}
 		f.write("}\n");
 		f.flush();
