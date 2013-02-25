@@ -7,6 +7,7 @@ public class ExecVertex implements Comparable<ExecVertex> {
 	private final long timestamp;
 	private final Object owner;
 	private final int id;
+	private Object parentOwner;
 	private VertexType type;
 
 	public ExecVertex(Object owner, long timestamp) {
@@ -48,6 +49,14 @@ public class ExecVertex implements Comparable<ExecVertex> {
 	@Override
 	public int compareTo(ExecVertex o) {
 		return this.timestamp > o.timestamp ? 1 : (this.timestamp == o.timestamp ? 0 : -1);
+	}
+
+	public Object getParentOwner() {
+		return parentOwner;
+	}
+
+	public void setParentOwner(Object parentOwner) {
+		this.parentOwner = parentOwner;
 	}
 
 }
