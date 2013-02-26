@@ -5,17 +5,15 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 
-import org.jgrapht.traverse.AbstractGraphIterator;
 import org.junit.Test;
-import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.ForwardClosestIterator;
 import org.lttng.studio.model.graph.Span;
 
 import com.google.common.collect.Sets;
@@ -50,7 +48,7 @@ public class TestGraphAnnotation {
 		cp.put(BasicGraph.GRAPH_INTERLEAVE,	new Integer[] { 3, 0, 2, 0, 0 });
 		cp.put(BasicGraph.GRAPH_NESTED, 	new Integer[] { 2, 2, 1, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE1, 	new Integer[] { 2, 1, 0, 0, 0 });
-		cp.put(BasicGraph.GRAPH_GARBAGE2, 	new Integer[] { 3, 1, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_GARBAGE2, 	new Integer[] { 2, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE3, 	new Integer[] { 3, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_SHELL,	 	new Integer[] { 2, 3, 5, 3, 5 });
 	}
@@ -58,25 +56,36 @@ public class TestGraphAnnotation {
 	static String[] actors = new String[] { "A", "B", "C", "D", "E" };
 
 	@Test
-	public void testGraphStats() {
+	public void testGraphStatsAll() {
 		for (String name: cp.keySet()) {
-			ExecGraph graph = BasicGraph.makeGraphByName(name);
-			ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
-			HashMap<Object, Span> spans = CriticalPathStats.compile(graph, start);
-			//String out = CriticalPathStats.formatStats(spans.values());
-			//System.out.println(name);
-			//System.out.println(out);
-			Integer[] data = cp.get(name);
-			for (int i = 0; i < data.length; i++) {
-				ExecVertex v = BasicGraph.getVertexByPrefix(graph, actors[i]);
-				if (data[i] == 0 && v == null)
-					continue;
-				Span span = spans.get(v.getOwner());
-				if (data[i] == 0 && span == null)
-					continue;
-				//System.out.println(v.getOwner() + " " + span.getTotal() + " == " + data[i]);
-				assertEquals((long)data[i], span.getTotal());
-			}
+			testGraphStats(name);
+		}
+	}
+
+	@Test
+	public void testGraphStatsOne() {
+		testGraphStats(BasicGraph.GRAPH_BASIC);
+	}
+
+	public void testGraphStats(String name) {
+		ExecGraph graph = BasicGraph.makeGraphByName(name);
+		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
+		Span root = CriticalPathStats.compile(graph, start);
+		HashMap<Object, Span> ownerSpanIndex = CriticalPathStats.makeOwnerSpanIndex(root);
+		//System.out.println(ownerSpanIndex);
+		//String out = CriticalPathStats.formatStats(ownerSpanIndex.values());
+		//System.out.println(name);
+		//System.out.println(out);
+		Integer[] data = cp.get(name);
+		for (int i = 0; i < data.length; i++) {
+			ExecVertex v = BasicGraph.getVertexByPrefix(graph, actors[i]);
+			if (data[i] == 0 && v == null)
+				continue;
+			Span span = ownerSpanIndex.get(v.getOwner());
+			if (data[i] == 0 && span == null)
+				continue;
+			//System.out.println(v.getOwner() + " " + span.getTotal() + " == " + data[i]);
+			assertEquals((long)data[i], span.getTotal());
 		}
 	}
 
@@ -90,29 +99,15 @@ public class TestGraphAnnotation {
 
 	@Test
 	public void testOne() {
-		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_OPEN2);
+		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_BASIC);
 	}
 
 	public void testGraphAnnotateClosestFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
-		ExecVertex base = BasicGraph.getVertexByName(graph, "A0");
-		ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
-		traversal.setDebug(true);
-		ExecVertex head = graph.getStartVertexOf(base.getOwner());
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
-				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
-		iter.addTraversalListener(traversal);
-		while (iter.hasNext() && !traversal.isDone()) {
-			iter.next();
-			// FIXME: stop condition based on max timestamps
-			/*
-			if (vertex.getTimestamp() >= stopTimestamps)
-				break;
-			*/
-		}
-		HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
+		ExecVertex head = BasicGraph.getVertexByName(graph, "A0");
+		List<ExecEdge> path = CriticalPathStats.computeCriticalPath(graph, head);
 		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
-		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
+		HashSet<ExecEdge> actRed = new HashSet<ExecEdge>(path);
 		checkPath(curr, expRed, actRed);
 	}
 

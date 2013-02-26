@@ -22,6 +22,7 @@ import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ForwardClosestIterator;
+import org.lttng.studio.model.graph.PropagateOwnerTraversalListener;
 import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -206,15 +207,17 @@ public class TestTaskExecGraph {
 		Set<Task> set = model.getTaskByNameSuffix(comm);
 		for (Task task: set) {
 			ExecVertex head = graph.getStartVertexOf(task);
-			ClosestFirstCriticalPathAnnotation traversal = new ClosestFirstCriticalPathAnnotation(graph);
+			ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
+			PropagateOwnerTraversalListener propagate = new PropagateOwnerTraversalListener(graph);
 			//traversal.setDebug(true);
 			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
-			iter.addTraversalListener(traversal);
-			while (iter.hasNext() && !traversal.isDone()) {
+			iter.addTraversalListener(annotate);
+			iter.addTraversalListener(propagate);
+			while (iter.hasNext() && !annotate.isDone()) {
 				iter.next();
 			}
-			HashMap<ExecEdge, Integer> map = traversal.getEdgeState();
+			HashMap<ExecEdge, Integer> map = annotate.getEdgeState();
 			//System.out.println(map);
 			checkEdgesDisjoint(graph, head);
 			saveEdges(graph, map, task, name);
@@ -232,13 +235,15 @@ public class TestTaskExecGraph {
 	}
 
 	private void saveStats(ExecGraph graph, ExecVertex head, String name, String tid) throws IOException {
-		HashMap<Object, Span> stats = CriticalPathStats.compile(graph, head);
-		String formatStats = CriticalPathStats.formatStats(stats.values());
+		Span root = CriticalPathStats.compile(graph, head);
+		String formatStats = CriticalPathStats.formatStats(root);
+		String formatSpan = CriticalPathStats.formatSpanHierarchy(root);
 		File graphOutDir = getGraphOutDir(name);
 		File fout = new File(graphOutDir, name + "-" + tid + ".stats");
 		FileWriter writer = new FileWriter(fout);
 		writer.write(name + " " + "tid=" + tid + " " + "head=" + head.getId() + "\n");
 		writer.write(formatStats);
+		writer.write(formatSpan);
 		writer.flush();
 		writer.close();
 	}

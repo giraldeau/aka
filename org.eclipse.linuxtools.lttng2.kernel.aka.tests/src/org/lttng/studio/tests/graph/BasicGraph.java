@@ -11,6 +11,8 @@ import org.lttng.studio.model.graph.EdgeType;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
+import org.lttng.studio.model.graph.ForwardClosestIterator;
+import org.lttng.studio.model.graph.PropagateOwnerTraversalListener;
 import org.lttng.studio.utils.GraphUtils;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -48,6 +50,15 @@ public class BasicGraph {
 		}
 	};
 
+	private static void propagateParentOwner(final ExecGraph graph, ExecVertex start) {
+		ForwardClosestIterator<ExecVertex, ExecEdge> iter =
+				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), start);
+
+		iter.addTraversalListener(new PropagateOwnerTraversalListener(graph));
+		while (iter.hasNext())
+			iter.next();
+	}
+
 	public static ExecGraph makeLengthUnequal() {
 		ExecGraph graph = makeGraph();
 		Object A = "A";
@@ -70,6 +81,7 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vA0, vB0, EdgeType.SPLIT);
 		graph.addVerticalEdge(vB2, vA2, EdgeType.MERGE);
+		propagateParentOwner(graph, vA0);
 		return graph;
 	}
 
@@ -88,6 +100,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vA[1], vB1, EdgeType.SPLIT);
 		graph.addVerticalEdge(vB2, vA[2], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A2");
+		propagateParentOwner(graph, vA[0]);
 		return graph;
 	}
 
@@ -116,6 +129,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vC4, vA[4], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A2");
 		setEdgeBlocked(graph, "A3", "A4");
+		propagateParentOwner(graph, vA[0]);
 		return graph;
 	}
 
@@ -144,6 +158,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vC4, vA[4], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A2", "A3");
 		setEdgeBlocked(graph, "A3", "A4");
+		propagateParentOwner(graph, vA[0]);
 		return graph;
 	}
 
@@ -172,6 +187,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vC4, vA[4], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A2", "A3");
 		setEdgeBlocked(graph, "A3", "A4");
+		propagateParentOwner(graph, vA[0]);
 		return graph;
 	}
 
@@ -211,6 +227,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vB4, vA4, EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A4");
 		setEdgeBlocked(graph, "B2", "B3");
+		propagateParentOwner(graph, vA0);
 		return graph;
 	}
 
@@ -232,7 +249,7 @@ public class BasicGraph {
 		graph.appendVertexByOwner(vB2);
 
 		graph.addVerticalEdge(vA1, vB1, EdgeType.SPLIT);
-
+		propagateParentOwner(graph, vA0);
 		return graph;
 	}
 
@@ -289,7 +306,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vA3, vC3, EdgeType.MERGE);
 
 		setEdgeBlocked(graph, "A1", "A2");
-
+		propagateParentOwner(graph, vA0);
 		return graph;
 	}
 
@@ -325,7 +342,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vA3, vC3, EdgeType.MERGE);
 
 		setEdgeBlocked(graph, "A1", "A2");
-
+		propagateParentOwner(graph, vA0);
 		return graph;
 	}
 
@@ -363,7 +380,7 @@ public class BasicGraph {
 		graph.addVerticalEdge(vA3, vC3, EdgeType.MERGE);
 
 		setEdgeBlocked(graph, "A1", "A2");
-
+		propagateParentOwner(graph, vA0);
 		return graph;
 	}
 
@@ -410,6 +427,7 @@ public class BasicGraph {
 		setEdgeBlocked(graph, "B12", "B13");
 		setEdgeBlocked(graph, "D4", "D5");
 		setEdgeBlocked(graph, "E6", "E7");
+		propagateParentOwner(graph, vA[0]);
 		return graph;
 	}
 
@@ -483,6 +501,7 @@ public class BasicGraph {
 
 	public static void main(String[] args) throws IOException {
 		String base = "graph" + File.separator + "tests" + File.separator;
+		new File(base).mkdirs();
 		for (String name: func.keySet()) {
 			GraphUtils.saveGraphDefault(makeGraphByName(name), base + name);
 		}

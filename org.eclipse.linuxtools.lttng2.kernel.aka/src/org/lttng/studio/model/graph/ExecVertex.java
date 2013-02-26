@@ -6,8 +6,8 @@ public class ExecVertex implements Comparable<ExecVertex> {
 
 	private final long timestamp;
 	private final Object owner;
-	private final int id;
 	private Object parentOwner;
+	private final int id;
 	private VertexType type;
 
 	public ExecVertex(Object owner, long timestamp) {

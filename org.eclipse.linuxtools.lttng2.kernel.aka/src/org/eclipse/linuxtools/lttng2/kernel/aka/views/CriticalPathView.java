@@ -13,7 +13,6 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
-import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.Span;
@@ -152,7 +151,7 @@ public class CriticalPathView extends AbstractAKAView {
 			System.err.println("WARNING: head vertex is null for task " + task);
 			return;
 		}
-		setSpans(CriticalPathStats.compile(graph, head));
+		//setSpans(CriticalPathStats.compile(graph, head));
 	}
 
 	private void setSpans(HashMap<Object, Span> spans) {

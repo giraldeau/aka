@@ -44,7 +44,7 @@
 <repository location="http://secretaire.dorsal.polymtl.ca/~fgiraldeau/p2/org.eclipse.zest.repository/target/repository/"/>
 </location>
 <location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
-<unit id="org.eclipse.draw2d.sdk.feature.group" version="3.9.0.201301220313"/>
+<unit id="org.eclipse.draw2d.sdk.feature.group" version="3.9.0.201302250306"/>
 <repository location="https://hudson.eclipse.org/hudson/job/gef-master/lastSuccessfulBuild/artifact/update-site/"/>
 </location>
 <location path="${workspace_loc}/aka/lib" type="Directory"/>
