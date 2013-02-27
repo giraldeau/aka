@@ -14,23 +14,31 @@ import org.jgrapht.traverse.AbstractGraphIterator;
 public class CriticalPathStats {
 
 	public static final double NANO = 1000000000.0;
+	public static final double NANOINV = 0.000000001;
 
 	public static String formatStats(Span root) {
 		HashMap<Object, Span> index = makeOwnerSpanIndex(root);
 		return formatStats(index.values());
 	}
 
+	public static double computeSumSecond(Collection<Span> list) {
+		long sum = 0;
+		for (Span span: list) {
+			sum += span.getTotal();
+		}
+		return sum * NANOINV;
+	}
+
 	public static String formatStats(Collection<Span> spans) {
-		int max = 29;
 		StringBuilder str = new StringBuilder();
 		ArrayList<Span> arrayList = new ArrayList<Span>(spans);
 		Collections.sort(arrayList);
 		Collections.reverse(arrayList);
-		long sum = 0;
-		for (Span span: arrayList) {
-			sum += span.getTotal();
-		}
-		double sumInv = 1.0 / sum * 100.0;
+		double sum = computeSumSecond(spans);
+		double sumInv = 0.0;
+		if (sum > 0)
+			sumInv = 1 / sum;
+
 		if (arrayList.isEmpty()) {
 			str.append("SPAN EMPTY\n");
 		} else {
@@ -39,31 +47,50 @@ public class CriticalPathStats {
 				// skip root span
 				if (span.getParent() == null)
 					continue;
-				String s = span.getOwner().toString();
-				if (s.length() > max) {
-					s = s.substring(0, max - 3) + "...";
-				}
-				str.append(String.format("%-30s %8.9f %8.3f\n", s,
-						span.getTotal() * 0.000000001, span.getTotal() * sumInv ));
+				printSpanOwner(str, span, 0);
+				str.append(String.format("%8.9f %8.3f\n", span.getTotal() * NANOINV,
+						span.getTotal() * NANOINV * sumInv * 100.0));
 			}
-			str.append(String.format("Total time: %.9f\n", sum * 0.000000001));
+			str.append(String.format("Total time: %.9f\n\n", sum));
 		}
 		return str.toString();
 	}
 
+	private static void printSpanOwner(StringBuilder str, Span span, int level) {
+		int max = 29;
+		if (level > max - 10) {
+			level = max - 10;
+		}
+		String s = "";
+		for (int i = 0; i < level; i++) s += " ";
+		s += span.getOwner().toString();
+		if (s.length() > max) {
+			s = s.substring(0, max - 3 - level) + "...";
+		}
+		str.append(String.format("%-30s ", s));
+	}
+
 	public static String formatSpanHierarchy(Span root) {
+		HashMap<Object, Span> index = makeOwnerSpanIndex(root);
+		double sum = computeSumSecond(index.values());
+		double sumInv = 0.0;
+		if (sum > 0)
+			sumInv = 1 / sum;
 		StringBuilder str = new StringBuilder();
 		str.append("Span hierarchy\n");
-		formatSpanHierarchyLevel(str, root, 0);
+		str.append(String.format("%-30s %-11s %8s\n", "Object", "Time (sec)", "% Rel"));
+		for (Span rootChild: root.getChildren()) {
+			formatSpanHierarchyLevel(str, rootChild, sumInv, 0);
+		}
 		return str.toString();
 	}
 
-	public static void formatSpanHierarchyLevel(StringBuilder str, Span span, int level) {
-		for (int i = 0; i < level; i++) str.append("    ");
-		str.append(span.getParent() == null ? "root" : span.getOwner().toString());
-		str.append("\n");
+	public static void formatSpanHierarchyLevel(StringBuilder str, Span span, double sumInv, int level) {
+		printSpanOwner(str, span, level);
+		str.append(String.format("%8.9f %8.3f\n", span.getTotal() * NANOINV,
+				span.getTotal() * NANOINV * sumInv * 100.0));
 		for (Span child: span.getChildren()) {
-			formatSpanHierarchyLevel(str, child, level + 1);
+			formatSpanHierarchyLevel(str, child, sumInv, level + 1);
 		}
 	}
 
