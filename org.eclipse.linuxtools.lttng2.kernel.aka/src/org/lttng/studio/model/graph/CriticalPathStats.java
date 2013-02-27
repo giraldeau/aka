@@ -24,9 +24,13 @@ public class CriticalPathStats {
 	public static double computeSumSecond(Collection<Span> list) {
 		long sum = 0;
 		for (Span span: list) {
-			sum += span.getTotal();
+			sum += span.getSelfTime();
 		}
 		return sum * NANOINV;
+	}
+
+	public static void printStatsHeader(StringBuilder str) {
+		str.append(String.format("%-30s %11s %11s %8s %8s\n", "Object", "Self time", "Inc. time", "% Self", "% Inc."));
 	}
 
 	public static String formatStats(Collection<Span> spans) {
@@ -38,18 +42,20 @@ public class CriticalPathStats {
 		double sumInv = 0.0;
 		if (sum > 0)
 			sumInv = 1 / sum;
-
 		if (arrayList.isEmpty()) {
 			str.append("SPAN EMPTY\n");
 		} else {
-			str.append(String.format("%-30s %-11s %8s\n", "Object", "Time (sec)", "% Rel"));
+			printStatsHeader(str);
 			for (Span span: arrayList) {
 				// skip root span
 				if (span.getParent() == null)
 					continue;
 				printSpanOwner(str, span, 0);
-				str.append(String.format("%8.9f %8.3f\n", span.getTotal() * NANOINV,
-						span.getTotal() * NANOINV * sumInv * 100.0));
+				str.append(String.format("%8.9f %8.9f %8.3f %8.3f\n",
+						span.getSelfTime() * NANOINV,
+						span.getTotalTime() * NANOINV,
+						span.getSelfTime() * NANOINV * sumInv * 100.0,
+						span.getTotalTime() * NANOINV * sumInv * 100.0));
 			}
 			str.append(String.format("Total time: %.9f\n\n", sum));
 		}
@@ -78,7 +84,7 @@ public class CriticalPathStats {
 			sumInv = 1 / sum;
 		StringBuilder str = new StringBuilder();
 		str.append("Span hierarchy\n");
-		str.append(String.format("%-30s %-11s %8s\n", "Object", "Time (sec)", "% Rel"));
+		printStatsHeader(str);
 		for (Span rootChild: root.getChildren()) {
 			formatSpanHierarchyLevel(str, rootChild, sumInv, 0);
 		}
@@ -87,8 +93,11 @@ public class CriticalPathStats {
 
 	public static void formatSpanHierarchyLevel(StringBuilder str, Span span, double sumInv, int level) {
 		printSpanOwner(str, span, level);
-		str.append(String.format("%8.9f %8.3f\n", span.getTotal() * NANOINV,
-				span.getTotal() * NANOINV * sumInv * 100.0));
+		str.append(String.format("%8.9f %8.9f %8.3f %8.3f\n",
+				span.getSelfTime() * NANOINV,
+				span.getTotalTime() * NANOINV,
+				span.getSelfTime() * NANOINV * sumInv * 100.0,
+				span.getTotalTime() * NANOINV * sumInv * 100.0));
 		for (Span child: span.getChildren()) {
 			formatSpanHierarchyLevel(str, child, sumInv, level + 1);
 		}
@@ -121,7 +130,7 @@ public class CriticalPathStats {
 				}
 				// update statistics
 				long duration = target.getTimestamp() - source.getTimestamp();
-				current.addSelf(duration);
+				current.addSelfTime(duration);
 				break;
 			case SPLIT:
 			case MERGE:
@@ -146,6 +155,7 @@ public class CriticalPathStats {
 				break;
 			}
 		}
+		root.computeTotalTime();
 		return root;
 	}
 

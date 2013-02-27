@@ -49,7 +49,7 @@ public class SpanColumnSorter extends ViewerComparator {
 	      break;
 	    case 2:
 	    case 3:
-	      rc = p1.getTotal() > p2.getTotal() ? 1 : (p1.getTotal() == p2.getTotal() ? 0 : -1);
+	      rc = p1.getSelfTime() > p2.getSelfTime() ? 1 : (p1.getSelfTime() == p2.getSelfTime() ? 0 : -1);
 	      break;
 	    default:
 	      rc = 0;

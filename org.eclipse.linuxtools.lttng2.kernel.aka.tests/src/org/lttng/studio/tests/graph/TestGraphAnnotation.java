@@ -85,7 +85,7 @@ public class TestGraphAnnotation {
 			if (data[i] == 0 && span == null)
 				continue;
 			//System.out.println(v.getOwner() + " " + span.getTotal() + " == " + data[i]);
-			assertEquals((long)data[i], span.getTotal());
+			assertEquals((long)data[i], span.getSelfTime());
 		}
 	}
 

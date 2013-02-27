@@ -7,7 +7,8 @@ public class Span implements Comparable<Span> {
 
 	private final Object owner;
 	private int count;
-	private long total;
+	private long selfTime;
+	private long totalTime;
 	private long min = Integer.MAX_VALUE;
 	private long max = Integer.MIN_VALUE;
 	private ArrayList<Span> children;
@@ -60,15 +61,15 @@ public class Span implements Comparable<Span> {
 		return count;
 	}
 
-	public long getTotal() {
-		return total;
+	public long getSelfTime() {
+		return selfTime;
 	}
 
-	public void addSelf(long time) {
+	public void addSelfTime(long time) {
 		this.count++;
 		this.min = Math.min(time, min);
 		this.max = Math.min(time, max);
-		this.total += time;
+		this.selfTime += time;
 	}
 
 	public long getMin() {
@@ -81,12 +82,36 @@ public class Span implements Comparable<Span> {
 
 	@Override
 	public int compareTo(Span other) {
-		return this.total > other.total ? 1 : (this.total == other.total ? 0 : -1);
+		return this.selfTime > other.selfTime ? 1 : (this.selfTime == other.selfTime ? 0 : -1);
 	}
 
 	@Override
 	public String toString() {
-		return "" + this.total;
+		return "" + this.selfTime;
+	}
+
+	public void computeTotalTime() {
+		totalTime = selfTime;
+		if (children == null || children.isEmpty())
+			return;
+		for (Span child: children) {
+			child.computeTotalTime();
+			totalTime += child.getTotalTime();
+		}
+	}
+
+	public long getTotalTime() {
+		return totalTime;
+	}
+
+	public long getChildrenTime() {
+		long time = 0;
+		if (children == null || children.isEmpty())
+			return time;
+		for (Span child: children) {
+			time += child.getSelfTime();
+		}
+		return time;
 	}
 
 }
