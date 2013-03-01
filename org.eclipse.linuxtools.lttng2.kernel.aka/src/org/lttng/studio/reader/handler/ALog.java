@@ -63,6 +63,7 @@ public class ALog {
 			log.write(String.format("%d %s %s\n",
 					System.currentTimeMillis(),
 					labels[level], msg));
+			log.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 			isError = true;
@@ -101,6 +102,15 @@ public class ALog {
 		log = null;
 		this.path = path;
 		init();
+	}
+
+	public void close() {
+		if (log != null)
+			try {
+				log.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 	}
 
 }

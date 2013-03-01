@@ -272,7 +272,6 @@ public class BasicGraph {
 
 		graph.addVerticalEdge(vB1, vA1, EdgeType.MERGE);
 		setEdgeBlocked(graph, "A0", "A1");
-
 		return graph;
 	}
 

@@ -179,6 +179,10 @@ public class TestTaskExecGraph {
 					{ "wk-pipeline-k", "wk-pipeline" },
 					{ "wk-inception-3x-100ms-k", "wk-inception" },
 					{ "netcat-tcp-k", "netcat-tcp" },
+					{ "wk-pipette-cons-k", "wk-pipette-cons" },
+					{ "wk-pipette-cons-k", "wk-pipette" },
+					{ "wk-pipette-prod-k", "wk-pipette-prod" },
+					{ "wk-pipette-prod-k", "wk-pipette" },
 				};
 		for (int i = 0; i < s.length; i++) {
 			computeCriticalPathTest(s[i][0], s[i][1]);
@@ -209,11 +213,11 @@ public class TestTaskExecGraph {
 			ExecVertex head = graph.getStartVertexOf(task);
 			ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
 			PropagateOwnerTraversalListener propagate = new PropagateOwnerTraversalListener(graph);
-			//traversal.setDebug(true);
+			annotate.setLogger(log);
 			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
 			iter.addTraversalListener(annotate);
-			iter.addTraversalListener(propagate);
+			//iter.addTraversalListener(propagate);
 			while (iter.hasNext() && !annotate.isDone()) {
 				iter.next();
 			}

@@ -15,6 +15,7 @@ import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.Span;
+import org.lttng.studio.reader.handler.ALog;
 
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -30,7 +31,7 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_INTERLEAVE,"A0-A1;A1-A2;A2-C2;C2-C4;C4-A4;A4-A5;");
 		exp.put(BasicGraph.GRAPH_NESTED,	"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-B3;B3-B4;B4-A4;A4-A5");
 		exp.put(BasicGraph.GRAPH_OPEN1,		"A0-A1;A1-A2");
-		exp.put(BasicGraph.GRAPH_OPEN2,		"B0-B1;A1-A2");
+		exp.put(BasicGraph.GRAPH_OPEN2,		"B0-B1;B1-A1;A1-A2");
 		exp.put(BasicGraph.GRAPH_GARBAGE1,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
 		exp.put(BasicGraph.GRAPH_GARBAGE2,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
 		exp.put(BasicGraph.GRAPH_GARBAGE3,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;A3-A4");
@@ -47,6 +48,8 @@ public class TestGraphAnnotation {
 		cp.put(BasicGraph.GRAPH_EMBEDED, 	new Integer[] { 2, 0, 3, 0, 0 });
 		cp.put(BasicGraph.GRAPH_INTERLEAVE,	new Integer[] { 3, 0, 2, 0, 0 });
 		cp.put(BasicGraph.GRAPH_NESTED, 	new Integer[] { 2, 2, 1, 0, 0 });
+		cp.put(BasicGraph.GRAPH_OPEN1,		new Integer[] { 2, 0, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_OPEN2,		new Integer[] { 1, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE1, 	new Integer[] { 2, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE2, 	new Integer[] { 2, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE3, 	new Integer[] { 3, 1, 0, 0, 0 });
@@ -72,13 +75,14 @@ public class TestGraphAnnotation {
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
 		Span root = CriticalPathStats.compile(graph, start);
 		HashMap<Object, Span> ownerSpanIndex = CriticalPathStats.makeOwnerSpanIndex(root);
-		//System.out.println(ownerSpanIndex);
-		//String out = CriticalPathStats.formatStats(ownerSpanIndex.values());
-		//System.out.println(name);
-		//System.out.println(out);
+		System.out.println(name);
+		System.out.println(ownerSpanIndex);
+		System.out.println(CriticalPathStats.formatStats(ownerSpanIndex.values()));
+		System.out.println(CriticalPathStats.formatSpanHierarchy(root));
 		Integer[] data = cp.get(name);
 		for (int i = 0; i < data.length; i++) {
 			ExecVertex v = BasicGraph.getVertexByPrefix(graph, actors[i]);
+			//System.out.println("v=" + v + " data[i]=" + data[i]);
 			if (data[i] == 0 && v == null)
 				continue;
 			Span span = ownerSpanIndex.get(v.getOwner());
@@ -99,13 +103,16 @@ public class TestGraphAnnotation {
 
 	@Test
 	public void testOne() {
-		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_BASIC);
+		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_OPEN2);
 	}
 
 	public void testGraphAnnotateClosestFirst(String curr) {
+		ALog log = new ALog();
+		log.setLevel(ALog.DEBUG);
+		log.setPath("graph/tests/" + curr + ".log");
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex head = BasicGraph.getVertexByName(graph, "A0");
-		List<ExecEdge> path = CriticalPathStats.computeCriticalPath(graph, head);
+		List<ExecEdge> path = CriticalPathStats.computeCriticalPath(graph, head, log);
 		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
 		HashSet<ExecEdge> actRed = new HashSet<ExecEdge>(path);
 		checkPath(curr, expRed, actRed);

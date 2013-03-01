@@ -7,9 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
-import org.jgrapht.event.EdgeTraversalEvent;
-import org.jgrapht.event.TraversalListenerAdapter;
 import org.jgrapht.traverse.AbstractGraphIterator;
+import org.lttng.studio.reader.handler.ALog;
 
 public class CriticalPathStats {
 
@@ -173,31 +172,24 @@ public class CriticalPathStats {
 	}
 
 	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start) {
+		return computeCriticalPath(graph, start, null);
+	}
+
+	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start, ALog log) {
 		ArrayList<ExecEdge> result = new ArrayList<ExecEdge>();
-		final ArrayList<ExecEdge> sorted = new ArrayList<ExecEdge>();
 		if (!graph.getGraph().vertexSet().contains(start))
 			return result;
 		ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
-		PropagateOwnerTraversalListener propagate = new PropagateOwnerTraversalListener(graph);
+		annotate.setLogger(log);
+		//PropagateOwnerTraversalListener propagate = new PropagateOwnerTraversalListener(graph);
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), start);
 		iter.addTraversalListener(annotate);
-		iter.addTraversalListener(propagate);
-		iter.addTraversalListener(new TraversalListenerAdapter<ExecVertex, ExecEdge>() {
-			@Override
-			public void edgeTraversed(EdgeTraversalEvent<ExecVertex, ExecEdge> item) {
-				sorted.add(item.getEdge());
-			}
-		});
+		//iter.addTraversalListener(propagate);
 		while (iter.hasNext() && !annotate.isDone())
 			iter.next();
-		HashMap<ExecEdge, Integer> map = annotate.getEdgeState();
-		for (ExecEdge edge: sorted) {
-			if (map.get(edge) == ExecEdge.RED) {
-				result.add(edge);
-			}
-		}
-		return result;
+		//HashMap<ExecEdge, Integer> map = annotate.getEdgeState();
+		return annotate.getCriticalPath();
 	}
 
 }

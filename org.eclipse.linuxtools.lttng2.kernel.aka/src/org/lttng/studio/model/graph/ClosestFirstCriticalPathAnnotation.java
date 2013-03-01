@@ -1,30 +1,38 @@
 package org.lttng.studio.model.graph;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.jgrapht.event.EdgeTraversalEvent;
 import org.jgrapht.event.TraversalListenerAdapter;
 import org.jgrapht.event.VertexTraversalEvent;
+import org.jgrapht.traverse.AbstractGraphIterator;
+import org.lttng.studio.reader.handler.ALog;
 
 public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter<ExecVertex, ExecEdge> {
 
 	private final HashMap<ExecEdge, Integer> edgeState;
 	private final ExecGraph graph;
-	private ExecVertex head; // contains the first encountered verted
+	private ExecVertex headVertex; // first encountered vertex
+	private ExecVertex criticalPathStartVertex; // critical path start
 	private final HashMap<Object, ExecVertex> tail;
 	private boolean done;
-	private boolean debug;
+	private ALog log;
+	private final HashMap<Object, Object> latestSplitMap;
 
 	public ClosestFirstCriticalPathAnnotation(ExecGraph graph) {
+		latestSplitMap = new HashMap<Object, Object>();
 		edgeState = new HashMap<ExecEdge, Integer>();
 		this.graph = graph;
 		tail = new HashMap<Object, ExecVertex>();
 		setDone(false);
-		setDebug(false);
 	}
 
 	@Override
@@ -37,9 +45,17 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 		 */
 
 		ExecVertex vertex = item.getVertex();
+
+		Object parentOwner = latestSplitMap.get(vertex.getOwner());
+		vertex.setParentOwner(parentOwner);
+
+		// detect wakeup from unkown object
+		annotateReverseUnkownMerge(vertex);
+
 		int color = ExecEdge.RED;
-		if (head == null) {
-			head = vertex;
+		if (headVertex == null) {
+			headVertex = vertex;
+			criticalPathStartVertex = vertex;
 		} else {
 			int numIn = graph.getGraph().incomingEdgesOf(vertex).size();
 			int inRed = countRedEdgeIncoming(vertex);
@@ -47,25 +63,20 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 		}
 		debug("vertex " + vertex + " color " + color);
 
-		Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(vertex);
-		// look ahead
-		for (ExecEdge e: out) {
-			ExecVertex target = graph.getGraph().getEdgeTarget(e);
-			if (target.getOwner() == vertex.getOwner()) {
-				nextSelf = e;
-			}
-		}
+		nextSelf = findSelfOutgoingEdge(graph, vertex);
 
 		// dead-end in main actor, stop here and mark dangling path as blue
-		if (nextSelf == null && vertex.getOwner() == head.getOwner()) {
+		if (nextSelf == null && vertex.getOwner() == headVertex.getOwner()) {
 			annotateBlueTail();
 			setDone(true);
+			debug("edgeState " + edgeState);
 			return;
 		}
 
 		// annotate outgoing edges with inherited color
+		Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(vertex);
 		for (ExecEdge e: out) {
-			edgeState.put(e, color);
+			setEdgeState(e, color);
 			ExecVertex target = graph.getGraph().getEdgeTarget(e);
 			tail.put(target.getOwner(), target);
 		}
@@ -78,16 +89,79 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 
 		// backtrack if encounter blocking and current color is RED
 		if (color == ExecEdge.RED && nextSelf.getType() == EdgeType.BLOCKED) {
-			edgeState.put(nextSelf, ExecEdge.BLUE);
+			setEdgeState(nextSelf, ExecEdge.BLUE);
 			annotateBlueBackward(vertex);
 		}
+	}
+
+	private void setEdgeState(ExecEdge e, int color) {
+		if (edgeState.containsKey(e)) {
+			debug("update edge state " + e + " color=" + color);
+		} else {
+			debug("insert edge state " + e + " color=" + color);
+		}
+		edgeState.put(e, color);
+	}
+
+	private ExecEdge findSelfOutgoingEdge(ExecGraph graph2, ExecVertex vertex) {
+		Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(vertex);
+		for (ExecEdge e: out) {
+			ExecVertex target = graph.getGraph().getEdgeTarget(e);
+			if (target.getOwner() == vertex.getOwner()) {
+				return e;
+			}
+		}
+		return null;
+	}
+
+	private void annotateReverseUnkownMerge(ExecVertex vertex) {
+		Set<ExecEdge> inc = graph.getGraph().incomingEdgesOf(vertex);
+		ExecEdge unknownMergeEdge = null;
+		// assume there are no spurious merge
+		for (ExecEdge edge: inc) {
+			if (edge.getType() == EdgeType.MERGE && !edgeState.containsKey(edge)) {
+				unknownMergeEdge = edge;
+				debug("MERGE from unknown object " + edge);
+				break;
+			}
+		}
+		if (unknownMergeEdge == null)
+			return;
+		// roll-back
+		Object owner = graph.getGraph().getEdgeSource(unknownMergeEdge).getOwner();
+		List<ExecVertex> list = graph.getVertexMap().get(owner);
+		int index = Collections.binarySearch(list, headVertex);
+		if (index < 0)
+			index = -index + 1;
+		ExecVertex newStartVertex = list.get(index);
+		if (newStartVertex == null) {
+			debug("newStartVertex == null");
+			return;
+		}
+		criticalPathStartVertex = newStartVertex;
+		criticalPathStartVertex.setParentOwner(vertex.getOwner());
+
+		ExecVertex stopVertex = graph.getGraph().getEdgeSource(unknownMergeEdge);
+		ExecEdge startSelfEdge = findSelfOutgoingEdge(graph, criticalPathStartVertex);
+
+		debug("HEAD FOUND " + startSelfEdge + " at index=" + index);
+		debug("ANNOTATE START");
+		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
+				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), criticalPathStartVertex);
+		iter.addTraversalListener(this);
+		while (iter.hasNext()) {
+			ExecVertex v = iter.next();
+			if (v == stopVertex)
+				break;
+		}
+		debug("ANNOTATE END");
 	}
 
 	private void annotateBlueTail() {
 		HashSet<Object> ownerSet = new HashSet<Object>();
 		ownerSet.addAll(tail.keySet());
 		for (Object owner: ownerSet) {
-			if (owner == head.getOwner())
+			if (owner == headVertex.getOwner())
 				continue;
 			ExecVertex vertex = tail.remove(owner);
 			debug("annotateBlueTail " + vertex);
@@ -116,7 +190,7 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 				if (edgeState.containsKey(e)) {
 					if (edgeState.get(e) == ExecEdge.RED) {
 						debug("annotateBlue " + e);
-						edgeState.put(e, ExecEdge.BLUE);
+						setEdgeState(e, ExecEdge.BLUE);
 					}
 				}
 			}
@@ -146,6 +220,14 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 
 	@Override
 	public void edgeTraversed(EdgeTraversalEvent<ExecVertex, ExecEdge> item) {
+		ExecEdge edge = item.getEdge();
+		if (edge.getType() == EdgeType.SPLIT) {
+			ExecVertex source = graph.getGraph().getEdgeSource(edge);
+			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
+			Object parentOwner = source.getOwner();
+			Object owner = target.getOwner();
+			latestSplitMap.put(owner, parentOwner);
+		}
 	}
 
 	public HashMap<ExecEdge, Integer> getEdgeState() {
@@ -160,13 +242,37 @@ public class ClosestFirstCriticalPathAnnotation extends TraversalListenerAdapter
 		this.done = done;
 	}
 
-	public void setDebug(boolean debug) {
-		this.debug = debug;
+	private void debug(String string) {
+		if (log != null)
+			log.debug(string);
 	}
 
-	private void debug(String string) {
-		if (debug)
-			System.out.println(string);
+	public void setLogger(ALog log) {
+		this.log = log;
+	}
+
+	public ArrayList<ExecEdge> getCriticalPath() {
+		ArrayList<ExecEdge> path = new ArrayList<ExecEdge>();
+		for (ExecEdge edge: edgeState.keySet()) {
+			if (edgeState.get(edge) == ExecEdge.RED) {
+				path.add(edge);
+			}
+		}
+		Collections.sort(path, new Comparator<ExecEdge>() {
+			@Override
+			public int compare(ExecEdge e1, ExecEdge e2) {
+				ExecVertex v1 = graph.getGraph().getEdgeSource(e1);
+				ExecVertex v2 = graph.getGraph().getEdgeSource(e2);
+				int inCmp = v1.compareTo(v2);
+				if (inCmp == 0) {
+					v1 = graph.getGraph().getEdgeTarget(e1);
+					v2 = graph.getGraph().getEdgeTarget(e2);
+					return v1.compareTo(v2);
+				}
+				return inCmp;
+			}
+		});
+		return path;
 	}
 
 }

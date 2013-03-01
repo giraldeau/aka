@@ -16,7 +16,7 @@ import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.event.TmfTimeRange;
 import org.eclipse.linuxtools.tmf.core.event.TmfTimestamp;
-import org.eclipse.linuxtools.tmf.core.signal.TmfRangeSynchSignal;
+import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -81,7 +81,8 @@ public class BlockingView extends AbstractAKAView {
 		                long center = (endTime - startTime) / 2 + startTime;
 		                TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
 		                TmfTimestamp time = new CtfTmfTimestamp(center);
-		                broadcast(new TmfRangeSynchSignal(BlockingView.this, range, time));
+		                //broadcast(new TmfRangeSynchSignal(BlockingView.this, range, time));
+		                broadcast(new TmfTimeSynchSignal(BlockingView.this, time));
 					}
 				}
 			}
