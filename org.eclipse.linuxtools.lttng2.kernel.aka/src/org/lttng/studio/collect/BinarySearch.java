@@ -14,6 +14,8 @@ public class BinarySearch {
 		int i = Collections.binarySearch(list, key, c);
 		if (i < 0)
 			i = -i - 2;
+		if (i < 0)
+			i = 0;
 		return i;
 	}
 

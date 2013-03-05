@@ -108,45 +108,28 @@ public class CriticalPathStats {
 		// the case there would be different parent owner
 		HashMap<Object, Span> spanMap = new HashMap<Object, Span>();
 		List<ExecEdge> path = computeCriticalPath(graph, start);
+		long t = 0;
+		System.out.println("START COMPILE " + start);
 		for (ExecEdge edge: path) {
 			ExecVertex source = graph.getGraph().getEdgeSource(edge);
 			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
+			if (t > source.getTimestamp() || t > target.getTimestamp())
+				throw new RuntimeException("edges are not sorted");
+			//System.out.println("compile edge " + edge + " " + edge.getType());
+			t = target.getTimestamp();
 			switch (edge.getType()) {
 			case DEFAULT:
 			case RUNNING:
 				if (source.getOwner() != target.getOwner())
 					throw new RuntimeException("edge " + edge.getType() + " must have same endpoints owner");
 				// get or create span
-				Span current = spanMap.get(source.getOwner());
-				if (current == null) {
-					current = new Span(source.getOwner());
-					Span parentSpan = root;
-					if (spanMap.containsKey(source.getParentOwner())) {
-						 parentSpan = spanMap.get(source.getParentOwner());
-					}
-					current.setParentAndChild(parentSpan);
-					spanMap.put(source.getOwner(), current);
-				}
+				Span span = getOrCreateSpan(spanMap, root, source.getOwner(), source.getParentOwner());
 				// update statistics
 				long duration = target.getTimestamp() - source.getTimestamp();
-				current.addSelfTime(duration);
+				span.addSelfTime(duration);
 				break;
 			case SPLIT:
 			case MERGE:
-				// change current span to target owner
-				Object owner = target.getOwner();
-				Object parent = target.getParentOwner();
-				Span parentSpan = root;
-				if (spanMap.containsKey(parent)) {
-					parentSpan = spanMap.get(parent);
-				}
-				Span span = spanMap.get(owner);
-				if (span == null) {
-					span = new Span(owner);
-					span.setParentAndChild(parentSpan);
-					spanMap.put(owner, span);
-				}
-				break;
 			case INTERRUPTED:
 			case MESSAGE:
 			case BLOCKED:
@@ -156,6 +139,27 @@ public class CriticalPathStats {
 		}
 		root.computeTotalTime();
 		return root;
+	}
+
+	private static Span getOrCreateSpan(HashMap<Object, Span> spanMap, Span root, Object currentOwner, Object parentOwner) {
+		Span parentSpan;
+		if (parentOwner == null) {
+			parentSpan = root;
+		} else {
+			parentSpan = spanMap.get(parentOwner);
+			if (parentSpan == null) {
+				parentSpan = new Span(parentOwner);
+				spanMap.put(parentOwner, parentSpan);
+				parentSpan.setParentAndChild(root);
+			}
+		}
+		Span currentSpan = spanMap.get(currentOwner);
+		if (currentSpan == null) {
+			currentSpan = new Span(currentOwner);
+			spanMap.put(currentOwner, currentSpan);
+			currentSpan.setParentAndChild(parentSpan);
+		}
+		return currentSpan;
 	}
 
 	public static HashMap<Object, Span> makeOwnerSpanIndex(Span root) {
@@ -181,14 +185,11 @@ public class CriticalPathStats {
 			return result;
 		ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
 		annotate.setLogger(log);
-		//PropagateOwnerTraversalListener propagate = new PropagateOwnerTraversalListener(graph);
 		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), start);
 		iter.addTraversalListener(annotate);
-		//iter.addTraversalListener(propagate);
 		while (iter.hasNext() && !annotate.isDone())
 			iter.next();
-		//HashMap<ExecEdge, Integer> map = annotate.getEdgeState();
 		return annotate.getCriticalPath();
 	}
 

@@ -31,9 +31,11 @@ public class Span implements Comparable<Span> {
 	}
 
 	public void setParentAndChild(Span parent) {
-		setParent(parent);
+		if (this.parent != null)
+			this.parent.removeChild(this);
 		if (parent != null)
 			parent.addChild(this);
+		setParent(parent);
 	}
 
 	public List<Span> getChildren() {
@@ -87,7 +89,7 @@ public class Span implements Comparable<Span> {
 
 	@Override
 	public String toString() {
-		return "" + this.selfTime;
+		return "[" + this.owner + "," + this.parent + "]";
 	}
 
 	public void computeTotalTime() {

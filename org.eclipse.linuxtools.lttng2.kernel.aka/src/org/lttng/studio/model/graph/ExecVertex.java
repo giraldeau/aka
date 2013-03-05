@@ -1,5 +1,7 @@
 package org.lttng.studio.model.graph;
 
+
+
 public class ExecVertex implements Comparable<ExecVertex> {
 
 	private static int count = 0;

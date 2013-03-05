@@ -22,7 +22,6 @@ import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.ForwardClosestIterator;
-import org.lttng.studio.model.graph.PropagateOwnerTraversalListener;
 import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -198,6 +197,7 @@ public class TestTaskExecGraph {
 		AnalyzerThread thread = new AnalyzerThread();
 		thread.setTrace(TestTraceset.getKernelTrace(name));
 		ALog log = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
+		System.out.println("PROCESSING " + name);
 		File outDir = getGraphOutDir(name);
 		log.setPath(new File(outDir, name + ".log").getCanonicalPath());
 		log.setLevel(ALog.DEBUG);
@@ -210,19 +210,17 @@ public class TestTaskExecGraph {
 		saveGraph(graph, name);
 		Set<Task> set = model.getTaskByNameSuffix(comm);
 		for (Task task: set) {
+			log.debug("COMPUTE_CRITICAL_PATH " + task);
 			ExecVertex head = graph.getStartVertexOf(task);
 			ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
-			PropagateOwnerTraversalListener propagate = new PropagateOwnerTraversalListener(graph);
 			annotate.setLogger(log);
 			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
 					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
 			iter.addTraversalListener(annotate);
-			//iter.addTraversalListener(propagate);
 			while (iter.hasNext() && !annotate.isDone()) {
 				iter.next();
 			}
 			HashMap<ExecEdge, Integer> map = annotate.getEdgeState();
-			//System.out.println(map);
 			checkEdgesDisjoint(graph, head);
 			saveEdges(graph, map, task, name);
 			saveStats(graph, head, name, "" + task.getTid());
