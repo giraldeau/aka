@@ -4,18 +4,24 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Stack;
 
+import org.lttng.studio.reader.handler.ALog;
+
 public class DepthFirstCriticalPathAnnotation {
 
 	public DepthFirstCriticalPathAnnotation() {
 	}
 
 	public static HashMap<ExecEdge, Integer> computeCriticalPath(ExecGraph graph, ExecVertex start) {
+		return computeCriticalPath(graph, start, new ALog());
+	}
+
+	public static HashMap<ExecEdge, Integer> computeCriticalPath(ExecGraph graph, ExecVertex start, ALog log) {
 		HashMap<ExecEdge, Integer> edgeState = new HashMap<ExecEdge, Integer>();
 		Stack<ExecVertex> splits = new Stack<ExecVertex>();
 		Stack<ExecEdge> path = new Stack<ExecEdge>();
 		ExecVertex curr = start;
 		while(curr != null) {
-			//System.out.println("processing " + curr);
+			log.debug("processing " + curr);
 			// identify split and self vertex
 			ExecEdge selfEdge = null;
 			ExecVertex next = null;
@@ -24,17 +30,17 @@ public class DepthFirstCriticalPathAnnotation {
 			for (ExecEdge e: out) {
 				ExecVertex target = graph.getGraph().getEdgeTarget(e);
 				if (target.getOwner() != curr.getOwner()) {
-					//System.out.println("push split vertex " + curr);
+					log.debug("push split vertex " + curr);
 					splits.push(curr);
 				} else {
-					//System.out.println("push self edge " + e);
+					log.debug("push self edge " + e);
 					selfEdge = e;
 				}
 			}
 
 			// stop condition
 			if (curr.getOwner() == start.getOwner() && selfEdge == null) {
-				//System.out.println("stop condition reached");
+				log.debug("stop condition reached");
 				break;
 			}
 
@@ -43,19 +49,19 @@ public class DepthFirstCriticalPathAnnotation {
 
 			// detect blocking or dead-end
 			if (path.peek().getType() == EdgeType.BLOCKED || selfEdge == null) {
-				//System.out.println("blocking or dead-end ahead");
+				log.debug("blocking or dead-end ahead");
 				if (splits.isEmpty()) {
-					//System.out.println("splits empty, break, nowhere to go");
+					log.debug("splits empty, break, nowhere to go");
 					break;
 				}
 				ExecVertex top = splits.pop();
 				// rewind path to top split vertex
-				//System.out.println("rewind path until " + top);
+				log.debug("rewind path until " + top);
 				while(!path.isEmpty() && graph.getGraph().getEdgeTarget(path.peek()) != top) {
 					ExecEdge edge = path.pop();
-					//System.out.println("pop " + edge);
+					log.debug("pop " + edge);
 				}
-				//System.out.println("path.peek() " + path.peek());
+				log.debug("path.peek() " + path.peek());
 				// switch actor
 				out = graph.getGraph().outgoingEdgesOf(top);
 				for (ExecEdge e: out) {
@@ -66,15 +72,14 @@ public class DepthFirstCriticalPathAnnotation {
 						break;
 					}
 				}
-				//System.out.println("switch actor from " + curr.getOwner() + " to " + next.getOwner());
+				log.debug("switch actor from " + curr.getOwner() + " to " + next.getOwner());
 			} else {
 				next = graph.getGraph().getEdgeTarget(selfEdge);
-				//System.out.println("self next " + next);
+				log.debug("self next " + next);
 			}
 			curr = next;
-			//System.out.println("stack splits " + splits);
-			//System.out.println("stack path   " + path);
-			//System.out.println("");
+			log.debug("stack splits " + splits);
+			log.debug("stack path   " + path + "\n");
 		}
 		for (ExecEdge edge: path) {
 			edgeState.put(edge, ExecEdge.RED);

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 
 import org.junit.Test;
@@ -93,6 +92,9 @@ public class TestGraphAnnotation {
 		}
 	}
 
+	/* Disable closestFirst annotation and fall back to depthFirst algorithm
+	 * closestFirst annotation do not guarantee uniqueness, while depthFirst does */
+	/*
 	@Test
 	public void testGraphAnnotateClosestFirstAll() {
 		for (String name: exp.keySet()) {
@@ -106,6 +108,7 @@ public class TestGraphAnnotation {
 		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_OPEN2);
 	}
 
+
 	public void testGraphAnnotateClosestFirst(String curr) {
 		ALog log = new ALog();
 		log.setLevel(ALog.DEBUG);
@@ -117,6 +120,7 @@ public class TestGraphAnnotation {
 		HashSet<ExecEdge> actRed = new HashSet<ExecEdge>(path);
 		checkPath(curr, expRed, actRed);
 	}
+	*/
 
 	@Test
 	public void testGraphDepthFirstAll() {
@@ -127,13 +131,16 @@ public class TestGraphAnnotation {
 
 	@Test
 	public void testGraphDepthFirstOne() {
-		testGraphAnnotateDepthFirst(BasicGraph.GRAPH_GARBAGE2);
+		testGraphAnnotateDepthFirst(BasicGraph.GRAPH_OPEN2);
 	}
 
 	public void testGraphAnnotateDepthFirst(String curr) {
 		ExecGraph graph = BasicGraph.makeGraphByName(curr);
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
-		HashMap<ExecEdge, Integer> map = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start);
+		ALog log = new ALog();
+		log.setLevel(ALog.DEBUG);
+		log.setPath("graph/tests/" + curr + "-depthfirst.log");
+		HashMap<ExecEdge, Integer> map = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start, log);
 		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
 		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
 		checkPath(curr, expRed, actRed);
