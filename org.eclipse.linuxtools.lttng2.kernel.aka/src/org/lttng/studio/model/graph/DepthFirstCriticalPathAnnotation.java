@@ -90,7 +90,8 @@ public class DepthFirstCriticalPathAnnotation {
 						ExecEdge edge = path.pop();
 						log.debug("pop " + edge);
 					}
-					log.debug("path.peek() " + path.peek());
+					if (!path.isEmpty())
+						log.debug("path.peek() " + path.peek());
 					// switch actor
 					out = graph.getGraph().outgoingEdgesOf(top);
 					for (ExecEdge e: out) {
@@ -108,6 +109,10 @@ public class DepthFirstCriticalPathAnnotation {
 			}
 			if (curr.getOwner() != next.getOwner()) {
 				log.debug("switch actor from " + curr.getOwner() + " to " + next.getOwner());
+			}
+			if (curr == next) {
+				log.debug("the algorithm do not progress, break");
+				break;
 			}
 			curr = next;
 			log.debug("stack splits:");

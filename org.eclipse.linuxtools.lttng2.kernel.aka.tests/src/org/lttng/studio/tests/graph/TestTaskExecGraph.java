@@ -14,14 +14,12 @@ import java.util.Set;
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.Subgraph;
-import org.jgrapht.traverse.AbstractGraphIterator;
 import org.junit.Test;
-import org.lttng.studio.model.graph.ClosestFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.CriticalPathStats;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.ForwardClosestIterator;
 import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.graph.TaskGraphExtractor;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -178,9 +176,7 @@ public class TestTaskExecGraph {
 					{ "wk-pipeline-k", "wk-pipeline" },
 					{ "wk-inception-3x-100ms-k", "wk-inception" },
 					{ "netcat-tcp-k", "netcat-tcp" },
-					{ "wk-pipette-cons-k", "wk-pipette-cons" },
 					{ "wk-pipette-cons-k", "wk-pipette" },
-					{ "wk-pipette-prod-k", "wk-pipette-prod" },
 					{ "wk-pipette-prod-k", "wk-pipette" },
 				};
 		for (int i = 0; i < s.length; i++) {
@@ -190,7 +186,7 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
-		computeCriticalPathTest("wk-imbalance-k", "wk-imbalance");
+		computeCriticalPathTest("wk-pipette-prod-k", "wk-pipette");
 	}
 
 	private void computeCriticalPathTest(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
@@ -212,17 +208,10 @@ public class TestTaskExecGraph {
 		for (Task task: set) {
 			log.debug("COMPUTE_CRITICAL_PATH " + task);
 			ExecVertex head = graph.getStartVertexOf(task);
-			ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
-			annotate.setLogger(log);
-			AbstractGraphIterator<ExecVertex, ExecEdge> iter =
-					new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), head);
-			iter.addTraversalListener(annotate);
-			while (iter.hasNext() && !annotate.isDone()) {
-				iter.next();
-			}
-			HashMap<ExecEdge, Integer> map = annotate.getEdgeState();
+			DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, head, log);
 			checkEdgesDisjoint(graph, head);
-			saveEdges(graph, map, task, name);
+			// FIXME: save traversed edges
+			//saveEdges(graph, map, task, name);
 			saveStats(graph, head, name, "" + task.getTid());
 		}
 	}
