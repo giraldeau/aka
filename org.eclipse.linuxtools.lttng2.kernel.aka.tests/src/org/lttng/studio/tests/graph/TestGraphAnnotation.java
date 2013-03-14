@@ -2,9 +2,11 @@ package org.lttng.studio.tests.graph;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.junit.Test;
@@ -34,6 +36,7 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_GARBAGE1,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
 		exp.put(BasicGraph.GRAPH_GARBAGE2,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;");
 		exp.put(BasicGraph.GRAPH_GARBAGE3,	"A0-A1;A1-B1;B1-B2;B2-A2;A2-A3;A3-A4");
+		exp.put(BasicGraph.GRAPH_DUPLICATE,	"A0-A1;A1-A2;A2-B2;B2-B3;B3-A3;A3-A4");
 		exp.put(BasicGraph.GRAPH_SHELL,		"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-C4;C4-C5;C5-C6;C6-C7;" +
 											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
 											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
@@ -52,6 +55,7 @@ public class TestGraphAnnotation {
 		cp.put(BasicGraph.GRAPH_GARBAGE1, 	new Integer[] { 2, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE2, 	new Integer[] { 2, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_GARBAGE3, 	new Integer[] { 3, 1, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_DUPLICATE, 	new Integer[] { 3, 1, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_SHELL,	 	new Integer[] { 2, 3, 5, 3, 5 });
 	}
 
@@ -66,7 +70,7 @@ public class TestGraphAnnotation {
 
 	@Test
 	public void testGraphStatsOne() {
-		testGraphStats(BasicGraph.GRAPH_BASIC);
+		testGraphStats(BasicGraph.GRAPH_SHELL);
 	}
 
 	public void testGraphStats(String name) {
@@ -140,14 +144,13 @@ public class TestGraphAnnotation {
 		ALog log = new ALog();
 		log.setLevel(ALog.DEBUG);
 		log.setPath("graph/tests/" + curr + "-depthfirst.log");
-		HashMap<ExecEdge, Integer> map = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start, log);
-		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
-		HashSet<ExecEdge> actRed = getEdgesByType(map, ExecEdge.RED);
-		checkPath(curr, expRed, actRed);
+		List<ExecEdge> path = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start, log);
+		List<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
+		checkPath(curr, expRed, path);
 	}
 
-	public void checkPath(String name, HashSet<ExecEdge> expRed, HashSet<ExecEdge> actRed) {
-		SetView<ExecEdge> diff = Sets.symmetricDifference(expRed, actRed);
+	public void checkPath(String name, List<ExecEdge> expRed, List<ExecEdge> actRed) {
+		SetView<ExecEdge> diff = Sets.symmetricDifference(new HashSet<ExecEdge>(expRed), new HashSet<ExecEdge>(actRed));
 		if (diff.size() != 0) {
 			System.out.println("FAILED " + name);
 			System.out.println("Expected:");
@@ -163,18 +166,18 @@ public class TestGraphAnnotation {
 		assertEquals(0, diff.size());
 	}
 
-	static HashSet<ExecEdge> getExpectedRedEdges(ExecGraph graph, String name) {
+	static List<ExecEdge> getExpectedRedEdges(ExecGraph graph, String name) {
 		String s = exp.get(name);
 		String[] splits = s.split(";");
-		HashSet<ExecEdge> set = new HashSet<ExecEdge>();
+		List<ExecEdge> list = new ArrayList<ExecEdge>();
 		for (String split: splits) {
 			String[] endpoints = split.split("-");
 			ExecEdge e = BasicGraph.getEdgeByName(graph, endpoints[0], endpoints[1]);
 			if (e == null)
 				throw new RuntimeException("Expected set must not contains null edge " + Arrays.toString(endpoints));
-			set.add(e);
+			list.add(e);
 		}
-		return set;
+		return list;
 	}
 
 	static HashSet<ExecEdge> getEdgesByType(HashMap<ExecEdge, Integer> map, Integer type) {

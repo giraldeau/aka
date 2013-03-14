@@ -29,6 +29,7 @@ public class BasicGraph {
 	public static String GRAPH_GARBAGE1 	= "garbage1";
 	public static String GRAPH_GARBAGE2 	= "garbage2";
 	public static String GRAPH_GARBAGE3 	= "garbage3";
+	public static String GRAPH_DUPLICATE 	= "duplicate";
 	public static String GRAPH_SHELL 		= "shell";
 
 	private static HashMap<String, Method> func = new HashMap<String, Method>();
@@ -44,6 +45,7 @@ public class BasicGraph {
 			func.put(GRAPH_GARBAGE1,	BasicGraph.class.getDeclaredMethod("makeGarbage1"));
 			func.put(GRAPH_GARBAGE2,	BasicGraph.class.getDeclaredMethod("makeGarbage2"));
 			func.put(GRAPH_GARBAGE3,	BasicGraph.class.getDeclaredMethod("makeGarbage3"));
+			func.put(GRAPH_DUPLICATE,	BasicGraph.class.getDeclaredMethod("makeDuplicate"));
 			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);
@@ -380,6 +382,21 @@ public class BasicGraph {
 
 		setEdgeBlocked(graph, "A1", "A2");
 		propagateParentOwner(graph, vA0);
+		return graph;
+	}
+
+	public static ExecGraph makeDuplicate() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+
+		ExecVertex[] vA = genSeq(graph, A, 5);
+		ExecVertex[] vB = genSeq(graph, B, 5);
+		graph.addVerticalEdge(vA[1], vB[1], EdgeType.SPLIT);
+		graph.addVerticalEdge(vA[2], vB[2], EdgeType.SPLIT);
+		graph.addVerticalEdge(vB[3], vA[3], EdgeType.MERGE);
+		setEdgeBlocked(graph, "A2", "A3");
+
 		return graph;
 	}
 

@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
-import org.jgrapht.traverse.AbstractGraphIterator;
 import org.lttng.studio.reader.handler.ALog;
 
 public class CriticalPathStats {
@@ -103,7 +102,7 @@ public class CriticalPathStats {
 	}
 
 	public static Span compile(ExecGraph graph, ExecVertex start) {
-		Span root = new Span(new Object());
+		Span root = new Span("root");
 		// FIXME: Multimap to hold more than one Span per owner in
 		// the case there would be different parent owner
 		HashMap<Object, Span> spanMap = new HashMap<Object, Span>();
@@ -128,8 +127,8 @@ public class CriticalPathStats {
 				long duration = target.getTimestamp() - source.getTimestamp();
 				span.addSelfTime(duration);
 				break;
-			case SPLIT:
 			case MERGE:
+			case SPLIT:
 			case INTERRUPTED:
 			case MESSAGE:
 			case BLOCKED:
@@ -176,21 +175,15 @@ public class CriticalPathStats {
 	}
 
 	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start) {
-		return computeCriticalPath(graph, start, null);
+		return computeCriticalPath(graph, start, new ALog());
 	}
 
 	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start, ALog log) {
 		ArrayList<ExecEdge> result = new ArrayList<ExecEdge>();
 		if (!graph.getGraph().vertexSet().contains(start))
 			return result;
-		ClosestFirstCriticalPathAnnotation annotate = new ClosestFirstCriticalPathAnnotation(graph);
-		annotate.setLogger(log);
-		AbstractGraphIterator<ExecVertex, ExecEdge> iter =
-				new ForwardClosestIterator<ExecVertex, ExecEdge>(graph.getGraph(), start);
-		iter.addTraversalListener(annotate);
-		while (iter.hasNext() && !annotate.isDone())
-			iter.next();
-		return annotate.getCriticalPath();
+		List<ExecEdge> path = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start, log);
+		return path;
 	}
 
 }
