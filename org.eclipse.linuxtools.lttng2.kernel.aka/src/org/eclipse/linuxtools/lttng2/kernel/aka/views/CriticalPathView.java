@@ -1,5 +1,7 @@
 package org.eclipse.linuxtools.lttng2.kernel.aka.views;
 
+import java.util.List;
+
 import org.eclipse.jface.viewers.ILabelProviderListener;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
@@ -12,6 +14,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.lttng.studio.model.graph.CriticalPathStats;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.Span;
@@ -217,7 +221,9 @@ public class CriticalPathView extends AbstractAKAView {
 			System.err.println("WARNING: head vertex is null for task " + task);
 			return;
 		}
-		Span root = CriticalPathStats.compile(graph, head);
+		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, head);
+		List<ExecEdge> path = annotate.computeCriticalPath();
+		Span root = CriticalPathStats.compile(graph, path);
 		setSpanRoot(root);
 	}
 

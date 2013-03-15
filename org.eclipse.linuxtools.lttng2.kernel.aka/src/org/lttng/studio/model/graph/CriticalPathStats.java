@@ -7,8 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
-import org.lttng.studio.reader.handler.ALog;
-
 public class CriticalPathStats {
 
 	public static final double NANO = 1000000000.0;
@@ -101,14 +99,13 @@ public class CriticalPathStats {
 		}
 	}
 
-	public static Span compile(ExecGraph graph, ExecVertex start) {
+	public static Span compile(ExecGraph graph, List<ExecEdge> path) {
 		Span root = new Span("root");
 		// FIXME: Multimap to hold more than one Span per owner in
 		// the case there would be different parent owner
 		HashMap<Object, Span> spanMap = new HashMap<Object, Span>();
-		List<ExecEdge> path = computeCriticalPath(graph, start);
 		long t = 0;
-		System.out.println("START COMPILE " + start);
+		System.out.println("START COMPILE");
 		for (ExecEdge edge: path) {
 			ExecVertex source = graph.getGraph().getEdgeSource(edge);
 			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
@@ -172,18 +169,6 @@ public class CriticalPathStats {
 			stack.addAll(span.getChildren());
 		}
 		return spanIndex;
-	}
-
-	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start) {
-		return computeCriticalPath(graph, start, new ALog());
-	}
-
-	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start, ALog log) {
-		ArrayList<ExecEdge> result = new ArrayList<ExecEdge>();
-		if (!graph.getGraph().vertexSet().contains(start))
-			return result;
-		List<ExecEdge> path = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start, log);
-		return path;
 	}
 
 }

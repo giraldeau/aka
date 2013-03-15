@@ -207,7 +207,8 @@ public class TestTaskExecGraph {
 		for (Task task: set) {
 			log.debug("COMPUTE_CRITICAL_PATH " + task);
 			ExecVertex head = graph.getStartVertexOf(task);
-			List<ExecEdge> path = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, head, log);
+			DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, head, log);
+			List<ExecEdge> path = annotate.computeCriticalPath();
 			checkEdgesDisjoint(graph, path);
 			saveEdges(graph, path, task, name);
 			saveStats(graph, head, name, "" + task.getTid());
@@ -223,7 +224,9 @@ public class TestTaskExecGraph {
 	}
 
 	private void saveStats(ExecGraph graph, ExecVertex head, String name, String tid) throws IOException {
-		Span root = CriticalPathStats.compile(graph, head);
+		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, head);
+		List<ExecEdge> path = annotate.computeCriticalPath();
+		Span root = CriticalPathStats.compile(graph, path);
 		String formatStats = CriticalPathStats.formatStats(root);
 		String formatSpan = CriticalPathStats.formatSpanHierarchy(root);
 		File graphOutDir = getGraphOutDir(name);

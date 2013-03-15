@@ -76,7 +76,9 @@ public class TestGraphAnnotation {
 	public void testGraphStats(String name) {
 		ExecGraph graph = BasicGraph.makeGraphByName(name);
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
-		Span root = CriticalPathStats.compile(graph, start);
+		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, start);
+		List<ExecEdge> path = annotate.computeCriticalPath();
+		Span root = CriticalPathStats.compile(graph, path);
 		HashMap<Object, Span> ownerSpanIndex = CriticalPathStats.makeOwnerSpanIndex(root);
 		System.out.println(name);
 		System.out.println(ownerSpanIndex);
@@ -144,7 +146,8 @@ public class TestGraphAnnotation {
 		ALog log = new ALog();
 		log.setLevel(ALog.DEBUG);
 		log.setPath("graph/tests/" + curr + "-depthfirst.log");
-		List<ExecEdge> path = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, start, log);
+		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, start, log);
+		List<ExecEdge> path = annotate.computeCriticalPath();
 		List<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
 		checkPath(curr, expRed, path);
 	}

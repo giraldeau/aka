@@ -10,14 +10,23 @@ import org.lttng.studio.reader.handler.ALog;
 
 public class DepthFirstCriticalPathAnnotation {
 
-	public DepthFirstCriticalPathAnnotation() {
+	private final ExecGraph graph;
+	private final ExecVertex start;
+	private final ALog log;
+	HashSet<ExecEdge> visitedEdges;
+
+	public DepthFirstCriticalPathAnnotation(ExecGraph graph, ExecVertex start, ALog log) {
+		this.graph = graph;
+		this.start = start;
+		this.log = log;
 	}
 
-	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start) {
-		return computeCriticalPath(graph, start, new ALog());
+	public DepthFirstCriticalPathAnnotation(ExecGraph graph, ExecVertex start) {
+		this(graph, start, new ALog());
 	}
 
-	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start, ALog log) {
+	public List<ExecEdge> computeCriticalPath() {
+		visitedEdges = new HashSet<ExecEdge>();
 		Stack<ExecVertex> splits = new Stack<ExecVertex>();
 		Stack<ExecEdge> path = new Stack<ExecEdge>();
 		HashSet<ExecVertex> visitedSplits = new HashSet<ExecVertex>();
@@ -49,8 +58,9 @@ public class DepthFirstCriticalPathAnnotation {
 				break;
 			}
 
-			if (selfEdge != null)
+			if (selfEdge != null) {
 				path.push(selfEdge);
+			}
 
 			// detect blocking
 			if (path.peek().getType() == EdgeType.BLOCKED && splits.isEmpty()) {
