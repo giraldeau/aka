@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -81,11 +80,11 @@ public class TestTaskExecGraph {
 	}
 
 
-	public void saveEdges(ExecGraph graph, HashMap<ExecEdge, Integer> map, Task task, String string) throws IOException {
+	public void saveEdges(ExecGraph graph, List<ExecEdge> path, Task task, String string) throws IOException {
 		File file = new File(getGraphOutDir(string), task.getTid() + ".dot");
 		FileWriter f = new FileWriter(file);
 		ArrayListMultimap<Object, ExecEdge> edgeMap = ArrayListMultimap.create();
-		for (ExecEdge edge: map.keySet()) {
+		for (ExecEdge edge: path) {
 			ExecVertex src = graph.getGraph().getEdgeSource(edge);
 			ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
 			if (src.getOwner() == dst.getOwner())
@@ -112,17 +111,17 @@ public class TestTaskExecGraph {
 					f.write(String.format(vertexFmt, dst.getId(), dst.getId()));
 					seenVertex.add(dst);
 				}
-				f.write(String.format("    %d -> %d [ label=\"%d,%s\" ];\n", src.getId(), dst.getId(), map.get(edge), edge.getType()));
+				f.write(String.format("    %d -> %d [ label=\"%s\" ];\n", src.getId(), dst.getId(), edge.getType()));
 				seenEdge.add(edge);
 			}
 			i++;
 			f.write("}\n");
 		}
-		for (ExecEdge edge: map.keySet()) {
+		for (ExecEdge edge: path) {
 			if (!seenEdge.contains(edge)) {
 				ExecVertex src = graph.getGraph().getEdgeSource(edge);
 				ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
-				f.write(String.format("    %d -> %d [ label=\"%d,%s\" ];\n", src.getId(), dst.getId(), map.get(edge), edge.getType()));
+				f.write(String.format("    %d -> %d [ label=\"%s\" ];\n", src.getId(), dst.getId(), edge.getType()));
 			}
 		}
 		f.write("}\n");
@@ -208,16 +207,14 @@ public class TestTaskExecGraph {
 		for (Task task: set) {
 			log.debug("COMPUTE_CRITICAL_PATH " + task);
 			ExecVertex head = graph.getStartVertexOf(task);
-			DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, head, log);
-			checkEdgesDisjoint(graph, head);
-			// FIXME: save traversed edges
-			//saveEdges(graph, map, task, name);
+			List<ExecEdge> path = DepthFirstCriticalPathAnnotation.computeCriticalPath(graph, head, log);
+			checkEdgesDisjoint(graph, path);
+			saveEdges(graph, path, task, name);
 			saveStats(graph, head, name, "" + task.getTid());
 		}
 	}
 
-	private void checkEdgesDisjoint(ExecGraph graph, ExecVertex start) {
-		List<ExecEdge> path = CriticalPathStats.computeCriticalPath(graph, start);
+	private void checkEdgesDisjoint(ExecGraph graph, List<ExecEdge> path) {
 		for (int i = 0; i < path.size() - 1; i++) {
 			ExecVertex e1 = graph.getGraph().getEdgeTarget(path.get(i));
 			ExecVertex e2 = graph.getGraph().getEdgeSource(path.get(i + 1));
