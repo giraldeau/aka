@@ -1,5 +1,6 @@
 package org.lttng.studio.model.graph;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
@@ -19,6 +20,7 @@ public class DepthFirstCriticalPathAnnotation {
 	public static List<ExecEdge> computeCriticalPath(ExecGraph graph, ExecVertex start, ALog log) {
 		Stack<ExecVertex> splits = new Stack<ExecVertex>();
 		Stack<ExecEdge> path = new Stack<ExecEdge>();
+		HashSet<ExecVertex> visitedSplits = new HashSet<ExecVertex>();
 		ExecVertex curr = start;
 		while(curr != null) {
 			log.debug("processing " + curr);
@@ -30,8 +32,11 @@ public class DepthFirstCriticalPathAnnotation {
 			for (ExecEdge e: out) {
 				ExecVertex target = graph.getGraph().getEdgeTarget(e);
 				if (target.getOwner() != curr.getOwner()) {
-					log.debug("push split vertex " + curr);
-					splits.push(curr);
+					if (!visitedSplits.contains(curr)) {
+						log.debug("push split vertex " + curr);
+						splits.push(curr);
+						visitedSplits.add(curr);
+					}
 				} else {
 					log.debug("push self edge " + e);
 					selfEdge = e;
