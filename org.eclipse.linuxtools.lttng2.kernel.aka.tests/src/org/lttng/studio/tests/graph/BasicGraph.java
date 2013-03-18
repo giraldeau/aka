@@ -26,10 +26,13 @@ public class BasicGraph {
 	public static String GRAPH_NESTED 		= "nested";
 	public static String GRAPH_OPEN1 		= "open_1";
 	public static String GRAPH_OPEN2 		= "open_2";
-	public static String GRAPH_GARBAGE1 	= "garbage1";
-	public static String GRAPH_GARBAGE2 	= "garbage2";
-	public static String GRAPH_GARBAGE3 	= "garbage3";
+	public static String GRAPH_GARBAGE1 	= "garbage_1";
+	public static String GRAPH_GARBAGE2 	= "garbage_2";
+	public static String GRAPH_GARBAGE3 	= "garbage_3";
 	public static String GRAPH_DUPLICATE 	= "duplicate";
+	public static String GRAPH_BACKWARD1	= "backward_1";
+	public static String GRAPH_BACKWARD2 	= "backward_2";
+	public static String GRAPH_BACKWARD3 	= "backward_3";
 	public static String GRAPH_SHELL 		= "shell";
 
 	private static HashMap<String, Method> func = new HashMap<String, Method>();
@@ -46,6 +49,9 @@ public class BasicGraph {
 			func.put(GRAPH_GARBAGE2,	BasicGraph.class.getDeclaredMethod("makeGarbage2"));
 			func.put(GRAPH_GARBAGE3,	BasicGraph.class.getDeclaredMethod("makeGarbage3"));
 			func.put(GRAPH_DUPLICATE,	BasicGraph.class.getDeclaredMethod("makeDuplicate"));
+			func.put(GRAPH_BACKWARD1,	BasicGraph.class.getDeclaredMethod("makeBackward1"));
+			func.put(GRAPH_BACKWARD2,	BasicGraph.class.getDeclaredMethod("makeBackward2"));
+			//func.put(GRAPH_BACKWARD3,	BasicGraph.class.getDeclaredMethod("makeBackward3"));
 			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);
@@ -396,7 +402,59 @@ public class BasicGraph {
 		graph.addVerticalEdge(vA[2], vB[2], EdgeType.SPLIT);
 		graph.addVerticalEdge(vB[3], vA[3], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A2", "A3");
+		propagateParentOwner(graph, vA[0]);
+		return graph;
+	}
 
+	/*
+	 * A merge without the split.
+	 */
+	public static ExecGraph makeBackward1() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+
+		ExecVertex[] vA = genSeq(graph, A, 4);
+		ExecVertex[] vB = genSeq(graph, B, 4);
+		graph.addVerticalEdge(vB[2], vA[2], EdgeType.MERGE);
+		setEdgeBlocked(graph, "A1", "A2");
+		propagateParentOwner(graph, vA[0]);
+		return graph;
+	}
+
+	/*
+	 * Recursive merge without prior split.
+	 */
+	public static ExecGraph makeBackward2() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+		Object C = "C";
+
+		ExecVertex[] vA = genSeq(graph, A, 4);
+		ExecVertex[] vB = genSeq(graph, B, 4);
+		ExecVertex[] vC = genSeq(graph, C, 4);
+
+		graph.addVerticalEdge(vB[2], vA[2], EdgeType.MERGE);
+		graph.addVerticalEdge(vC[1], vB[1], EdgeType.MERGE);
+		setEdgeBlocked(graph, "A1", "A2");
+		setEdgeBlocked(graph, "B0", "B1");
+
+		return graph;
+	}
+
+	public static ExecGraph makeBackward3() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+		Object C = "C";
+
+		ExecVertex[] vA = genSeq(graph, A, 4);
+		ExecVertex[] vB = genSeq(graph, B, 4);
+		ExecVertex[] vC = genSeq(graph, C, 4);
+		graph.addVerticalEdge(vB[2], vA[2], EdgeType.MERGE);
+		graph.addVerticalEdge(vA[1], vC[1], EdgeType.MERGE);
+		setEdgeBlocked(graph, "A1", "A2");
 		return graph;
 	}
 

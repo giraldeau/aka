@@ -206,12 +206,13 @@ public class TestTaskExecGraph {
 		Set<Task> set = model.getTaskByNameSuffix(comm);
 		for (Task task: set) {
 			log.debug("COMPUTE_CRITICAL_PATH " + task);
-			ExecVertex head = graph.getStartVertexOf(task);
-			DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, head, log);
-			List<ExecEdge> path = annotate.computeCriticalPath();
+			ExecVertex start = graph.getStartVertexOf(task);
+			ExecVertex stop = graph.getEndVertexOf(task);
+			DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
+			List<ExecEdge> path = annotate.computeCriticalPath(start, stop);
 			checkEdgesDisjoint(graph, path);
 			saveEdges(graph, path, task, name);
-			saveStats(graph, head, name, "" + task.getTid());
+			saveStats(graph, start, name, "" + task.getTid());
 		}
 	}
 
@@ -224,8 +225,9 @@ public class TestTaskExecGraph {
 	}
 
 	private void saveStats(ExecGraph graph, ExecVertex head, String name, String tid) throws IOException {
-		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, head);
-		List<ExecEdge> path = annotate.computeCriticalPath();
+		ExecVertex stop = graph.getEndVertexOf(head.getOwner());
+		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
+		List<ExecEdge> path = annotate.computeCriticalPath(head, stop);
 		Span root = CriticalPathStats.compile(graph, path);
 		String formatStats = CriticalPathStats.formatStats(root);
 		String formatSpan = CriticalPathStats.formatSpanHierarchy(root);

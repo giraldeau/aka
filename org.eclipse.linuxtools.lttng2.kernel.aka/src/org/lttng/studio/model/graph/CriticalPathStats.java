@@ -105,7 +105,6 @@ public class CriticalPathStats {
 		// the case there would be different parent owner
 		HashMap<Object, Span> spanMap = new HashMap<Object, Span>();
 		long t = 0;
-		System.out.println("START COMPILE");
 		for (ExecEdge edge: path) {
 			ExecVertex source = graph.getGraph().getEdgeSource(edge);
 			ExecVertex target = graph.getGraph().getEdgeTarget(edge);

@@ -11,29 +11,37 @@ import org.lttng.studio.reader.handler.ALog;
 public class DepthFirstCriticalPathAnnotation {
 
 	private final ExecGraph graph;
-	private final ExecVertex start;
+	private ExecVertex start;
+	private ExecVertex stop;
 	private final ALog log;
 	HashSet<ExecEdge> visitedEdges;
 
-	public DepthFirstCriticalPathAnnotation(ExecGraph graph, ExecVertex start, ALog log) {
+	public DepthFirstCriticalPathAnnotation(ExecGraph graph, ALog log) {
 		this.graph = graph;
-		this.start = start;
 		this.log = log;
 	}
 
-	public DepthFirstCriticalPathAnnotation(ExecGraph graph, ExecVertex start) {
-		this(graph, start, new ALog());
+	public DepthFirstCriticalPathAnnotation(ExecGraph graph) {
+		this(graph, new ALog());
 	}
 
-	public List<ExecEdge> computeCriticalPath() {
+	public List<ExecEdge> computeCriticalPath(ExecVertex start, ExecVertex stop) {
+		this.start = start;
+		this.stop = stop;
 		visitedEdges = new HashSet<ExecEdge>();
 		Stack<ExecVertex> splits = new Stack<ExecVertex>();
 		Stack<ExecEdge> path = new Stack<ExecEdge>();
 		HashSet<ExecVertex> visitedSplits = new HashSet<ExecVertex>();
 		ExecVertex curr = start;
 		while(curr != null) {
+
+			// FIXME: check time bounds to stop traversing non-convergent path
+			if (curr == stop) {
+				log.debug("stop verted reached, break");
+				break;
+			}
+
 			log.debug("processing " + curr);
-			// identify split and self vertex
 			ExecEdge selfEdge = null;
 			ExecVertex next = null;
 			Set<ExecEdge> out = graph.getGraph().outgoingEdgesOf(curr);
@@ -50,12 +58,6 @@ public class DepthFirstCriticalPathAnnotation {
 					log.debug("push self edge " + e);
 					selfEdge = e;
 				}
-			}
-
-			// stop condition
-			if (curr.getOwner() == start.getOwner() && selfEdge == null) {
-				log.debug("stop condition reached");
-				break;
 			}
 
 			if (selfEdge != null) {
@@ -84,11 +86,12 @@ public class DepthFirstCriticalPathAnnotation {
 				path.clear();
 
 				// roll-back
+				// FIXME: make sure we traverse connected edges
 				ExecVertex source = graph.getGraph().getEdgeSource(mergeEdge);
 				List<ExecVertex> list = graph.getVertexMap().get(source.getOwner());
 				int index = BinarySearch.floor(list, start);
 				next = list.get(index);
-				log.debug("changing curr to " + curr);
+				log.debug("changing curr to " + next);
 			} else if (path.peek().getType() == EdgeType.BLOCKED || selfEdge == null) {
 				if (path.peek().getType() == EdgeType.BLOCKED)
 					log.debug("blocking ahead");

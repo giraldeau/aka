@@ -217,12 +217,14 @@ public class CriticalPathView extends AbstractAKAView {
 
 	private void computeCriticalPath(ExecGraph graph, Task task) {
 		ExecVertex head = graph.getStartVertexOf(task);
+		ExecVertex stop = graph.getEndVertexOf(task);
 		if (!graph.getGraph().containsVertex(head)) {
 			System.err.println("WARNING: head vertex is null for task " + task);
 			return;
 		}
-		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, head);
-		List<ExecEdge> path = annotate.computeCriticalPath();
+
+		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
+		List<ExecEdge> path = annotate.computeCriticalPath(head, stop);
 		Span root = CriticalPathStats.compile(graph, path);
 		setSpanRoot(root);
 	}
