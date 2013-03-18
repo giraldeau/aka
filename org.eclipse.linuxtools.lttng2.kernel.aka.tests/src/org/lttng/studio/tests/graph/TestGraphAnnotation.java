@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
@@ -199,7 +200,6 @@ public class TestGraphAnnotation {
 		checkPath(curr, expRed, path);
 	}
 
-	/*
 	@Test
 	public void testGraphAnnotateBackwardAll() {
 		for (String name: exp.keySet()) {
@@ -294,7 +294,6 @@ public class TestGraphAnnotation {
 		List<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
 		checkPath(curr, expRed, path);
 	}
-	*/
 
 	public void checkPath(String name, List<ExecEdge> expRed, List<ExecEdge> actRed) {
 		SetView<ExecEdge> diff = Sets.symmetricDifference(new HashSet<ExecEdge>(expRed), new HashSet<ExecEdge>(actRed));
