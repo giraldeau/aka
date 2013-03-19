@@ -1,5 +1,6 @@
 package org.lttng.studio.model.graph;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +15,7 @@ public class DepthFirstCriticalPathBackward {
 	private HashSet<ExecEdge> visitedEdges;
 	private Stack<ExecEdge> path;
 	private Stack<ExecVertex> splits;
+	private ExecVertex origin;
 
 	public DepthFirstCriticalPathBackward(ExecGraph graph) {
 		this(graph, new ALog());
@@ -29,7 +31,7 @@ public class DepthFirstCriticalPathBackward {
 		path = new Stack<ExecEdge>();
 		visitedEdges = new HashSet<ExecEdge>();
 		ExecVertex curr = start;
-		splits.push(start);
+		origin = start;
 		while(curr != null && curr.getTimestamp() < stop.getTimestamp()) {
 			ExecVertex next = null;
 			log.debug("processing vertex " + curr);
@@ -57,6 +59,13 @@ public class DepthFirstCriticalPathBackward {
 		return path;
 	}
 
+	private void dumpList(String header, Collection<? extends Object> list) {
+		log.debug("dumpList " + header);
+		for (Object e: list) {
+			log.debug("\t" + e);
+		}
+	}
+
 	private void visitEdge(ExecEdge edge) {
 		if (visitedEdges.contains(edge)) {
 			log.debug("edge already visited " + edge);
@@ -76,19 +85,31 @@ public class DepthFirstCriticalPathBackward {
 			}
 			log.debug("found mergeEdge " + mergeEdge);
 			// rewind path until the last split
-			ExecVertex top = splits.pop();
+			ExecVertex top = origin;
+			if (!splits.isEmpty()) {
+				top = splits.pop();
+			}
 			while(!path.isEmpty() && graph.getGraph().getEdgeTarget(path.peek()) != top) {
 				ExecEdge topEdge = path.pop();
 				log.debug("pop " + topEdge);
 			}
 			Stack<ExecEdge> subPath = backward(mergeEdge, top, 0);
+			dumpList("path", path);
+			dumpList("subPath", subPath);
 			while(!subPath.isEmpty()) {
-				prependToPath(path, subPath.pop());
+				appendToPath(path, subPath.remove(0));
 			}
 		} else {
 			appendToPath(path, edge);
 		}
 
+	}
+
+	private void updateOrigin() {
+		origin = null;
+		if (!path.isEmpty()) {
+			origin = graph.getGraph().getEdgeSource(path.peek());
+		}
 	}
 
 	private void appendToPath(Stack<ExecEdge> path, ExecEdge edge) {
@@ -102,6 +123,7 @@ public class DepthFirstCriticalPathBackward {
 			}
 		}
 		path.add(edge);
+		updateOrigin();
 	}
 
 	private void prependToPath(Stack<ExecEdge> path, ExecEdge edge) {
@@ -115,6 +137,7 @@ public class DepthFirstCriticalPathBackward {
 			}
 		}
 		path.insertElementAt(edge, 0);
+		updateOrigin();
 	}
 
 	private interface Conditional<V> {
@@ -206,7 +229,7 @@ public class DepthFirstCriticalPathBackward {
 			log.debug("processBackward with lowerTimeBoundCondition failed");
 			subPath.clear();
 		}
-		log.debug("END backward level=" + level + " subPath=" + subPath);
+		log.debug("END backward level=" + level);
 		return subPath;
 	}
 
