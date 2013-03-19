@@ -33,6 +33,10 @@ public class DepthFirstCriticalPathBackward {
 		while(curr != null && curr.getTimestamp() < stop.getTimestamp()) {
 			ExecVertex next = null;
 			log.debug("processing vertex " + curr);
+			if (curr == stop) {
+				log.debug("reached stop vertex, break " + curr);
+				break;
+			}
 			ExecEdge self = findEdge(curr, true, true);
 
 			if (self == null) {
@@ -46,7 +50,10 @@ public class DepthFirstCriticalPathBackward {
 			next = graph.getGraph().getEdgeTarget(self);
 			curr = next;
 		}
-		log.debug("" + path);
+		log.debug("done. critical path found:");
+		for (ExecEdge edge: path) {
+			log.debug("\t" + edge);
+		}
 		return path;
 	}
 
@@ -60,13 +67,6 @@ public class DepthFirstCriticalPathBackward {
 		 * Check for blocking. Follow unblocking origin.
 		 */
 		if (edge.getType() == EdgeType.BLOCKED) {
-			// rewind path until the last split
-			ExecVertex top = splits.pop();
-			while(!path.isEmpty() && graph.getGraph().getEdgeTarget(path.peek()) != top) {
-				ExecEdge topEdge = path.pop();
-				log.debug("pop " + topEdge);
-			}
-
 			ExecVertex mergeVertex = graph.getGraph().getEdgeTarget(edge);
 			ExecEdge mergeEdge = findEdge(mergeVertex, false, false);
 			if (mergeEdge == null) {
@@ -75,6 +75,12 @@ public class DepthFirstCriticalPathBackward {
 				return;
 			}
 			log.debug("found mergeEdge " + mergeEdge);
+			// rewind path until the last split
+			ExecVertex top = splits.pop();
+			while(!path.isEmpty() && graph.getGraph().getEdgeTarget(path.peek()) != top) {
+				ExecEdge topEdge = path.pop();
+				log.debug("pop " + topEdge);
+			}
 			Stack<ExecEdge> subPath = backward(mergeEdge, top, 0);
 			while(!subPath.isEmpty()) {
 				prependToPath(path, subPath.pop());
@@ -108,7 +114,7 @@ public class DepthFirstCriticalPathBackward {
 				throw new RuntimeException("prepend non contiguous segment to critical path");
 			}
 		}
-		path.add(edge);
+		path.insertElementAt(edge, 0);
 	}
 
 	private interface Conditional<V> {
@@ -139,7 +145,7 @@ public class DepthFirstCriticalPathBackward {
 				log.debug("currEdge null, break");
 				break;
 			}
-			log.debug("processing edge " + edge);
+			log.debug("processing edge " + currEdge);
 			visitedEdges.add(currEdge);
 			if (currEdge.getType() == EdgeType.BLOCKED) {
 				ExecVertex mergeVertex = graph.getGraph().getEdgeTarget(edge);
