@@ -51,7 +51,7 @@ public class BasicGraph {
 			func.put(GRAPH_DUPLICATE,	BasicGraph.class.getDeclaredMethod("makeDuplicate"));
 			func.put(GRAPH_BACKWARD1,	BasicGraph.class.getDeclaredMethod("makeBackward1"));
 			func.put(GRAPH_BACKWARD2,	BasicGraph.class.getDeclaredMethod("makeBackward2"));
-			//func.put(GRAPH_BACKWARD3,	BasicGraph.class.getDeclaredMethod("makeBackward3"));
+			func.put(GRAPH_BACKWARD3,	BasicGraph.class.getDeclaredMethod("makeBackward3"));
 			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);

@@ -41,7 +41,7 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_DUPLICATE,	"A0-A1;A1-A2;A2-B2;B2-B3;B3-A3;A3-A4");
 		exp.put(BasicGraph.GRAPH_BACKWARD1,	"B0-B1;B1-B2;B2-A2;A2-A3");
 		exp.put(BasicGraph.GRAPH_BACKWARD2,	"C0-C1;C1-B1;B1-B2;B2-A2;A2-A3");
-		//exp.put(BasicGraph.GRAPH_BACKWARD3,	"B0-B1;B1-B2;B2-A2;A2-A3");
+		exp.put(BasicGraph.GRAPH_BACKWARD3,	"B0-B1;B1-B2;B2-A2;A2-A3");
 		exp.put(BasicGraph.GRAPH_SHELL,		"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-C4;C4-C5;C5-C6;C6-C7;" +
 											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
 											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
@@ -85,11 +85,6 @@ public class TestGraphAnnotation {
 		}
 	}
 
-	@Test
-	public void testGraphStatsOne() {
-		testGraphStats(BasicGraph.GRAPH_OPEN2);
-	}
-
 	public void testGraphStats(String name) {
 		ExecGraph graph = BasicGraph.makeGraphByName(name);
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
@@ -124,86 +119,6 @@ public class TestGraphAnnotation {
 			if (!debugMode) {
 				assertEquals((long)data[i], span.getSelfTime());
 			}
-		}
-	}
-
-	/* Disable closestFirst annotation and fall back to depthFirst algorithm
-	 * closestFirst annotation do not guarantee uniqueness, while depthFirst does */
-	/*
-	@Test
-	public void testGraphAnnotateClosestFirstAll() {
-		for (String name: exp.keySet()) {
-			System.out.println("processing " + name);
-			testGraphAnnotateClosestFirst(name);
-		}
-	}
-
-	@Test
-	public void testOne() {
-		testGraphAnnotateClosestFirst(BasicGraph.GRAPH_OPEN2);
-	}
-
-
-	public void testGraphAnnotateClosestFirst(String curr) {
-		ALog log = new ALog();
-		log.setLevel(ALog.DEBUG);
-		log.setPath("graph/tests/" + curr + ".log");
-		ExecGraph graph = BasicGraph.makeGraphByName(curr);
-		ExecVertex head = BasicGraph.getVertexByName(graph, "A0");
-		List<ExecEdge> path = CriticalPathStats.computeCriticalPath(graph, head, log);
-		HashSet<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
-		HashSet<ExecEdge> actRed = new HashSet<ExecEdge>(path);
-		checkPath(curr, expRed, actRed);
-	}
-	*/
-
-	@Test
-	public void testGraphDepthFirstAll() {
-		String[] graphList = new String[] {
-			BasicGraph.GRAPH_BASIC,
-			BasicGraph.GRAPH_CONCAT,
-			BasicGraph.GRAPH_EMBEDED,
-			BasicGraph.GRAPH_INTERLEAVE,
-			BasicGraph.GRAPH_NESTED,
-			BasicGraph.GRAPH_OPEN1,
-			BasicGraph.GRAPH_OPEN2,
-			BasicGraph.GRAPH_GARBAGE1,
-			BasicGraph.GRAPH_GARBAGE2,
-			BasicGraph.GRAPH_GARBAGE3,
-			BasicGraph.GRAPH_DUPLICATE,
-			BasicGraph.GRAPH_BACKWARD1,
-			BasicGraph.GRAPH_BACKWARD2,
-			//BasicGraph.GRAPH_BACKWARD3,
-			BasicGraph.GRAPH_SHELL,
-		};
-
-		for (String name: graphList) {
-			testGraphAnnotateDepthFirst(name);
-		}
-	}
-
-	@Test
-	public void testGraphDepthFirstOne() {
-		testGraphAnnotateDepthFirst(BasicGraph.GRAPH_BACKWARD3);
-	}
-
-	public void testGraphAnnotateDepthFirst(String curr) {
-		ExecGraph graph = BasicGraph.makeGraphByName(curr);
-		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
-		ExecVertex stop = graph.getEndVertexOf(start.getOwner());
-		ALog log = new ALog();
-		log.setLevel(ALog.DEBUG);
-		log.setPath("graph/tests/" + curr + "-depthfirst.log");
-		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph, log);
-		List<ExecEdge> path = annotate.computeCriticalPath(start, stop);
-		List<ExecEdge> expRed = getExpectedRedEdges(graph, curr);
-		checkPath(curr, expRed, path);
-	}
-
-	@Test
-	public void testGraphAnnotateBackwardAll() {
-		for (String name: exp.keySet()) {
-			testGraphAnnotateBackward(name);
 		}
 	}
 

@@ -14,8 +14,8 @@ public class DepthFirstCriticalPathBackward {
 	private final ALog log;
 	private HashSet<ExecEdge> visitedEdges;
 	private Stack<ExecEdge> path;
-	private Stack<ExecVertex> splits;
-	private ExecVertex origin;
+	private ExecVertex start;
+	private ExecVertex stop;
 
 	public DepthFirstCriticalPathBackward(ExecGraph graph) {
 		this(graph, new ALog());
@@ -27,11 +27,11 @@ public class DepthFirstCriticalPathBackward {
 	}
 
 	public List<ExecEdge> criticalPath(ExecVertex start, ExecVertex stop) {
-		splits = new Stack<ExecVertex>();
+		this.start = start;
+		this.stop = stop;
 		path = new Stack<ExecEdge>();
 		visitedEdges = new HashSet<ExecEdge>();
 		ExecVertex curr = start;
-		origin = start;
 		while(curr != null && curr.getTimestamp() < stop.getTimestamp()) {
 			ExecVertex next = null;
 			log.debug("processing vertex " + curr);
@@ -85,6 +85,7 @@ public class DepthFirstCriticalPathBackward {
 			}
 			log.debug("found mergeEdge " + mergeEdge);
 			// rewind path until the last split
+			/*
 			ExecVertex top = origin;
 			if (!splits.isEmpty()) {
 				top = splits.pop();
@@ -93,7 +94,8 @@ public class DepthFirstCriticalPathBackward {
 				ExecEdge topEdge = path.pop();
 				log.debug("pop " + topEdge);
 			}
-			Stack<ExecEdge> subPath = backward(mergeEdge, top, 0);
+			*/
+			Stack<ExecEdge> subPath = backward(mergeEdge, 0);
 			dumpList("path", path);
 			dumpList("subPath", subPath);
 			while(!subPath.isEmpty()) {
@@ -103,13 +105,6 @@ public class DepthFirstCriticalPathBackward {
 			appendToPath(path, edge);
 		}
 
-	}
-
-	private void updateOrigin() {
-		origin = null;
-		if (!path.isEmpty()) {
-			origin = graph.getGraph().getEdgeSource(path.peek());
-		}
 	}
 
 	private void appendToPath(Stack<ExecEdge> path, ExecEdge edge) {
@@ -123,7 +118,6 @@ public class DepthFirstCriticalPathBackward {
 			}
 		}
 		path.add(edge);
-		updateOrigin();
 	}
 
 	private void prependToPath(Stack<ExecEdge> path, ExecEdge edge) {
@@ -137,7 +131,6 @@ public class DepthFirstCriticalPathBackward {
 			}
 		}
 		path.insertElementAt(edge, 0);
-		updateOrigin();
 	}
 
 	private interface Conditional<V> {
@@ -158,10 +151,28 @@ public class DepthFirstCriticalPathBackward {
 		}
 	};
 
-	private boolean processBackward(ExecEdge edge, ExecVertex until, Stack<ExecEdge> subPath, Conditional<ExecVertex> stopCondition) {
+	private boolean isConnectedTo(Stack<ExecEdge> path, ExecVertex vertex) {
+		// FIXME: replace linear search by binary search,
+		// since vertex are ordered according to time
+		if (!path.isEmpty()) {
+			ExecEdge edge = path.firstElement();
+			ExecVertex v = graph.getGraph().getEdgeSource(edge);
+			if (v == vertex)
+				return true;
+			for (ExecEdge e: path) {
+				v = graph.getGraph().getEdgeTarget(e);
+				if (v == vertex)
+					return true;
+			}
+		}
+		return false;
+	}
+
+	private Stack<ExecEdge> backward(ExecEdge edge, int level) {
+		Stack<ExecEdge> subPath = new Stack<ExecEdge>();
+		log.debug("BEGIN backward level=" + level + " from edge " + edge);
 		ExecVertex prev = null;
 		ExecEdge currEdge = edge;
-		// try reaching until node
 		boolean reached = false;
 		while(true) {
 			if (currEdge == null) {
@@ -178,7 +189,7 @@ public class DepthFirstCriticalPathBackward {
 					prependToPath(subPath, edge);
 				} else {
 					log.debug("found mergeEdge " + mergeEdge);
-					Stack<ExecEdge> recSubPath = backward(mergeEdge, until, 0);
+					Stack<ExecEdge> recSubPath = backward(mergeEdge, level + 1);
 					while(!recSubPath.isEmpty()) {
 						prependToPath(subPath, recSubPath.pop());
 					}
@@ -191,15 +202,24 @@ public class DepthFirstCriticalPathBackward {
 				log.debug("prev vertex null, break");
 				break;
 			}
-			// prev is split if it has two outgoing edge
-			/*
-			if (graph.getGraph().outDegreeOf(prev) == 2) {
-				splits.insertElementAt(prev, 0);
+
+			// stop if subPath connects to the main critical path OR
+			// do not continue traversing beyond start
+			if (isConnectedTo(path, prev)) {
+				log.debug("subPath connected to main path");
+				// remove path segments until prev is reached
+				// parent is responsible to add segments to parent path
+				ExecEdge last = path.lastElement();
+				ExecVertex v = graph.getGraph().getEdgeTarget(last);
+				while(!path.isEmpty() && v != prev) {
+					last = path.pop();
+					v = graph.getGraph().getEdgeSource(last);
+				}
+				break;
 			}
-			*/
-			if (stopCondition.apply(prev, until)) {
-				reached = true;
-				log.debug("stop condition reached");
+			if (lowerTimeBoundCondition.apply(prev, start)) {
+				log.debug("time bound reached");
+				path.clear();
 				break;
 			}
 			// give priority to link edge
@@ -212,22 +232,6 @@ public class DepthFirstCriticalPathBackward {
 				break;
 			}
 			currEdge = prevEdge;
-		}
-		return reached;
-	}
-
-	private Stack<ExecEdge> backward(ExecEdge edge, ExecVertex until, int level) {
-		Stack<ExecEdge> subPath = new Stack<ExecEdge>();
-		log.debug("BEGIN backward level=" + level + " from edge " + edge + " until " + until);
-		boolean ok = processBackward(edge, until, subPath, equalityCondition);
-		if (!ok) {
-			log.debug("processBackward with equalityCondition failed");
-			subPath.clear();
-			ok = processBackward(edge, until, subPath, lowerTimeBoundCondition);
-		}
-		if (!ok) {
-			log.debug("processBackward with lowerTimeBoundCondition failed");
-			subPath.clear();
 		}
 		log.debug("END backward level=" + level);
 		return subPath;
