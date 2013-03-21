@@ -12,7 +12,6 @@ import java.util.Map.Entry;
 import org.junit.Before;
 import org.junit.Test;
 import org.lttng.studio.model.graph.CriticalPathStats;
-import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
@@ -89,8 +88,8 @@ public class TestGraphAnnotation {
 		ExecGraph graph = BasicGraph.makeGraphByName(name);
 		ExecVertex start = BasicGraph.getVertexByName(graph, "A0");
 		ExecVertex stop = graph.getEndVertexOf(start.getOwner());
-		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
-		List<ExecEdge> path = annotate.computeCriticalPath(start, stop);
+		DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph);
+		List<ExecEdge> path = annotate.criticalPath(start, stop);
 		Span root = CriticalPathStats.compile(graph, path);
 		HashMap<Object, Span> ownerSpanIndex = CriticalPathStats.makeOwnerSpanIndex(root);
 		if (debugMode) {
