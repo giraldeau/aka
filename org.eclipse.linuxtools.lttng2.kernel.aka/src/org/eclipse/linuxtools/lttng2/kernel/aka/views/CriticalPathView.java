@@ -14,7 +14,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.lttng.studio.model.graph.CriticalPathStats;
-import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
@@ -223,8 +223,8 @@ public class CriticalPathView extends AbstractAKAView {
 			return;
 		}
 
-		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
-		List<ExecEdge> path = annotate.computeCriticalPath(head, stop);
+		DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph);
+		List<ExecEdge> path = annotate.criticalPath(head, stop);
 		Span root = CriticalPathStats.compile(graph, path);
 		setSpanRoot(root);
 	}

@@ -16,6 +16,7 @@ import org.jgrapht.graph.Subgraph;
 import org.junit.Test;
 import org.lttng.studio.model.graph.CriticalPathStats;
 import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
@@ -208,8 +209,8 @@ public class TestTaskExecGraph {
 			log.debug("COMPUTE_CRITICAL_PATH " + task);
 			ExecVertex start = graph.getStartVertexOf(task);
 			ExecVertex stop = graph.getEndVertexOf(task);
-			DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
-			List<ExecEdge> path = annotate.computeCriticalPath(start, stop);
+			DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph, log);
+			List<ExecEdge> path = annotate.criticalPath(start, stop);
 			checkEdgesDisjoint(graph, path);
 			saveEdges(graph, path, task, name);
 			saveStats(graph, start, name, "" + task.getTid());

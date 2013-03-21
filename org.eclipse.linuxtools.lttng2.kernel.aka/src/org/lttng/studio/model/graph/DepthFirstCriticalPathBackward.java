@@ -173,7 +173,6 @@ public class DepthFirstCriticalPathBackward {
 		log.debug("BEGIN backward level=" + level + " from edge " + edge);
 		ExecVertex prev = null;
 		ExecEdge currEdge = edge;
-		boolean reached = false;
 		while(true) {
 			if (currEdge == null) {
 				log.debug("currEdge null, break");
