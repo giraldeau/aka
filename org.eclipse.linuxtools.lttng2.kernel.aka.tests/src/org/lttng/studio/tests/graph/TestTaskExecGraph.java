@@ -15,7 +15,6 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.Subgraph;
 import org.junit.Test;
 import org.lttng.studio.model.graph.CriticalPathStats;
-import org.lttng.studio.model.graph.DepthFirstCriticalPathAnnotation;
 import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
@@ -186,7 +185,7 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
-		computeCriticalPathTest("wk-pipette-prod-k", "wk-pipette");
+		computeCriticalPathTest("wk-pipette-cons-k", "wk-pipette");
 	}
 
 	private void computeCriticalPathTest(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
@@ -213,7 +212,7 @@ public class TestTaskExecGraph {
 			List<ExecEdge> path = annotate.criticalPath(start, stop);
 			checkEdgesDisjoint(graph, path);
 			saveEdges(graph, path, task, name);
-			saveStats(graph, start, name, "" + task.getTid());
+			saveStats(graph, path, name, "" + task.getTid());
 		}
 	}
 
@@ -225,17 +224,14 @@ public class TestTaskExecGraph {
 		}
 	}
 
-	private void saveStats(ExecGraph graph, ExecVertex head, String name, String tid) throws IOException {
-		ExecVertex stop = graph.getEndVertexOf(head.getOwner());
-		DepthFirstCriticalPathAnnotation annotate = new DepthFirstCriticalPathAnnotation(graph);
-		List<ExecEdge> path = annotate.computeCriticalPath(head, stop);
+	private void saveStats(ExecGraph graph, List<ExecEdge> path, String name, String tid) throws IOException {
 		Span root = CriticalPathStats.compile(graph, path);
 		String formatStats = CriticalPathStats.formatStats(root);
 		String formatSpan = CriticalPathStats.formatSpanHierarchy(root);
 		File graphOutDir = getGraphOutDir(name);
 		File fout = new File(graphOutDir, name + "-" + tid + ".stats");
 		FileWriter writer = new FileWriter(fout);
-		writer.write(name + " " + "tid=" + tid + " " + "head=" + head.getId() + "\n");
+		writer.write(name + " " + "tid=" + tid + " " + "head=" + tid + "\n");
 		writer.write(formatStats);
 		writer.write(formatSpan);
 		writer.flush();
