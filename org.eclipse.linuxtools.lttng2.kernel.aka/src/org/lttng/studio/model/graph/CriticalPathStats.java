@@ -7,13 +7,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
+import org.lttng.studio.model.kernel.HRTimer;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+
 public class CriticalPathStats {
 
 	public static final double NANO = 1000000000.0;
 	public static final double NANOINV = 0.000000001;
 
 	public static String formatStats(Span root) {
-		HashMap<Object, Span> index = makeOwnerSpanIndex(root);
+		Multimap<Object, Span> index = makeOwnerSpanIndex(root);
 		return formatStats(index.values());
 	}
 
@@ -47,7 +52,7 @@ public class CriticalPathStats {
 				if (span.getParent() == null)
 					continue;
 				printSpanOwner(str, span, 0);
-				str.append(String.format("%8.9f %8.9f %8.3f %8.3f\n",
+				str.append(String.format("%8.9f %8.9f %8.1f %8.1f\n",
 						span.getSelfTime() * NANOINV,
 						span.getTotalTime() * NANOINV,
 						span.getSelfTime() * NANOINV * sumInv * 100.0,
@@ -73,7 +78,7 @@ public class CriticalPathStats {
 	}
 
 	public static String formatSpanHierarchy(Span root) {
-		HashMap<Object, Span> index = makeOwnerSpanIndex(root);
+		Multimap<Object, Span> index = makeOwnerSpanIndex(root);
 		double sum = computeSumSecond(index.values());
 		double sumInv = 0.0;
 		if (sum > 0)
@@ -89,7 +94,7 @@ public class CriticalPathStats {
 
 	public static void formatSpanHierarchyLevel(StringBuilder str, Span span, double sumInv, int level) {
 		printSpanOwner(str, span, level);
-		str.append(String.format("%8.9f %8.9f %8.3f %8.3f\n",
+		str.append(String.format("%8.9f %8.9f %8.1f %8.1f\n",
 				span.getSelfTime() * NANOINV,
 				span.getTotalTime() * NANOINV,
 				span.getSelfTime() * NANOINV * sumInv * 100.0,
@@ -101,8 +106,6 @@ public class CriticalPathStats {
 
 	public static Span compile(ExecGraph graph, List<ExecEdge> path) {
 		Span root = new Span("root");
-		// FIXME: Multimap to hold more than one Span per owner in
-		// the case there would be different parent owner
 		HashMap<Object, Span> spanMap = new HashMap<Object, Span>();
 		long t = 0;
 		for (ExecEdge edge: path) {
@@ -136,6 +139,58 @@ public class CriticalPathStats {
 		return root;
 	}
 
+	public static Span compileFlat(ExecGraph graph, List<ExecEdge> path) {
+		Span root = new Span("root");
+		Span current = null;
+		long t = 0;
+		for (ExecEdge edge: path) {
+			ExecVertex source = graph.getGraph().getEdgeSource(edge);
+			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
+			if (t > source.getTimestamp() || t > target.getTimestamp())
+				throw new RuntimeException("edges are not sorted");
+			//System.out.println("compile edge " + edge + " " + edge.getType());
+			t = target.getTimestamp();
+			Object owner = null;
+			switch (edge.getType()) {
+			case DEFAULT:
+			case RUNNING:
+				if (source.getOwner() != target.getOwner())
+					throw new RuntimeException("edge " + edge.getType() + " must have same endpoints owner");
+				// get or create span
+				if (current == null) {
+					current = new Span(source.getOwner());
+					current.setParentAndChild(root);
+				}
+				// update statistics
+				long duration = target.getTimestamp() - source.getTimestamp();
+				current.addSelfTime(duration);
+				break;
+			case MERGE:
+			case SPLIT:
+				owner = target.getOwner();
+				// FIXME: is there a better way to produce hierarchy ?
+				// hrtimer: assign time spend in the timer to the waiting task
+				Span newSpan = new Span(owner);
+				newSpan.setParentAndChild(root);
+				if (edge.getType() == EdgeType.MERGE) {
+					Object o = source.getOwner();
+					if (o instanceof HRTimer) {
+						current.setParentAndChild(newSpan);
+					}
+				}
+				current = newSpan;
+				break;
+			case INTERRUPTED:
+			case MESSAGE:
+			case BLOCKED:
+			default:
+				break;
+			}
+		}
+		root.computeTotalTime();
+		return root;
+	}
+
 	private static Span getOrCreateSpan(HashMap<Object, Span> spanMap, Span root, Object currentOwner, Object parentOwner) {
 		Span parentSpan;
 		if (parentOwner == null) {
@@ -157,8 +212,8 @@ public class CriticalPathStats {
 		return currentSpan;
 	}
 
-	public static HashMap<Object, Span> makeOwnerSpanIndex(Span root) {
-		HashMap<Object, Span> spanIndex = new HashMap<Object, Span>();
+	public static Multimap<Object, Span> makeOwnerSpanIndex(Span root) {
+		Multimap<Object, Span> spanIndex = ArrayListMultimap.create();
 		spanIndex.put(root.getOwner(), root);
 		Stack<Span> stack = new Stack<Span>();
 		stack.push(root);

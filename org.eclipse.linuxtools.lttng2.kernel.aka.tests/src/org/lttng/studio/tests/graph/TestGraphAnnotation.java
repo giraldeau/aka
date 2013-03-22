@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.reader.handler.ALog;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -91,7 +93,7 @@ public class TestGraphAnnotation {
 		DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph);
 		List<ExecEdge> path = annotate.criticalPath(start, stop);
 		Span root = CriticalPathStats.compile(graph, path);
-		HashMap<Object, Span> ownerSpanIndex = CriticalPathStats.makeOwnerSpanIndex(root);
+		Multimap<Object, Span> ownerSpanIndex = CriticalPathStats.makeOwnerSpanIndex(root);
 		if (debugMode) {
 			System.out.println(name);
 			System.out.println(ownerSpanIndex);
@@ -105,18 +107,22 @@ public class TestGraphAnnotation {
 				System.out.println("v=" + v + " data[i]=" + data[i]);
 			if (data[i] == 0 && v == null)
 				continue;
-			Span span = ownerSpanIndex.get(v.getOwner());
-			if (data[i] == 0 && span == null) {
+			Collection<Span> span = ownerSpanIndex.get(v.getOwner());
+			if (data[i] == 0 && span.isEmpty()) {
 				continue;
 			}
-			if (data[i] > 0 && span == null) {
+			if (data[i] > 0 && span.isEmpty()) {
 				System.err.println("span should not be null for " + v.getOwner());
 				continue;
 			}
+			long sum = 0;
+			for (Span s: span) {
+				sum += s.getSelfTime();
+			}
 			if (debugMode)
-				System.out.println(v.getOwner() + " " + span.getTotalTime() + " == " + data[i]);
+				System.out.println(v.getOwner() + " " + sum + " == " + data[i]);
 			if (!debugMode) {
-				assertEquals((long)data[i], span.getSelfTime());
+				assertEquals((long)data[i], sum);
 			}
 		}
 	}

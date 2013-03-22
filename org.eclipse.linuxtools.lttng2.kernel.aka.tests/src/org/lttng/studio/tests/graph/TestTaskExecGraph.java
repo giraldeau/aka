@@ -225,7 +225,8 @@ public class TestTaskExecGraph {
 	}
 
 	private void saveStats(ExecGraph graph, List<ExecEdge> path, String name, String tid) throws IOException {
-		Span root = CriticalPathStats.compile(graph, path);
+		//Span root = CriticalPathStats.compile(graph, path);
+		Span root = CriticalPathStats.compileFlat(graph, path);
 		String formatStats = CriticalPathStats.formatStats(root);
 		String formatSpan = CriticalPathStats.formatSpanHierarchy(root);
 		File graphOutDir = getGraphOutDir(name);
