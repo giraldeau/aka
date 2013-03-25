@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import java.io.File;
 import java.util.Arrays;
 
-import org.eclipse.linuxtools.tmf.core.event.TmfTimeRange;
+import org.eclipse.linuxtools.tmf.core.timestamp.TmfTimeRange;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.model.kernel.SystemModel;
@@ -13,6 +13,7 @@ import org.lttng.studio.reader.AnalyzerThread;
 import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.tests.basic.TestTraceset;
+
 public class TestTaskState {
 
 	@Test
