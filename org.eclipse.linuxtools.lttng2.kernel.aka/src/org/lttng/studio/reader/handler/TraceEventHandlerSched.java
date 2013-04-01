@@ -35,6 +35,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	private AnalysisFilter filter;
 
+	private ALog log;
+
 	/*
 	 * sched_migrate_task:
 	 * sched_process_exit:
@@ -66,6 +68,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
+		log = reader.getRegistry().getModel(IModelKeys.SHARED, ALog.class);
 		evHistory = new HashMap<Long, EventData>();
 	}
 
@@ -92,15 +95,19 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		_update_task_state(next, process_status.RUN);
 
 		Task task = system.getTask(prev);
-		process_status status = task.getProcessStatus();
-		if (status != process_status.RUN && status != process_status.EXIT) {
-			System.out.println("WARNING: prev task was not running " + task + " " + task.getProcessStatus() + " " + event.getTimestamp());
-		}
-		// prev_state == 0 means runnable, thus waits for cpu
-		if (prev_state == 0) {
-			_update_task_state(prev, process_status.WAIT_CPU);
+		if (task != null) {
+			process_status status = task.getProcessStatus();
+			if (status != process_status.RUN && status != process_status.EXIT) {
+				log.warning("prev task was not running " + task + " " + task.getProcessStatus() + " " + event.getTimestamp());
+			}
+			// prev_state == 0 means runnable, thus waits for cpu
+			if (prev_state == 0) {
+				_update_task_state(prev, process_status.WAIT_CPU);
+			} else {
+				_update_task_state(prev, process_status.WAIT_BLOCKED);
+			}
 		} else {
-			_update_task_state(prev, process_status.WAIT_BLOCKED);
+			log.warning("prev task tid=" + prev + " is null");
 		}
 	}
 

@@ -105,15 +105,18 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
-		int cpu = event.getCPU();
+		//int cpu = event.getCPU();
+		//long prev_state = EventField.getLong(event, "prev_state");
 		long next = EventField.getLong(event, "next_tid");
 		long prev = EventField.getLong(event, "prev_tid");
-		long prev_state = EventField.getLong(event, "prev_state");
-
 
 		Task nextTask = system.getTask(next);
 		Task prevTask = system.getTask(prev);
 
+		if (prevTask == null || nextTask == null) {
+			log.warning("prevTask=" + prevTask + " nextTask=" + nextTask);
+			return;
+		}
 		log.debug(String.format("%5d %12s %12s",
 				prevTask.getTid(),
 				prevTask.getProcessStatusPrev(),
@@ -177,6 +180,11 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		long timestamps = event.getTimestamp().getValue();
 		long tid = EventField.getLong(event, "tid");
 		Task target = system.getTask(tid);
+		Task current = system.getTaskCpu(event.getCPU());
+		if (current == null || target == null) {
+			log.warning("wakeup current=" + current  + " target=" + target);
+			return;
+		}
 
 		//if (!filter.containsTaskTid(target))
 		//	return;
@@ -203,7 +211,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 		// 3 - waitpid wakeup
 		if (source == null) {
-			Task current = system.getTaskCpu(event.getCPU());
 			//System.out.println("sched_wakeup emitted by " + current + " " + current.getProcessStatus() + " " + current.getExecutionMode());
 			if (current.getExecutionMode() == Task.execution_mode.SYSCALL &&
 					(current.getProcessStatus() == Task.process_status.EXIT ||

@@ -13,6 +13,8 @@ public class TraceEventHandlerSock extends TraceEventHandlerBase {
 
 	private SystemModel system;
 
+	private ALog log;
+
 	public TraceEventHandlerSock() {
 		super();
 		this.hooks.add(new TraceHook("inet_connect"));
@@ -26,6 +28,7 @@ public class TraceEventHandlerSock extends TraceEventHandlerBase {
 	public void handleInit(TraceReader reader) {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
+		log = reader.getRegistry().getModel(IModelKeys.SHARED, ALog.class);
 	}
 
 	@Override
@@ -38,8 +41,7 @@ public class TraceEventHandlerSock extends TraceEventHandlerBase {
 	}
 
 	public void defineInet4Sock(CtfTmfEvent event) {
-
-		long sk =EventField.getLong(event, "sk");
+		long sk = EventField.getLong(event, "sk");
 		long saddr = EventField.getLong(event, "saddr");
 		long daddr = EventField.getLong(event, "daddr");
 		long sport = EventField.getLong(event, "sport");
@@ -47,7 +49,7 @@ public class TraceEventHandlerSock extends TraceEventHandlerBase {
 		Task task = system.getTaskCpu(event.getCPU());
 		Inet4Sock sock = system.getInetSock(task, sk);
 		if (sock == null) {
-			System.out.println("Huston, we missed inet_sock_create " + sk);
+			log.warning(String.format("missing inet_sock_create for sock 0x%x", sk));
 			sock = new Inet4Sock();
 			sock.setSk(sk);
 			system.addInetSock(task, sock);
@@ -70,7 +72,7 @@ public class TraceEventHandlerSock extends TraceEventHandlerBase {
 		Inet4Sock oldSock = system.getInetSock(osk);
 		Task owner = system.getInetSockTaskOwner(oldSock);
 		if (oldSock == null) {
-			System.err.println("WARNING: cloning unkown sock osk=" +
+			log.warning("cloning unkown sock osk=" +
 					Long.toHexString(osk) + " at " + event.getTimestamp().getValue());
 
 			return;
