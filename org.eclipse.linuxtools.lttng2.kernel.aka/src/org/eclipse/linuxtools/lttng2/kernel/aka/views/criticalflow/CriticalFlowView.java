@@ -598,7 +598,6 @@ public class CriticalFlowView extends AbstractAKAView {
     
 	@Override
 	protected void updateDataSafe() {
-		System.out.println("CriticalPathView updateData " + registry);
 		if (registry == null)
 			return;
 		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
@@ -607,7 +606,7 @@ public class CriticalFlowView extends AbstractAKAView {
 			return;
 		Task task = system.getTask(currentTid);
 		// change input if task has changed
-		if (task != null || task != fCurrentTask) {
+		if (task != null && task != fCurrentTask) {
 			fCurrentTask = task;
 			computeCriticalPath(graph, task);
 		}
