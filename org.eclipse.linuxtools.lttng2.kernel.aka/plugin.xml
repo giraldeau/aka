@@ -24,6 +24,14 @@
             name="Critical Path"
             restorable="true">
       </view>
+      <view
+            allowMultiple="false"
+            category="org.eclipse.linuxtools.lttng2.kernel.aka"
+            class="org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalflow.CriticalFlowView"
+            id="org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalflow"
+            name="Critical Flow View"
+            restorable="true">
+      </view>
    </extension>
    <extension
          point="org.eclipse.ui.perspectiveExtensions">
