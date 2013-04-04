@@ -478,10 +478,11 @@ public class CriticalFlowView extends AbstractAKAView {
         		
         		ITimeEvent event = iterator.next();
         		/* is event visible */
-        		if ( ( (event.getTime() >= realStart) && (event.getTime() < realEnd) )
-        				|| ( (event.getTime() + event.getDuration() > realStart) && (event.getTime() + event.getDuration() < realEnd) ) ) {
-        			eventList.add(event);
-        		}
+				if (((event.getTime() >= realStart) && (event.getTime() <= realEnd)) ||
+					((event.getTime() + event.getDuration() > realStart) &&
+						(event.getTime() + event.getDuration() < realEnd))) {
+					eventList.add(event);
+				}
         	}
 
         } catch (Exception e) {
