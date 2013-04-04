@@ -43,6 +43,7 @@ public class TestGraphAnnotation {
 		exp.put(BasicGraph.GRAPH_BACKWARD1,	"B0-B1;B1-B2;B2-A2;A2-A3");
 		exp.put(BasicGraph.GRAPH_BACKWARD2,	"C0-C1;C1-B1;B1-B2;B2-A2;A2-A3");
 		exp.put(BasicGraph.GRAPH_BACKWARD3,	"B0-B1;B1-B2;B2-A2;A2-A3");
+		exp.put(BasicGraph.GRAPH_MULTI1,	"A0-A1;A1-C1;C1-C2;C2-D2;D2-D3;D3-D4;D4-D5;D5-A5;A5-A6;A6-A7");
 		exp.put(BasicGraph.GRAPH_SHELL,		"A0-A1;A1-B1;B1-B2;B2-C2;C2-C3;C3-C4;C4-C5;C5-C6;C6-C7;" +
 											"C7-D7;D7-D8;D8-D9;D9-D10;D10-E10;E10-E11;E11-E12;" +
 											"E12-E13;E13-E14;E14-E15;E15-B15;B15-B16;B16-B17;" +
@@ -65,6 +66,7 @@ public class TestGraphAnnotation {
 		cp.put(BasicGraph.GRAPH_BACKWARD1, 	new Integer[] { 1, 2, 0, 0, 0 });
 		cp.put(BasicGraph.GRAPH_BACKWARD2, 	new Integer[] { 1, 1, 1, 0, 0 });
 		cp.put(BasicGraph.GRAPH_BACKWARD3, 	new Integer[] { 1, 2, 0, 0, 0 });
+		cp.put(BasicGraph.GRAPH_MULTI1, 	new Integer[] { 3, 0, 1, 3, 0 });
 		cp.put(BasicGraph.GRAPH_SHELL,	 	new Integer[] { 2, 3, 5, 3, 5 });
 	}
 
@@ -198,6 +200,11 @@ public class TestGraphAnnotation {
 	}
 
 	@Test
+	public void testGraphAnnotateBackwardMulti1() {
+		testGraphAnnotateBackward(BasicGraph.GRAPH_MULTI1);
+	}
+
+	@Test
 	public void testGraphAnnotateBackwardShell() {
 		testGraphAnnotateBackward(BasicGraph.GRAPH_SHELL);
 	}
@@ -237,12 +244,17 @@ public class TestGraphAnnotation {
 		String s = exp.get(name);
 		String[] splits = s.split(";");
 		List<ExecEdge> list = new ArrayList<ExecEdge>();
-		for (String split: splits) {
-			String[] endpoints = split.split("-");
-			ExecEdge e = BasicGraph.getEdgeByName(graph, endpoints[0], endpoints[1]);
-			if (e == null)
-				throw new RuntimeException("Expected set must not contains null edge " + Arrays.toString(endpoints));
-			list.add(e);
+		if (s.length() > 0) {
+			for (String split: splits) {
+				String[] endpoints = split.split("-");
+				if (endpoints.length != 2) {
+					throw new RuntimeException("Malformed expression " + name + " " + s);
+				}
+				ExecEdge e = BasicGraph.getEdgeByName(graph, endpoints[0], endpoints[1]);
+				if (e == null)
+					throw new RuntimeException("Expected set must not contains null edge " + Arrays.toString(endpoints));
+				list.add(e);
+			}
 		}
 		return list;
 	}

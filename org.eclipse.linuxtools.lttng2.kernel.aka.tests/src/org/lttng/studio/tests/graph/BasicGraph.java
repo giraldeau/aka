@@ -33,6 +33,7 @@ public class BasicGraph {
 	public static String GRAPH_BACKWARD1	= "backward_1";
 	public static String GRAPH_BACKWARD2 	= "backward_2";
 	public static String GRAPH_BACKWARD3 	= "backward_3";
+	public static String GRAPH_MULTI1 		= "multi_1";
 	public static String GRAPH_SHELL 		= "shell";
 
 	private static HashMap<String, Method> func = new HashMap<String, Method>();
@@ -52,6 +53,7 @@ public class BasicGraph {
 			func.put(GRAPH_BACKWARD1,	BasicGraph.class.getDeclaredMethod("makeBackward1"));
 			func.put(GRAPH_BACKWARD2,	BasicGraph.class.getDeclaredMethod("makeBackward2"));
 			func.put(GRAPH_BACKWARD3,	BasicGraph.class.getDeclaredMethod("makeBackward3"));
+			func.put(GRAPH_MULTI1,		BasicGraph.class.getDeclaredMethod("makeMulti1"));
 			func.put(GRAPH_SHELL, 		BasicGraph.class.getDeclaredMethod("makeExecShell"));
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException(e);
@@ -455,6 +457,40 @@ public class BasicGraph {
 		graph.addVerticalEdge(vB[2], vA[2], EdgeType.MERGE);
 		graph.addVerticalEdge(vA[1], vC[1], EdgeType.MERGE);
 		setEdgeBlocked(graph, "A1", "A2");
+		return graph;
+	}
+
+	public static ExecGraph makeMulti1() {
+		ExecGraph graph = makeGraph();
+		Object A = "A";
+		Object B = "B";
+		Object C = "C";
+		Object D = "D";
+		Object E = "E";
+
+		ExecVertex[] vA = genSeq(graph, A, 8); // client 1
+		ExecVertex[] vB = genSeq(graph, B, 8); // client 2
+		ExecVertex[] vC = genSeq(graph, C, 8); // server
+		ExecVertex[] vD = genSeq(graph, D, 8); // worker 1
+		ExecVertex[] vE = genSeq(graph, E, 8); // worker 2
+
+		graph.addVerticalEdge(vA[1], vC[1], EdgeType.MERGE);
+		graph.addVerticalEdge(vC[2], vD[2], EdgeType.MERGE);
+		graph.addVerticalEdge(vB[3], vC[3], EdgeType.MERGE);
+		graph.addVerticalEdge(vC[4], vE[4], EdgeType.MERGE);
+		graph.addVerticalEdge(vD[5], vA[5], EdgeType.MERGE);
+		graph.addVerticalEdge(vE[6], vB[6], EdgeType.MERGE);
+
+		setEdgeBlocked(graph, "A4", "A5");
+		setEdgeBlocked(graph, "B5", "B6");
+		setEdgeBlocked(graph, "C0", "C1");
+		setEdgeBlocked(graph, "C4", "C5");
+		setEdgeBlocked(graph, "D1", "D2");
+		setEdgeBlocked(graph, "D5", "D6");
+		setEdgeBlocked(graph, "E3", "E4");
+		setEdgeBlocked(graph, "E6", "E7");
+
+		propagateParentOwner(graph, vA[0]);
 		return graph;
 	}
 
