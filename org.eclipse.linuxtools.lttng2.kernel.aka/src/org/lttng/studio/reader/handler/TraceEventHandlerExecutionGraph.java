@@ -8,6 +8,7 @@ import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.kernel.HRTimer;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.kernel.Task.thread_type;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
 
@@ -190,8 +191,10 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		//	return;
 
 		// spurious wakeup
-		if (target.getProcessStatus() != Task.process_status.WAIT_BLOCKED)
+		if (target.getProcessStatus() != Task.process_status.WAIT_BLOCKED) {
+			log.debug("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
 			return;
+		}
 
 		Object source = null;
 
@@ -211,14 +214,16 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 		// 3 - waitpid wakeup
 		if (source == null) {
-			//System.out.println("sched_wakeup emitted by " + current + " " + current.getProcessStatus() + " " + current.getExecutionMode());
-			if (current.getExecutionMode() == Task.execution_mode.SYSCALL &&
-					(current.getProcessStatus() == Task.process_status.EXIT ||
-					current.getProcessStatus() == Task.process_status.RUN)) {
+			boolean isKernel = current.getThreadType() == thread_type.KERNEL_THREAD;
+			boolean isSyscall = current.getExecutionMode() == Task.execution_mode.SYSCALL;
+			boolean isExit = current.getProcessStatus() == Task.process_status.EXIT;
+			boolean isRun = current.getProcessStatus() == Task.process_status.RUN; 
+			if ((isKernel && isRun) || (!isKernel && isSyscall && (isExit || isRun))){
 				source = current;
 			}
 		}
 
+		log.debug("sched_wakeup source=" + source + " target=" + target);
 		if (target == null || source == null) {
 			//System.err.println("WARNING: null wakeup endpoint: source:" + source + " target:" + target + " " + event.getTimestamp());
 			return;

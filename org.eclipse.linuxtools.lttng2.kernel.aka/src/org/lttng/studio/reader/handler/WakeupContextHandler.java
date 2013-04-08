@@ -21,6 +21,7 @@ public class WakeupContextHandler extends TraceEventHandlerBase {
 	private SystemModel system;
 	private Context[] context;
 	private AnalysisFilter filter;
+	private ALog log;
 
 	public WakeupContextHandler() {
 		super();
@@ -52,10 +53,7 @@ public class WakeupContextHandler extends TraceEventHandlerBase {
 		long curr = system.getCurrentTid(event.getCPU());
 		Task currTask = system.getTask(curr);
 		Task wakeeTask = system.getTask(wakeeTid);
-		Set<Long> tids = filter.getTids();
-		if (tids.contains(curr) || tids.contains(wakeeTid)) {
-			System.out.println(String.format("wakeup %10s %10s %10s", currTask, wakeeTask, context[event.getCPU()]));
-		}
+		log.message(String.format("wakeup %10s %10s %10s", currTask, wakeeTask, context[event.getCPU()]));
 	}
 
 	@Override
@@ -64,6 +62,7 @@ public class WakeupContextHandler extends TraceEventHandlerBase {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 		context = new Context[reader.getNumCpus()];
+		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
 	}
 
 	@Override

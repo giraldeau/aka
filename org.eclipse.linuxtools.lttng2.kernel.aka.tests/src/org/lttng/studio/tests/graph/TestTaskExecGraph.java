@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,26 +46,7 @@ public class TestTaskExecGraph {
 	private void saveGraph(ExecGraph graph, String name) throws IOException {
 		File out = getGraphOutDir(name);
 		File file = new File(out, "graph" + ".dot");
-		FileWriter f = new FileWriter(file);
-		f.write("digraph G {\n");
-		HashSet<ExecVertex> set = new HashSet<ExecVertex>();
-		for (ExecEdge edge: graph.getGraph().edgeSet()) {
-			ExecVertex src = graph.getGraph().getEdgeSource(edge);
-			ExecVertex dst = graph.getGraph().getEdgeTarget(edge);
-			set.add(src);
-			set.add(dst);
-			f.write(String.format("%d -> %d [ label=\"%s\" ];\n", src.getId(), dst.getId(), edge.getType()));
-		}
-		for (ExecVertex vertex: set) {
-			String str = vertex.getOwner().toString();
-			if (vertex.getOwner() instanceof Task) {
-				str = "" + ((Task)vertex.getOwner()).getTid();
-			}
-			f.write(String.format("%d [ label=\"[%d] %s\" ];\n", vertex.getId(), vertex.getId(), str));
-		}
-		f.write("}\n");
-		f.flush();
-		f.close();
+		saveEdges(graph, graph.getGraph().edgeSet(), file);
 	}
 
 	private void saveGraphTasks(ExecGraph graph, Set<Task> task, String name) throws IOException {
@@ -80,9 +62,8 @@ public class TestTaskExecGraph {
 	}
 
 
-	public void saveEdges(ExecGraph graph, List<ExecEdge> path, Task task, String string) throws IOException {
-		File file = new File(getGraphOutDir(string), task.getTid() + ".dot");
-		FileWriter f = new FileWriter(file);
+	public void saveEdges(ExecGraph graph, Collection<ExecEdge> path, File out) throws IOException {
+		FileWriter f = new FileWriter(out);
 		ArrayListMultimap<Object, ExecEdge> edgeMap = ArrayListMultimap.create();
 		for (ExecEdge edge: path) {
 			ExecVertex src = graph.getGraph().getEdgeSource(edge);
@@ -185,7 +166,7 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
-		computeCriticalPathTest("wk-pipette-cons-k", "wk-pipette");
+		computeCriticalPathTest("dd-100M-k", "dd");
 	}
 
 	private void computeCriticalPathTest(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
@@ -211,7 +192,7 @@ public class TestTaskExecGraph {
 			DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph, log);
 			List<ExecEdge> path = annotate.criticalPath(start, stop);
 			checkEdgesDisjoint(graph, path);
-			saveEdges(graph, path, task, name);
+			saveEdges(graph, path, new File(getGraphOutDir(name), task.getTid() + ".dot"));
 			saveStats(graph, path, name, "" + task.getTid());
 		}
 	}

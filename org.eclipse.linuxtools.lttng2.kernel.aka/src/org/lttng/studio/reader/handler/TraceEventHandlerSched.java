@@ -68,7 +68,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
-		log = reader.getRegistry().getModel(IModelKeys.SHARED, ALog.class);
+		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
 		evHistory = new HashMap<Long, EventData>();
 	}
 

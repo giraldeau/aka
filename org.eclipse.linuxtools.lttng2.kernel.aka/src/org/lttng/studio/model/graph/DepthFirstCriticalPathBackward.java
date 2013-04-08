@@ -75,6 +75,7 @@ public class DepthFirstCriticalPathBackward {
 		/*
 		 * Check for blocking. Follow unblocking origin.
 		 */
+		log.debug("visitEdge " + edge + " EdgeType=" + edge.getType());
 		if (edge.getType() == EdgeType.BLOCKED) {
 			ExecVertex mergeVertex = graph.getGraph().getEdgeTarget(edge);
 			ExecEdge mergeEdge = findEdge(mergeVertex, false, false);
