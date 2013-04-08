@@ -74,22 +74,29 @@ public class CriticalFlowView extends AbstractAKAView {
     // Constants
     // ------------------------------------------------------------------------
 
+	public static final double NANO = 1000000000.0;
+	public static final double NANOINV = 0.000000001;
+
     /**
      * View ID.
      */
     public static final String ID = "org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalflow"; //$NON-NLS-1$
 
-    private static final String PROCESS_COLUMN    = Messages.CriticalFlowView_processColumn;
+    private static final String COLUMN_PROCESS    = Messages.CriticalFlowView_columnProcess;
+
+    private static final String COLUMN_ELAPSED    = Messages.CriticalFlowView_columnElapsed;
 
 
     private final String[] COLUMN_NAMES = new String[] {
-            PROCESS_COLUMN
+            COLUMN_PROCESS,
+            COLUMN_ELAPSED
     };
 
     private final String[] FILTER_COLUMN_NAMES = new String[] {
-            PROCESS_COLUMN
+            COLUMN_PROCESS,
+            COLUMN_ELAPSED
     };
-    
+
 	private Task fCurrentTask;
 
 
@@ -207,7 +214,11 @@ public class CriticalFlowView extends AbstractAKAView {
             CriticalFlowEntry entry = (CriticalFlowEntry) element;
             if (columnIndex == 0) {
                 return entry.getName();
-            } 
+            }
+			if (columnIndex == 1) {
+				return String.format("%.9f", entry.getStats().getSum()
+						* NANOINV);
+			}
             return ""; //$NON-NLS-1$
         }
 
@@ -266,12 +277,12 @@ public class CriticalFlowView extends AbstractAKAView {
         }
 
         private void zoom(CriticalFlowEntry entry, IProgressMonitor monitor) {
-            
+
             List<ITimeEvent> zoomedEventList = getEventList(entry, fZoomStartTime, fZoomEndTime, fResolution);
             if (zoomedEventList != null) {
                 entry.setZoomedEventList(zoomedEventList);
             }
-            
+
             redraw();
             for (CriticalFlowEntry child : entry.getChildren()) {
                 if (fMonitor.isCanceled()) {
@@ -385,15 +396,15 @@ public class CriticalFlowView extends AbstractAKAView {
     // Internal
     // ------------------------------------------------------------------------
 
-    private void buildTreeList(final List<ExecEdge> path, ExecGraph graph) {
-    	fStartTime = Long.MAX_VALUE;
-        fEndTime = Long.MIN_VALUE;
-        
-        Map<Object, CriticalFlowEntry> rootList = new LinkedHashMap<Object, CriticalFlowEntry>();
+	private void buildTreeList(final List<ExecEdge> path, ExecGraph graph) {
+		fStartTime = Long.MAX_VALUE;
+		fEndTime = Long.MIN_VALUE;
 
-        // FIXME: position may change according to sorting in the table view
-        int position = 0;
-        for (ExecEdge edge : path) {
+		Map<Object, CriticalFlowEntry> rootList = new LinkedHashMap<Object, CriticalFlowEntry>();
+
+		// FIXME: position may change according to sorting in the table view
+		int position = 0;
+		for (ExecEdge edge : path) {
 			ExecVertex source = graph.getGraph().getEdgeSource(edge);
 			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
 
@@ -401,60 +412,64 @@ public class CriticalFlowView extends AbstractAKAView {
 			long start = source.getTimestamp();
 			long end = target.getTimestamp();
 			fStartTime = Math.min(fStartTime, start);
-            fEndTime = Math.max(fEndTime, end);
+			fEndTime = Math.max(fEndTime, end);
 
-            Object sourceentry = source.getOwner();
-            Object targetentry = target.getOwner();
-            
-            if (sourceentry == targetentry) {
-            	CriticalFlowEntry entry = rootList.get(sourceentry);
-            	if (entry == null) {
-            		entry = new CriticalFlowEntry(sourceentry.toString(), fStartTime, fEndTime);
-            		entry.setPosition(position++);
-            		rootList.put(sourceentry,  entry);	
-            	}
-            	entry.addEvent(new CriticalFlowEvent(rootList.get(sourceentry), start, end-start, 
-            			CriticalFlowPresentationProvider.State.CRITICAL));
-            }
-        }
-        
-        for (ExecEdge edge : path) {
+			Object sourceObject = source.getOwner();
+			Object targetObject = target.getOwner();
+
+			if (sourceObject == targetObject) {
+				CriticalFlowEntry entry = rootList.get(sourceObject);
+				if (entry == null) {
+					entry = new CriticalFlowEntry(sourceObject.toString(),
+							fStartTime, fEndTime);
+					entry.setPosition(position++);
+					rootList.put(sourceObject, entry);
+				}
+				entry.addEvent(new CriticalFlowEvent(
+						rootList.get(sourceObject), start, end - start,
+						CriticalFlowPresentationProvider.State.CRITICAL));
+			}
+		}
+
+		for (ExecEdge edge : path) {
 			ExecVertex source = graph.getGraph().getEdgeSource(edge);
 			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
 			if (source.getOwner() != target.getOwner()) {
 				CriticalFlowEntry entrySrc = rootList.get(source.getOwner());
 				CriticalFlowEntry entryDst = rootList.get(target.getOwner());
-				entrySrc.addEvent(new CriticalFlowLink(entrySrc, entryDst, source.getTimestamp(), target.getTimestamp()));
+				entrySrc.addEvent(new CriticalFlowLink(entrySrc, entryDst,
+						source.getTimestamp(), target.getTimestamp()));
 			}
-        }
+		}
 
-        fEntryList = new ArrayList<CriticalFlowEntry>();
-        fEntryList.addAll(rootList.values());
-        refresh();
-//            Collections.sort(rootList, fCriticalFlowEntryComparator);
-//            synchronized (fEntryListMap) {
-//                fEntryListMap.put(trace, (ArrayList<CriticalFlowEntry>) rootList.clone());
-//            }
-//            if (trace == fTrace) {
-//                refresh();
-//            }
-//        }
-        for (CriticalFlowEntry entry : fEntryList) {
-            buildStatusEvents(entry);
-        }
-    }
+		fEntryList = new ArrayList<CriticalFlowEntry>();
+		fEntryList.addAll(rootList.values());
+		refresh();
+		// Collections.sort(rootList, fCriticalFlowEntryComparator);
+		// synchronized (fEntryListMap) {
+		// fEntryListMap.put(trace, (ArrayList<CriticalFlowEntry>)
+		// rootList.clone());
+		// }
+		// if (trace == fTrace) {
+		// refresh();
+		// }
+		// }
+		for (CriticalFlowEntry entry : fEntryList) {
+			buildStatusEvents(entry);
+		}
+	}
 
     private void buildStatusEvents( CriticalFlowEntry entry) {
-       
+
         long start = fTrace.getStartTime().getValue();
         long end = fTrace.getEndTime().getValue() + 1;
         long resolution = Math.max(1, (end - start) / fDisplayWidth);
         List<ITimeEvent> eventList = getEventList(entry, entry.getStartTime(), entry.getEndTime(), resolution);
- 
+
         entry.setZoomedEventList(eventList);
 
             redraw();
-        
+
         for (ITimeGraphEntry child : entry.getChildren()) {
 
             buildStatusEvents((CriticalFlowEntry) child);
@@ -473,9 +488,9 @@ public class CriticalFlowView extends AbstractAKAView {
         try {
         	Iterator<ITimeEvent> iterator = entry.getTimeEventsIterator();
         	eventList = new ArrayList<ITimeEvent>();
-            
+
         	while (iterator.hasNext()) {
-        		
+
         		ITimeEvent event = iterator.next();
         		/* is event visible */
 				if (((event.getTime() >= realStart) && (event.getTime() <= realEnd)) ||
@@ -589,14 +604,14 @@ public class CriticalFlowView extends AbstractAKAView {
         manager.add(fTimeGraphCombo.getTimeGraphViewer().getZoomOutAction());
         manager.add(new Separator());
     }
-    
+
 	private void setSpanRoot(Span root, ExecGraph graph, List<ExecEdge> path) {
 
 		buildTreeList(path, graph);
 //		treeViewer.setInput(root);
 //		treeViewer.expandAll();
 	}
-    
+
 	@Override
 	protected void updateDataSafe() {
 		if (registry == null)

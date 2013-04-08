@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?pde version="3.8"?><target includeMode="feature" name="Running Platform" sequenceNumber="56">
+<?pde version="3.8"?><target includeMode="feature" name="Running Platform" sequenceNumber="57">
 <locations>
 <location path="${workspace_loc}/target/delta.pack/eclipse" type="Directory"/>
 <location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
@@ -55,6 +55,10 @@
 <location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
 <unit id="org.eclipse.cdt.feature.group" version="8.1.2.201302132326"/>
 <repository location="http://download.eclipse.org/releases/juno"/>
+</location>
+<location includeAllPlatforms="true" includeConfigurePhase="false" includeMode="slicer" includeSource="true" type="InstallableUnit">
+<unit id="org.apache.commons.math" version="2.1.0.v201105210652"/>
+<repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20120119162704/repository"/>
 </location>
 </locations>
 <environment>

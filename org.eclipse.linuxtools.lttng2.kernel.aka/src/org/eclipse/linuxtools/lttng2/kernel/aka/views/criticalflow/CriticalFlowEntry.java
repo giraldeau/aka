@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 
@@ -31,7 +32,7 @@ public class CriticalFlowEntry implements ITimeGraphEntry {
     private List<ITimeEvent> fEventList = new ArrayList<ITimeEvent>();
     private List<ITimeEvent> fZoomedEventList = null;
     private int position;
-
+    private final SummaryStatistics stats = new SummaryStatistics();
     /**
      * Constructor
      *
@@ -127,6 +128,9 @@ public class CriticalFlowEntry implements ITimeGraphEntry {
                 fEndTime = end;
             }
         }
+		synchronized (stats) {
+			stats.addValue(event.getDuration());
+		}
     }
 
     /**
@@ -167,5 +171,9 @@ public class CriticalFlowEntry implements ITimeGraphEntry {
 
 	public void setPosition(int position) {
 		this.position = position;
+	}
+
+	public SummaryStatistics getStats() {
+		return stats;
 	}
 }

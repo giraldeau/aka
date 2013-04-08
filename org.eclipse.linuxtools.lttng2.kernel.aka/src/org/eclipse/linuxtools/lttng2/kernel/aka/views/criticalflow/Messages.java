@@ -21,8 +21,10 @@ public class Messages {
 
 	public static String ControlFlowView_stateTypeName;
 
-	public static String CriticalFlowView_processColumn;
-	
+	public static String CriticalFlowView_columnProcess;
+
+	public static String CriticalFlowView_columnElapsed;
+
 	static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);
