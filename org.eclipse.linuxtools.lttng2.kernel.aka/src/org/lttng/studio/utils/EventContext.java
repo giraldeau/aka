@@ -22,9 +22,9 @@ import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.reader.handler.TraceEventHandlerInvariant;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
-import org.lttng.studio.reader.handler.WakeupContextHandler;
+import org.lttng.studio.reader.handler.EventContextHandler;
 
-public class WakeupContext {
+public class EventContext {
 
 	static Options options;
 
@@ -36,7 +36,7 @@ public class WakeupContext {
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException, ParseException {
-		WakeupContext self = new WakeupContext();
+		EventContext self = new EventContext();
 		Opts opts = self.new Opts();
 		options = new Options();
 		options.addOption("t", true, "trace path");
@@ -90,11 +90,17 @@ public class WakeupContext {
 		log.setPath("wakeup.out");
 		log.setLevel(ALog.MESSAGE);
 		
+		EventContextHandler contextHandler = new EventContextHandler();
+		contextHandler.addEventName("sched_wakeup");
+		contextHandler.addEventName("block_rq_insert");
+		contextHandler.addEventName("block_rq_issue");
+		contextHandler.addEventName("block_rq_complete");
+		
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
 		Collection<ITraceEventHandler> phase2 = new HashSet<ITraceEventHandler>();
 		phase2.add(new TraceEventHandlerInvariant());
 		phase2.add(new TraceEventHandlerSched());
-		phase2.add(new WakeupContextHandler());
+		phase2.add(contextHandler);
 		
 		thread.setTrace(ctfTmfTrace);
 		thread.addPhase(new AnalysisPhase(1, "test", phase1));
