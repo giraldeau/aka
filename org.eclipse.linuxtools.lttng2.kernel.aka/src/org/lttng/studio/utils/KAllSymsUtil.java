@@ -2,6 +2,8 @@ package org.lttng.studio.utils;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class KAllSymsUtil {
@@ -20,9 +22,19 @@ public class KAllSymsUtil {
 		}
 		System.out.println(String.format("%d symbols loaded", syms.getSymbols().size()));
 		int i;
+		String hex = ".*(0x[a-fA-F0-9]+).*";
+		Pattern pattern = Pattern.compile(hex);
+		
 		for (i = 1; i < args.length; i++) {
-			String sym = syms.getSymbol(new BigInteger(args[i], 16));
-			System.out.println(args[i] + " " + sym);
+			Matcher matcher = pattern.matcher(args[i]);
+			while(matcher.find()) {
+				String sub = matcher.group();
+				sub = sub.substring(2);
+				if (sub.endsWith(","))
+					sub = sub.substring(0, sub.length() - 1);
+				String sym = syms.getSymbol(new BigInteger(sub, 16));
+				System.out.println("0x" + sub + " " + sym);
+			}
 		}
 	}
 }
