@@ -15,12 +15,13 @@ import com.google.common.collect.HashBasedTable;
 
 public class EventContextHandler extends TraceEventHandlerBase {
 
-	private static String[] contextNames = { "CONTEXT_TASK", "CONTEXT_SOFTIRQ", "CONTEXT_IRQ" };
+	private static String[] contextNames = { "CONTEXT_TASK", "CONTEXT_SOFTIRQ", "CONTEXT_IRQ", "CONTEXT_HRTIMER" };
 	
 	private static int CONTEXT_TASK = 0;
 	private static int CONTEXT_SOFTIRQ = 1;
 	private static int CONTEXT_IRQ = 2;
-	private static int CONTEXT_MAX = 3;
+	private static int CONTEXT_HRTIMER = 3;
+	private static int CONTEXT_MAX = 4;
 	
 	private SystemModel system;
 	private CtfTmfEvent[] context;
@@ -38,6 +39,8 @@ public class EventContextHandler extends TraceEventHandlerBase {
 		hooks.add(new TraceHook());
 		hooks.add(new TraceHook("softirq_entry"));
 		hooks.add(new TraceHook("softirq_exit"));
+		hooks.add(new TraceHook("hrtimer_expire_entry"));
+		hooks.add(new TraceHook("hrtimer_expire_exit"));
 		hooks.add(new TraceHook("irq_handler_entry"));
 		hooks.add(new TraceHook("irq_handler_exit"));
 		eventSet = new HashSet<String>();
@@ -63,6 +66,16 @@ public class EventContextHandler extends TraceEventHandlerBase {
 		context[event.getCPU()] = null;
 	}
 
+	public void handle_hrtimer_expire_entry(TraceReader reader, CtfTmfEvent event) {
+		contextID[event.getCPU()] = CONTEXT_HRTIMER;
+		context[event.getCPU()] = event;
+	}
+
+	public void handle_hrtimer_expire_exit(TraceReader reader, CtfTmfEvent event) {
+		contextID[event.getCPU()] = CONTEXT_TASK;
+		context[event.getCPU()] = null;
+	}
+	
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		if (!cache.containsKey(event.getID())) {
 			boolean enable = eventSet.contains(event.getEventName());
