@@ -23,7 +23,7 @@ public class TraceEventHandlerInvariant extends TraceEventHandlerBase {
 	}
 
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
-		system.setContextCPU(event.getCPU()); // update current CPU
+		system.setCurrentCPU(event.getCPU()); // update current CPU
 		long ts = event.getTimestamp().getValue();
 		//System.out.println(prev + " " + ts);
 		if (prev > ts) {

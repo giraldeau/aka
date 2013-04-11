@@ -83,7 +83,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
-		if (system.getContextCPU() != cpu) {
+		if (system.getCurrentCPU() != cpu) {
 			reader.cancel(new RuntimeException("ERROR: system.cpu != event.cpu"));
 		}
 		long next = EventField.getLong(event, "next_tid");

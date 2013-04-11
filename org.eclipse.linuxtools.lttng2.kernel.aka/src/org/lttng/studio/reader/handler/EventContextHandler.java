@@ -1,12 +1,18 @@
 package org.lttng.studio.reader.handler;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Stack;
 
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventField;
+import org.lttng.studio.model.kernel.InterruptContext;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
 import org.lttng.studio.utils.AnalysisFilter;
@@ -15,24 +21,11 @@ import com.google.common.collect.HashBasedTable;
 
 public class EventContextHandler extends TraceEventHandlerBase {
 
-	private static String[] contextNames = { "CONTEXT_TASK", "CONTEXT_SOFTIRQ", "CONTEXT_IRQ", "CONTEXT_HRTIMER" };
-	
-	private static int CONTEXT_TASK = 0;
-	private static int CONTEXT_SOFTIRQ = 1;
-	private static int CONTEXT_IRQ = 2;
-	private static int CONTEXT_HRTIMER = 3;
-	private static int CONTEXT_MAX = 4;
-	
 	private SystemModel system;
-	private CtfTmfEvent[] context;
 	private AnalysisFilter filter;
 	private HashSet<String> eventSet;
 	private ALog log;
-	private HashMap<Long, Boolean> cache;
-	private HashMap<Long, String> eventNames;
-	private HashMap<Long, Long[]> contextStats;
-
-	private int[] contextID;
+	private HashMap<String, EnumMap<Context, Long>> contextStats;
 
 	public EventContextHandler() {
 		super();
@@ -46,65 +39,67 @@ public class EventContextHandler extends TraceEventHandlerBase {
 		eventSet = new HashSet<String>();
 	}
 
+	private void pushInterruptContext(CtfTmfEvent event, Context ctx) {
+		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
+		stack.push(new InterruptContext(event, ctx));
+	}
+	
+	private void popInterruptContext(CtfTmfEvent event, Context ctx) {
+		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
+		if (stack.isEmpty()) {
+			log.warning("popInterruptContext stack is empty " + event.toString());
+			return;
+		}
+		if (stack.peek().getContext() == ctx) {
+			stack.pop();
+		} else {
+			log.warning("popInterruptContext unexpected top stack context " + event);
+		}
+	}
+	
 	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
-		contextID[event.getCPU()] = CONTEXT_SOFTIRQ;
-		context[event.getCPU()] = event;
+		pushInterruptContext(event, Context.SOFTIRQ);
 	}
 
 	public void handle_softirq_exit(TraceReader reader, CtfTmfEvent event) {
-		contextID[event.getCPU()] = CONTEXT_TASK;
-		context[event.getCPU()] = null;
+		popInterruptContext(event, Context.SOFTIRQ);
 	}
 
 	public void handle_irq_handler_entry(TraceReader reader, CtfTmfEvent event) {
-		contextID[event.getCPU()] = CONTEXT_IRQ;
-		context[event.getCPU()] = event;
+		pushInterruptContext(event, Context.IRQ);
 	}
 
 	public void handle_irq_handler_exit(TraceReader reader, CtfTmfEvent event) {
-		contextID[event.getCPU()] = CONTEXT_TASK;
-		context[event.getCPU()] = null;
+		popInterruptContext(event, Context.IRQ);
 	}
 
 	public void handle_hrtimer_expire_entry(TraceReader reader, CtfTmfEvent event) {
-		contextID[event.getCPU()] = CONTEXT_HRTIMER;
-		context[event.getCPU()] = event;
+		pushInterruptContext(event, Context.HRTIMER);
 	}
 
 	public void handle_hrtimer_expire_exit(TraceReader reader, CtfTmfEvent event) {
-		contextID[event.getCPU()] = CONTEXT_TASK;
-		context[event.getCPU()] = null;
+		popInterruptContext(event, Context.HRTIMER);
 	}
 	
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
-		if (!cache.containsKey(event.getID())) {
-			boolean enable = eventSet.contains(event.getEventName());
-			cache.put(event.getID(), enable);
-			eventNames.put(event.getID(), event.getEventName());
+		if (!eventSet.contains(event.getEventName())) {
+			return;
 		}
-		if (cache.get(event.getID())) {
-			int ctx = contextID[event.getCPU()];
-			if (!contextStats.containsKey(event.getID())) {
-				Long[] table = new Long[CONTEXT_MAX];
-				for (int i = 0; i < CONTEXT_MAX; i++) {
-					table[i] = new Long(0);
-				}
-				contextStats.put(event.getID(), table);
-			}
-			Long[] stats = contextStats.get(event.getID());
-			stats[ctx]++;
-			if (contextID[event.getCPU()] == CONTEXT_TASK) {
-				long curr = system.getCurrentTid(event.getCPU());
-				Task currTask = system.getTask(curr);
-				log.message(String.format("%s %s %s", contextNames[ctx],
-					currTask, dumpEvent(event)));
-			} else {
-				log.message(String.format("%s %s %s %s",
-					contextNames[ctx],
-					context[event.getCPU()].getTimestamp(),
-					context[event.getCPU()].getEventName(),
-					dumpEvent(event)));
-			}
+		Stack<InterruptContext> ctxStack = system.getInterruptContext(event.getCPU());
+		EnumMap<Context, Long> stats = contextStats.get(event.getEventName());
+		Context ctx = ctxStack.peek().getContext();
+		Long count = stats.get(ctx);
+		count++;
+		stats.put(ctx, count);
+		if (ctx == Context.NONE) {
+			long curr = system.getCurrentTid(event.getCPU());
+			Task currTask = system.getTask(curr);
+			log.message(String.format("%s %s %s", ctx,
+				currTask, dumpEvent(event)));
+		} else {
+			log.message(String.format("%s %s",
+				ctx,
+				dumpEvent(event)));
 		}
 	}
 	
@@ -130,25 +125,32 @@ public class EventContextHandler extends TraceEventHandlerBase {
 		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
-		contextStats = new HashMap<Long, Long[]>();
-		contextID = new int[reader.getNumCpus()];
-		context = new CtfTmfEvent[reader.getNumCpus()];
 		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
-		cache = new HashMap<Long, Boolean>();
-		eventNames = new HashMap<Long, String>();
+		// init statistics
+		contextStats = new HashMap<String, EnumMap<Context,Long>>();
+		for (String name: eventSet) {
+			EnumMap<Context, Long> map = new EnumMap<Context, Long>(Context.class);
+			for (Context ctx: Context.values()) {
+				map.put(ctx, new Long(0));
+			}
+			contextStats.put(name, map);
+		}
+		
 	}
 
 	@Override
 	public void handleComplete(TraceReader reader) {
 		StringBuilder str = new StringBuilder();
 		str.append("Event;");
-		for (String name: contextNames) {
+		for (String name: contextStats.keySet()) {
 			str.append(name + ";");
 		}
 		str.append("\n");
-		for (Long id: contextStats.keySet()) {
-			str.append(eventNames.get(id) + ";");
-			for (Long count: contextStats.get(id)) {
+		for (String name: contextStats.keySet()) {
+			str.append(name + ";");
+			EnumMap<Context, Long> map = contextStats.get(name);
+			for (Context ctx: map.keySet()) {
+				Long count = map.get(ctx);
 				str.append(count + ";");
 			}
 			str.append("\n");

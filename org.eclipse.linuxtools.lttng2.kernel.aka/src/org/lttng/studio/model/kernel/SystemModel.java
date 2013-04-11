@@ -1,10 +1,14 @@
 package org.lttng.studio.model.kernel;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Stack;
 
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.reader.TraceReader;
 
 import com.google.common.collect.BiMap;
@@ -14,6 +18,8 @@ import com.google.common.collect.Multimap;
 
 public class SystemModel implements ITraceModel {
 
+	
+	
 	private Task[] swappers;
 	private HashMap<Long, Task> tasks; // (tid, task)
 	//private Table<Long, Long, FD> fdsTable; // (pid, id, fd)
@@ -27,6 +33,7 @@ public class SystemModel implements ITraceModel {
 	private int switchUnkownTask;
 	private int dupUnkownFD;
 	private int cpu;
+	private ArrayList<Stack<InterruptContext>> context; // per-cpu interrupt context stack
 
 	public SystemModel() {
 	}
@@ -53,6 +60,13 @@ public class SystemModel implements ITraceModel {
 				swapper.setTid(0);
 				swapper.setPpid(0);
 				swappers[i] = swapper;
+			}
+			// init context
+			context = new ArrayList<Stack<InterruptContext>>();
+			for (int i = 0; i < numCpus; i++) {
+				Stack<InterruptContext> stack = new Stack<InterruptContext>();
+				stack.push(new InterruptContext(null, Context.NONE));
+				context.add(stack);
 			}
 			cpu = 0;
 		}
@@ -104,11 +118,11 @@ public class SystemModel implements ITraceModel {
 		return numCpus;
 	}
 
-	public int getContextCPU() {
+	public int getCurrentCPU() {
 		return cpu;
 	}
 
-	public void setContextCPU(int cpu) {
+	public void setCurrentCPU(int cpu) {
 		this.cpu = cpu;
 	}
 
@@ -278,6 +292,10 @@ public class SystemModel implements ITraceModel {
 	}
 	*/
 
+	public Stack<InterruptContext> getInterruptContext(int cpu) {
+		return context.get(cpu);
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
