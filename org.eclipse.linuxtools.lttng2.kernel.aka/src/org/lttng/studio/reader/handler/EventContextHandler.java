@@ -142,8 +142,8 @@ public class EventContextHandler extends TraceEventHandlerBase {
 	public void handleComplete(TraceReader reader) {
 		StringBuilder str = new StringBuilder();
 		str.append("Event;");
-		for (String name: contextStats.keySet()) {
-			str.append(name + ";");
+		for (Context ctx: Context.values()) {
+			str.append(ctx + ";");
 		}
 		str.append("\n");
 		for (String name: contextStats.keySet()) {
