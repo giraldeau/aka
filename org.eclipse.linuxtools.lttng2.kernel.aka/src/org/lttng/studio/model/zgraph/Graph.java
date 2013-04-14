@@ -1,5 +1,6 @@
 package org.lttng.studio.model.zgraph;
 
+import java.util.HashMap;
 import java.util.List;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -7,9 +8,11 @@ import com.google.common.collect.ArrayListMultimap;
 public class Graph {
 
 	private final ArrayListMultimap<Object, Node> nodeMap;
+	private final HashMap<Node, Object> reverse;
 
 	public Graph() {
 		nodeMap = ArrayListMultimap.create();
+		reverse = new HashMap<Node, Object>();
 	}
 
 	/**
@@ -23,6 +26,7 @@ public class Graph {
 			list.remove(list.size() - 1);
 		}
 		list.add(node);
+		reverse.put(node, obj);
 	}
 
 	/**
@@ -42,6 +46,7 @@ public class Graph {
 			link = tail.linkHorizontal(node);
 		}
 		list.add(node);
+		reverse.put(node, obj);
 		return link;
 	}
 
@@ -65,6 +70,10 @@ public class Graph {
 	 */
 	public List<Node> getNodesOf(Object obj) {
 		return nodeMap.get(obj);
+	}
+
+	public Object getParentOf(Node node) {
+		return reverse.get(node);
 	}
 
 	public ArrayListMultimap<Object, Node> getNodesMap() {

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
@@ -97,7 +98,11 @@ public class TestGraph {
 		la.get(1).linkVertical(lb.get(1));
 		lb.get(5).linkVertical(la.get(6));
 		String dot = Dot.todot(g);
-		writeString("example.dot", dot);
+		writeString("full.dot", dot);
+		List<Object> list = new LinkedList<Object>();
+		list.add(A);
+		dot = Dot.todot(g, list);
+		writeString("partial.dot", dot);
 	}
 
 }
