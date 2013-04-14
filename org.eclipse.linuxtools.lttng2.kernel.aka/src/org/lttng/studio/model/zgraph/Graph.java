@@ -39,35 +39,9 @@ public class Graph {
 			if (tail.getTs() > node.getTs()) {
 				throw new IllegalArgumentException("node must be ordered by ts");
 			}
-			link = linkHorizontal(tail, node);
+			link = tail.linkHorizontal(node);
 		}
 		list.add(node);
-		return link;
-	}
-
-	/**
-	 * Set PREV and NEXT pointers
-	 * @param tail
-	 * @param node
-	 * @return
-	 */
-	public Link linkHorizontal(Node tail, Node node) {
-		Link link = new Link(tail, node);
-		tail.next = link;
-		node.prev = link;
-		return link;
-	}
-
-	/**
-	 * Set FROM and TO pointers
-	 * @param from
-	 * @param to
-	 * @return
-	 */
-	public Link linkVertical(Node from, Node to) {
-		Link link = new Link(from, to);
-		from.out = link;
-		to.in = link;
 		return link;
 	}
 
@@ -91,6 +65,10 @@ public class Graph {
 	 */
 	public List<Node> getNodesOf(Object obj) {
 		return nodeMap.get(obj);
+	}
+
+	public ArrayListMultimap<Object, Node> getNodesMap() {
+		return nodeMap;
 	}
 
 }

@@ -3,16 +3,35 @@ package org.lttng.studio.tests.zgraph;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
 import org.junit.Test;
+import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.Node;
 
 public class TestGraph {
 
 	private static Object A = "A";
+	private static Object B = "B";
 
+	public void writeString(String fname, String content) {
+		String folder = this.getClass().getName();
+		try {
+			File dir = new File("results", folder);
+			dir.mkdirs();
+			FileWriter fwriter = new FileWriter(new File(dir, fname));
+			fwriter.write(content);
+			fwriter.flush();
+			fwriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	@Test
 	public void testCreateGraph() {
 		Graph g = new Graph();
@@ -62,6 +81,23 @@ public class TestGraph {
 			exception = e;
 		}
 		assertNotNull(exception);
+	}
+
+	@Test
+	public void testDot() {
+		int max = 10;
+		Graph g = new Graph();
+		for (int i = 0; i < max; i++) {
+			g.append(A, new Node(i));
+			g.append(B, new Node(i));
+		}
+		List<Node> la = g.getNodesOf(A);
+		List<Node> lb = g.getNodesOf(B);
+		la.get(0).linkVertical(la.get(2));
+		la.get(1).linkVertical(lb.get(1));
+		lb.get(5).linkVertical(la.get(6));
+		String dot = Dot.todot(g);
+		writeString("example.dot", dot);
 	}
 
 }
