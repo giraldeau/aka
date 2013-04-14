@@ -19,20 +19,22 @@ public class TestGraph {
 	private static Object A = "A";
 	private static Object B = "B";
 
-	public void writeString(String fname, String content) {
-		String folder = this.getClass().getName();
+	public static void writeString(Object writer, String fname, String content) {
+		String folder = writer.getClass().getName();
 		try {
 			File dir = new File("results", folder);
 			dir.mkdirs();
-			FileWriter fwriter = new FileWriter(new File(dir, fname));
+			File fout = new File(dir, fname);
+			FileWriter fwriter = new FileWriter(fout);
 			fwriter.write(content);
 			fwriter.flush();
 			fwriter.close();
+			System.out.println("wrote " + fout);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	@Test
 	public void testCreateGraph() {
 		Graph g = new Graph();
@@ -98,11 +100,11 @@ public class TestGraph {
 		la.get(1).linkVertical(lb.get(1));
 		lb.get(5).linkVertical(la.get(6));
 		String dot = Dot.todot(g);
-		writeString("full.dot", dot);
+		writeString(this, "full.dot", dot);
 		List<Object> list = new LinkedList<Object>();
 		list.add(A);
 		dot = Dot.todot(g, list);
-		writeString("partial.dot", dot);
+		writeString(this, "partial.dot", dot);
 	}
 
 }
