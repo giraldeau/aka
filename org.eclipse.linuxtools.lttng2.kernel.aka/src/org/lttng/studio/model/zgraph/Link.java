@@ -13,9 +13,9 @@ public class Link {
 	}
 
 	public long duration() {
-		if (from != null && to != null)
+		if (from != null && to != null) {
 			return to.getTs() - from.getTs();
+		}
 		return 0;
 	}
-
 }

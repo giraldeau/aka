@@ -20,11 +20,23 @@ public class Graph {
 	 * @param obj
 	 * @param node
 	 */
-	public void put(Object obj, Node node) {
+	public void replace(Object obj, Node node) {
 		List<Node> list = nodeMap.get(obj);
 		if (!list.isEmpty()) {
-			list.remove(list.size() - 1);
+			Node n = list.remove(list.size() - 1);
+			reverse.remove(n);
 		}
+		list.add(node);
+		reverse.put(node, obj);
+	}
+
+	/**
+	 * Add node to the provided object without linking
+	 * @param obj
+	 * @param node
+	 */
+	public void add(Object obj, Node node) {
+		List<Node> list = nodeMap.get(obj);
 		list.add(node);
 		reverse.put(node, obj);
 	}
@@ -59,6 +71,19 @@ public class Graph {
 		List<Node> list = nodeMap.get(obj);
 		if (!list.isEmpty()) {
 			return list.get(list.size() - 1);
+		}
+		return null;
+	}
+
+	/**
+	 * Returns head node of the provided object
+	 * @param obj
+	 * @return
+	 */
+	public Node getHead(Object obj) {
+		List<Node> list = nodeMap.get(obj);
+		if (!list.isEmpty()) {
+			return list.get(0);
 		}
 		return null;
 	}

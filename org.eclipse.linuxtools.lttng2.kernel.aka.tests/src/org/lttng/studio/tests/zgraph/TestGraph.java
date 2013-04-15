@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.Node;
+import org.lttng.studio.model.zgraph.Operations;
 
 public class TestGraph {
 
@@ -44,8 +45,8 @@ public class TestGraph {
 	@Test
 	public void testPutNode() {
 		Graph g = new Graph();
-		g.put(A, new Node(0));
-		g.put(A, new Node(1));
+		g.replace(A, new Node(0));
+		g.replace(A, new Node(1));
 		assertEquals(1, g.getNodesOf(A).size());
 	}
 
@@ -105,6 +106,20 @@ public class TestGraph {
 		list.add(A);
 		dot = Dot.todot(g, list);
 		writeString(this, "partial.dot", dot);
+	}
+
+	@Test
+	public void testCriticalPath1() {
+		Graph g = new Graph();
+		for (int i = 0; i < 10; i++) {
+			g.append(A, new Node(i * 10));
+		}
+		Graph path = Operations.criticalPath(g, A, 25, 75);
+		String content = Dot.todot(g);
+		writeString(this, "task1_full.dot", content);
+		content = Dot.todot(path);
+		writeString(this, "task1_A.dot", content);
+		assertEquals(7, path.getNodesOf(A).size());
 	}
 
 }
