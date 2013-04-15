@@ -1,16 +1,17 @@
 package org.lttng.studio.model.zgraph;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.ArrayListMultimap;
-
 
 public class Dot {
 
 	private static final String fmtNode = "    %d [ label=\"[%d]\" ];\n"; 		// id, id
-	private static final String fmtLink = "    %d -> %d [ label=\"%s\" ];\n"; 	// id, id, type
+	private static final String fmtLink = "    %d -> %d [ label=\"%s,%d\" ];\n"; 	// id, id, type, duration
 
 	/**
 	 * Generate dot string for the complete graph, grouped by objects
@@ -35,19 +36,17 @@ public class Dot {
 		ArrayListMultimap<Object, Node> extra = ArrayListMultimap.create();
 		HashSet<Object> set = new HashSet<Object>();
 		set.addAll(keys);
+		HashSet<Node> visited = new HashSet<Node>();
 		for (Object obj : keys) {
 			List<Node> list = g.getNodesOf(obj);
 			subgraph(str, obj, list, i);
 			i++;
 			for (Node node: list) {
-				if (node.next != null) {
-					str.append(String.format(fmtLink, node.getID(), node.next.to.getID(), node.next.type));
-				}
-				if (node.out != null) {
-					str.append(String.format(fmtLink, node.getID(), node.out.to.getID(), node.out.type));
-					Object o = g.getParentOf(node.out.to);
+				List<Node> neighbors = visit(str, visited, node);
+				for (Node n: neighbors) {
+					Object o = g.getParentOf(n);
 					if (!set.contains(o)) {
-						extra.put(o, node.out.to);
+						extra.put(o, n);
 					}
 				}
 			}
@@ -59,6 +58,30 @@ public class Dot {
 		}
 		str.append("}\n");
 		return str.toString();
+	}
+
+	private static List<Node> visit(StringBuilder str, Set<Node> visited, Node node) {
+		List<Node> neighbor = new ArrayList<Node>();
+		if (visited.contains(node))
+			return neighbor;
+		visited.add(node);
+		for (int dir = 0; dir < node.links.length; dir++) {
+			Node n = node.neighbor(dir);
+			if (n == null)
+				continue;
+			Link lnk = node.links[dir];
+			Node n0 = node;
+			Node n1 = n;
+			if (dir == Node.L || dir == Node.D) {
+				n0 = n;
+				n1 = node;
+			}
+			if (!visited.contains(n)) {
+				str.append(String.format(fmtLink, n0.getID(), n1.getID(), lnk.type, lnk.duration()));
+				neighbor.add(n);
+			}
+		}
+		return neighbor;
 	}
 
 	private static void subgraph(StringBuilder str, Object obj, List<Node> list, int i) {

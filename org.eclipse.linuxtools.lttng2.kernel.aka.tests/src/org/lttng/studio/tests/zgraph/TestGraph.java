@@ -66,10 +66,10 @@ public class TestGraph {
 		for (int i = 0; i < list.size() - 1; i++) {
 			Node n0 = list.get(i);
 			Node n1 = list.get(i+1);
-			assertEquals(n0.next.from, n0);
-			assertEquals(n1.prev.to, n1);
-			assertEquals(n0.next.to, n1);
-			assertEquals(n1.prev.from, n0);
+			assertEquals(n0.R(), n1);
+			assertEquals(n1.L(), n0);
+			assertEquals(n0.links[Node.R].from, n0);
+			assertEquals(n1.links[Node.L].to, n1);
 		}
 	}
 

@@ -11,4 +11,11 @@ public class Link {
 		this.to = to;
 		this.type = LinkType.DEFAULT;
 	}
+
+	public long duration() {
+		if (from != null && to != null)
+			return to.getTs() - from.getTs();
+		return 0;
+	}
+
 }
