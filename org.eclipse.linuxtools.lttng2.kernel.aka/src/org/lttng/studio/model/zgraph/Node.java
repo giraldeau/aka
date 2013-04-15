@@ -1,6 +1,6 @@
 package org.lttng.studio.model.zgraph;
 
-public class Node {
+public class Node implements Comparable<Node> {
 
 	private static long count = 0;
 
@@ -56,6 +56,11 @@ public class Node {
 		this.out = link;
 		to.in = link;
 		return link;
+	}
+
+	@Override
+	public int compareTo(Node other) {
+		return this.ts > other.ts ? 1 : (this.ts == other.ts ? 0 : -1);
 	}
 
 }
