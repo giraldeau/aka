@@ -124,4 +124,9 @@ public class Node implements Comparable<Node> {
 		return this.ts > other.ts ? 1 : (this.ts == other.ts ? 0 : -1);
 	}
 
+	@Override
+	public String toString() {
+		return "[" + id + "," + ts + "]";
+	}
+
 }

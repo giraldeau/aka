@@ -53,7 +53,7 @@ public class Graph {
 		Link link = null;
 		if (tail != null) {
 			if (tail.getTs() > node.getTs()) {
-				throw new IllegalArgumentException("node must be ordered by ts");
+				throw new IllegalArgumentException("node must be ordered by ts: " + tail.getTs() + ">" + node.getTs());
 			}
 			link = tail.linkHorizontal(node);
 		}

@@ -101,16 +101,31 @@ public class Ops {
 	public static Node concat(Node n1, Node n2) {
 		Node c1 = Ops.clone(n1);
 		Node c2 = Ops.clone(n2);
-		Node x = Ops.tail(c1);
-		Node y = Ops.head(c2);
-		long offset = x.getTs() - y.getTs();
-		Ops.offset(c2, offset);
-		x.linkHorizontal(y);
+		concatInPlace(c1, c2);
 		return c1;
 	}
 
-	public static Node iter() {
-		return null;
+	public static void concatInPlace(Node n1, Node n2) {
+		Node x = Ops.tail(n1);
+		Node y = Ops.head(n2);
+		long offset = x.getTs() - y.getTs();
+		Ops.offset(n2, offset);
+		x.linkHorizontal(y);
+	}
+
+	public static Node iter(Node node, int repeat) {
+		Node clone = Ops.clone(node);
+		iterInPlace(clone, repeat);
+		return clone;
+	}
+
+	public static void iterInPlace(Node node, int repeat) {
+		Node curr = node;
+		for (int i = 0; i < repeat; i++) {
+			Node clone = Ops.clone(node);
+			Ops.concatInPlace(curr, clone);
+			curr = Ops.tail(clone);
+		}
 	}
 
 	public static Node superimpose() {
@@ -201,5 +216,23 @@ public class Ops {
 		return g;
 	}
 
+	public static String debug(Node node) {
+		final StringBuilder str = new StringBuilder();
+		FloodTraverse.traverse(node, new Visitor() {
+			@Override
+			public void visitHead(Node node) {
+				str.append("visitHead " + node + "\n");
+			}
+			@Override
+			public void visitNode(Node node) {
+				str.append("visitNode " + node + "\n");
+			}
+			@Override
+			public void visitLink(Link link, boolean hori) {
+				str.append("visitLink " + link + "\n");
+			}
+		});
+		return str.toString();
+	}
 
 }

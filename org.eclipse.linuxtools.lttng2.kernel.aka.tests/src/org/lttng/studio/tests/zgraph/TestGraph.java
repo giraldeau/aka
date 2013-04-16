@@ -129,7 +129,7 @@ public class TestGraph {
 	}
 
 	@Test
-	public void testClone() {
+	public void testClone1() {
 		Node head = Ops.basic(10, LinkType.DEFAULT);
 		Node clone = Ops.clone(head);
 		assertEquals(Ops.size(head), Ops.size(clone));
@@ -144,6 +144,17 @@ public class TestGraph {
 		String content = Dot.todot(g);
 		writeString(this, "concat.dot", content);
 		assertEquals(Ops.size(head), Ops.size(n1) + Ops.size(n2) + 2);
+	}
+
+	@Test
+	public void testIter() {
+		Node n = Ops.basic(10, LinkType.DEFAULT);
+		Node head = Ops.iter(n, 1);
+		System.out.println(Ops.debug(head));
+		Graph g = Ops.toGraph(head);
+		String content = Dot.todot(g);
+		writeString(this, "iter.dot", content);
+		assertEquals(Ops.size(head), 5);
 	}
 
 	@Test

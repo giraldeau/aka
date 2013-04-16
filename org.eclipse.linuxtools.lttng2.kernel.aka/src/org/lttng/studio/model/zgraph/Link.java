@@ -18,4 +18,9 @@ public class Link {
 		}
 		return 0;
 	}
+
+	@Override
+	public String toString() {
+		return "[" + from.getID() + "->" + to.getID() + "]";
+	}
 }
