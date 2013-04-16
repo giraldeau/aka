@@ -20,7 +20,7 @@ public class Operations {
 			Node curr = main.get(i);
 			Link link = path.append(g.getParentOf(curr), new Node(curr.getTs()));
 			if (link != null)
-				link.type = curr.links[Node.R].type;
+				link.type = curr.links[Node.RIGHT].type;
 		}
 		return path;
 	}

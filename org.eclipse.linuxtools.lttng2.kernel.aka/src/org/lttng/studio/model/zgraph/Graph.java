@@ -105,4 +105,16 @@ public class Graph {
 		return nodeMap;
 	}
 
+	public int size() {
+		int size = 0;
+		for (Node node: reverse.keySet()) {
+			size++;
+			for (int i = 0; i < node.links.length; i++) {
+				if (node.links[i] != null)
+					size++;
+			}
+		}
+		return size;
+	}
+
 }

@@ -2,13 +2,14 @@ package org.lttng.studio.tests.zgraph;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.HashMap;
 
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.GraphBuilder;
 import org.lttng.studio.model.zgraph.Node;
 
 public class TestGraphFactory {
@@ -19,50 +20,60 @@ public class TestGraphFactory {
 	public static final String D = "D";
 	public static final String E = "E";
 
-	public static String GRAPH_TASK1 		= "task1";
+	private final HashMap<String, GraphBuilder> builders;
 
-	public static List<String> kind = new ArrayList<String>();
-	static {
-		kind.add(GRAPH_TASK1);
+	public static GraphBuilder sequenceSimple =
+		new GraphBuilder("sequence_simple") {
+			@Override
+			public void build(Graph g) {
+				long start = 0;
+				if (g.getTail(A) != null) {
+					start = g.getTail(A).getTs();
+				}
+				long end = 10 + start;
+				for (long i = start + 1; i < end; i++)
+					g.append(A, new Node(i));
+			}
+		};
+
+	public TestGraphFactory() {
+		builders = new HashMap<String, GraphBuilder>();
+		Field[] fields = getClass().getDeclaredFields();
+		for (Field f: fields) {
+			if (!Modifier.isStatic(f.getModifiers()))
+				continue;
+			Object builder = null;
+			try {
+				builder = f.get(null);
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			if (builder instanceof GraphBuilder) {
+				registerBuilder((GraphBuilder) builder);
+			}
+		}
 	}
 
-	public static Graph make_task1() {
-		Graph g = new Graph();
-		for (int i = 0; i < 10; i++)
-			g.append(A, new Node(i));
-		return g;
+	public void registerBuilder(GraphBuilder f) {
+		builders.put(f.getName(), f);
 	}
 
-	public static Graph makeGraphByName(String name) {
-		Method method = null;
-		try {
-			method = TestGraphFactory.class.getDeclaredMethod("make_" + name);
-		} catch (NoSuchMethodException e1) {
-			e1.printStackTrace();
-		} catch (SecurityException e1) {
-			e1.printStackTrace();
-		}
-		if (method == null)
-			return null;
-		try {
-			return (Graph) method.invoke(null);
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		}
-		return null;
+	public HashMap<String, GraphBuilder> getBuildersMap() {
+		return builders;
 	}
 
 	public static void main(String[] args) throws IOException {
 		File base = new File("results", TestGraphFactory.class.getName());
 		base.mkdirs();
 		TestGraphFactory factory = new TestGraphFactory();
-		for (String name: kind) {
-			String content = Dot.todot(makeGraphByName(name));
-			TestGraph.writeString(factory, name + ".dot", content);
+		Collection<GraphBuilder> kind = factory.getBuildersMap().values();
+		for (GraphBuilder builder: kind) {
+			Graph g = new Graph();
+			builder.build(g);
+			String content = Dot.todot(g);
+			TestGraph.writeString(factory, builder.getName() + ".dot", content);
 		}
 	}
 

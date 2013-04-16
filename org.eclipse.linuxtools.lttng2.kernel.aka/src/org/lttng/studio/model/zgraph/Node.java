@@ -4,19 +4,28 @@ public class Node implements Comparable<Node> {
 
 	private static long count = 0;
 
-	public static final int U = 0;
-	public static final int D = 1;
-	public static final int R = 2;
-	public static final int L = 3;
+	public static final int UP = 0;
+	public static final int DOWN = 1;
+	public static final int RIGHT = 2;
+	public static final int LEFT = 3;
 
 	public Link[] links;
-	private final long ts;
+	private long ts;
 	private final long id;
+
+	public Node() {
+		this(0);
+	}
 
 	public Node(long ts) {
 		links = new Link[4];
 		this.ts = ts;
 		this.id = count++;
+	}
+
+	public Node(Node node) {
+		this();
+		this.ts = node.ts;
 	}
 
 	/**
@@ -26,6 +35,15 @@ public class Node implements Comparable<Node> {
 	public long getTs() {
 		return ts;
 	}
+
+	/**
+	 * Set the timestamps of this node
+	 * @return
+	 */
+	public void setTs(long ts) {
+		this.ts = ts;
+	}
+
 
 	/**
 	 * Returns the unique ID of this node
@@ -43,8 +61,8 @@ public class Node implements Comparable<Node> {
 	 */
 	public Link linkHorizontal(Node node) {
 		Link link = new Link(this, node);
-		this.links[R] = link;
-		node.links[L] = link;
+		this.links[RIGHT] = link;
+		node.links[LEFT] = link;
 		return link;
 	}
 
@@ -56,48 +74,48 @@ public class Node implements Comparable<Node> {
 	 */
 	public Link linkVertical(Node to) {
 		Link link = new Link(this, to);
-		this.links[U] = link;
-		to.links[D] = link;
+		this.links[UP] = link;
+		to.links[DOWN] = link;
 		return link;
 	}
 
 	public Node neighbor(int dir) {
 		switch(dir) {
-		case U:
-			return U();
-		case D:
-			return D();
-		case R:
-			return R();
-		case L:
-			return L();
+		case UP:
+			return up();
+		case DOWN:
+			return down();
+		case RIGHT:
+			return right();
+		case LEFT:
+			return left();
 		default:
 			break;
 		}
 		return null;
 	}
 
-	public Node U() {
-		if (links[U] != null)
-			return links[U].to;
+	public Node up() {
+		if (links[UP] != null)
+			return links[UP].to;
 		return null;
 	}
 
-	public Node D() {
-		if (links[D] != null)
-			return links[D].from;
+	public Node down() {
+		if (links[DOWN] != null)
+			return links[DOWN].from;
 		return null;
 	}
 
-	public Node R() {
-		if (links[R] != null)
-			return links[R].to;
+	public Node right() {
+		if (links[RIGHT] != null)
+			return links[RIGHT].to;
 		return null;
 	}
 
-	public Node L() {
-		if (links[L] != null)
-			return links[L].from;
+	public Node left() {
+		if (links[LEFT] != null)
+			return links[LEFT].from;
 		return null;
 	}
 

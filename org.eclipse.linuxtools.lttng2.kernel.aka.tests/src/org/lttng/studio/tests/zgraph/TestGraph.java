@@ -12,8 +12,10 @@ import java.util.List;
 import org.junit.Test;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Operations;
+import org.lttng.studio.model.zgraph.Ops;
 
 public class TestGraph {
 
@@ -67,10 +69,10 @@ public class TestGraph {
 		for (int i = 0; i < list.size() - 1; i++) {
 			Node n0 = list.get(i);
 			Node n1 = list.get(i+1);
-			assertEquals(n0.R(), n1);
-			assertEquals(n1.L(), n0);
-			assertEquals(n0.links[Node.R].from, n0);
-			assertEquals(n1.links[Node.L].to, n1);
+			assertEquals(n0.right(), n1);
+			assertEquals(n1.left(), n0);
+			assertEquals(n0.links[Node.RIGHT].from, n0);
+			assertEquals(n1.links[Node.LEFT].to, n1);
 		}
 	}
 
@@ -106,6 +108,42 @@ public class TestGraph {
 		list.add(A);
 		dot = Dot.todot(g, list);
 		writeString(this, "partial.dot", dot);
+	}
+
+	@Test
+	public void testMakeGraphBasic() {
+		Node head = Ops.basic(10, LinkType.DEFAULT);
+		Graph g = Ops.toGraph(head);
+		String content = Dot.todot(g);
+		writeString(this, "basic.dot", content);
+		assertEquals(Ops.size(head), g.size());
+	}
+
+	@Test
+	public void testOffset() {
+		Node head = Ops.basic(10, LinkType.DEFAULT);
+		Ops.offset(head, 100);
+		Graph g = Ops.toGraph(head);
+		String content = Dot.todot(g);
+		writeString(this, "offset.dot", content);
+	}
+
+	@Test
+	public void testClone() {
+		Node head = Ops.basic(10, LinkType.DEFAULT);
+		Node clone = Ops.clone(head);
+		assertEquals(Ops.size(head), Ops.size(clone));
+	}
+
+	@Test
+	public void testConcat() {
+		Node n1 = Ops.basic(1, LinkType.DEFAULT);
+		Node n2 = Ops.basic(1, LinkType.DEFAULT);
+		Node head = Ops.concat(n1, n2);
+		Graph g = Ops.toGraph(head);
+		String content = Dot.todot(g);
+		writeString(this, "concat.dot", content);
+		assertEquals(Ops.size(head), Ops.size(n1) + Ops.size(n2) + 2);
 	}
 
 	@Test

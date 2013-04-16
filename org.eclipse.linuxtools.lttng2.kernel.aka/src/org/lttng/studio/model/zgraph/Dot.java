@@ -10,7 +10,7 @@ import com.google.common.collect.ArrayListMultimap;
 
 public class Dot {
 
-	private static final String fmtNode = "    %d [ label=\"[%d]\" ];\n"; 		// id, id
+	private static final String fmtNode = "    %d [ label=\"[%d,%d]\" ];\n"; 		// id, id, timestamps
 	private static final String fmtLink = "    %d -> %d [ label=\"%s,%d\" ];\n"; 	// id, id, type, duration
 
 	/**
@@ -72,7 +72,7 @@ public class Dot {
 			Link lnk = node.links[dir];
 			Node n0 = node;
 			Node n1 = n;
-			if (dir == Node.L || dir == Node.D) {
+			if (dir == Node.LEFT || dir == Node.DOWN) {
 				n0 = n;
 				n1 = node;
 			}
@@ -91,7 +91,7 @@ public class Dot {
 				"    title%d [ label=\"%s\", shape=plaintext ];\n", i,
 				obj.toString()));
 		for (Node node: list) {
-			str.append(String.format(fmtNode, node.getID(), node.getID()));
+			str.append(String.format(fmtNode, node.getID(), node.getID(), node.getTs()));
 		}
 		str.append("}\n");
 	}
