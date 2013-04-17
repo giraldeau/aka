@@ -1,7 +1,9 @@
 package org.lttng.studio.tests.zgraph;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -12,7 +14,6 @@ import java.util.List;
 import org.junit.Test;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
-import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Operations;
 import org.lttng.studio.model.zgraph.Ops;
@@ -102,58 +103,110 @@ public class TestGraph {
 		la.get(0).linkVertical(la.get(2));
 		la.get(1).linkVertical(lb.get(1));
 		lb.get(5).linkVertical(la.get(6));
-		String dot = Dot.todot(g);
-		writeString(this, "full.dot", dot);
+		writeString(this, "full.dot", Dot.todot(g));
 		List<Object> list = new LinkedList<Object>();
 		list.add(A);
-		dot = Dot.todot(g, list);
-		writeString(this, "partial.dot", dot);
+		writeString(this, "partial.dot", Dot.todot(g, list));
+	}
+
+	@Test
+	public void testCheckHorizontal() {
+		Node n0 = new Node(10);
+		Node n1 = new Node(0);
+		Exception exception = null;
+		try {
+			n0.linkHorizontal(n1);
+		} catch (IllegalArgumentException e) {
+			exception = e;
+		}
+		assertNotNull(exception);
+	}
+
+	@Test
+	public void testCheckVertical() {
+		Node n0 = new Node(10);
+		Node n1 = new Node(0);
+		Exception exception = null;
+		try {
+			n0.linkVertical(n1);
+		} catch (IllegalArgumentException e) {
+			exception = e;
+		}
+		assertNotNull(exception);
+	}
+
+	@Test
+	public void testValidate() {
+		Node n0 = new Node(10);
+		Node n1 = new Node(0);
+		n0.linkHorizontalRaw(n1);
+		assertFalse(Ops.validate(n0));
 	}
 
 	@Test
 	public void testMakeGraphBasic() {
-		Node head = Ops.basic(10, LinkType.DEFAULT);
+		Node head = Ops.basic(10);
+		writeString(this, "basic.dot", Dot.todot(head));
+		assertTrue(Ops.validate(head));
+	}
+
+	@Test
+	public void testSize() {
+		Node node = new Node(0);
+		Node head = node;
+		for (int i = 0; i < 10; i++) {
+			Node next = new Node(i);
+			node.linkHorizontalRaw(next);
+			node = next;
+		}
 		Graph g = Ops.toGraph(head);
-		String content = Dot.todot(g);
-		writeString(this, "basic.dot", content);
 		assertEquals(Ops.size(head), g.size());
 	}
 
 	@Test
 	public void testOffset() {
-		Node head = Ops.basic(10, LinkType.DEFAULT);
+		Node head = Ops.basic(10);
 		Ops.offset(head, 100);
-		Graph g = Ops.toGraph(head);
-		String content = Dot.todot(g);
-		writeString(this, "offset.dot", content);
+		writeString(this, "offset.dot", Dot.todot(head));
+		assertTrue(Ops.validate(head));
 	}
 
 	@Test
 	public void testClone1() {
-		Node head = Ops.basic(10, LinkType.DEFAULT);
+		Node head = Ops.basic(10);
 		Node clone = Ops.clone(head);
 		assertEquals(Ops.size(head), Ops.size(clone));
+		assertTrue(Ops.validate(clone));
 	}
 
 	@Test
 	public void testConcat() {
-		Node n1 = Ops.basic(1, LinkType.DEFAULT);
-		Node n2 = Ops.basic(1, LinkType.DEFAULT);
+		Node n1 = Ops.basic(1);
+		Node n2 = Ops.basic(1);
 		Node head = Ops.concat(n1, n2);
-		Graph g = Ops.toGraph(head);
-		String content = Dot.todot(g);
-		writeString(this, "concat.dot", content);
+		writeString(this, "concat.dot", Dot.todot(head));
 		assertEquals(Ops.size(head), Ops.size(n1) + Ops.size(n2) + 2);
+		assertTrue(Ops.validate(head));
 	}
 
 	@Test
 	public void testIter() {
-		Node n = Ops.basic(10, LinkType.DEFAULT);
+		Node n = Ops.basic(10);
 		Node head = Ops.iter(n, 1);
-		Graph g = Ops.toGraph(head);
-		String content = Dot.todot(g);
-		writeString(this, "iter.dot", content);
+		writeString(this, "iter.dot", Dot.todot(head));
 		assertEquals(2 + 3 + 3 + 2, Ops.size(head));
+		assertTrue(Ops.validate(head));
+	}
+
+	@Test
+	public void testUnion1() {
+		Node n1 = Ops.basic(10);
+		Node n2 = Ops.basic(10);
+		Node u1 = Ops.union(n1, n2);
+		System.out.println(Ops.debug(u1));
+		writeString(this, "union.dot", Dot.todot(u1));
+		assertEquals(3 * 8, Ops.size(u1));
+		assertTrue(Ops.validate(u1));
 	}
 
 	@Test

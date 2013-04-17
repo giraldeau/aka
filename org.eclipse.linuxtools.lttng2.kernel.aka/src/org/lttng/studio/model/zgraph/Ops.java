@@ -42,6 +42,34 @@ public class Ops {
 		}
 	}
 
+
+	private static Node epsilon(Node node, int direction) {
+		Node eps = new Node(node);
+		Link link = null;
+		switch(direction) {
+		case Node.LEFT:
+			link = eps.linkHorizontal(node);
+			break;
+		case Node.RIGHT:
+			link = node.linkHorizontal(eps);
+			break;
+		case Node.UP:
+			link = node.linkVertical(eps);
+			break;
+		case Node.DOWN:
+			link = eps.linkVertical(node);
+			break;
+		default:
+			throw new IllegalArgumentException("invalid direction: " + direction);
+		}
+		link.type = LinkType.EPS;
+		return eps;
+	}
+
+	public static Node basic(long len) {
+		return basic(len, LinkType.DEFAULT);
+	}
+
 	public static Node basic(long len, LinkType type) {
 		Node head = new Node(0);
 		Link link = head.linkHorizontal(new Node(len));
@@ -54,6 +82,11 @@ public class Ops {
 		Node head;
 	}
 
+	/**
+	 * Clone the provided connected node set. Returns the head of the new node sequence.
+	 * @param orig
+	 * @return
+	 */
 	public static Node clone(Node orig) {
 		// two steps clone:
 		// 1- clone all nodes
@@ -98,6 +131,13 @@ public class Ops {
 		return state.head;
 	}
 
+	/**
+	 * Concatenate two node sequences. Offset is applied to sequence N2 to
+	 * create EPS transition between the tail of N1 and head of N2.
+	 * @param n1
+	 * @param n2
+	 * @return
+	 */
 	public static Node concat(Node n1, Node n2) {
 		Node c1 = Ops.clone(n1);
 		Node c2 = Ops.clone(n2);
@@ -110,9 +150,61 @@ public class Ops {
 		Node y = Ops.head(n2);
 		long offset = x.getTs() - y.getTs();
 		Ops.offset(n2, offset);
-		x.linkHorizontal(y);
+		Link link = x.linkHorizontal(y);
+		link.type = LinkType.EPS;
 	}
 
+	/**
+	 * Create parallel paths by connecting heads and tails of N1 and N2.
+	 * @param n1
+	 * @param n2
+	 * @return
+	 */
+	public static Node union(Node n1, Node n2) {
+		return union(n1, n2, LinkType.DEFAULT, LinkType.DEFAULT);
+	}
+
+	public static Node union(Node n1, Node n2, LinkType split, LinkType merge) {
+		Node h1 = Ops.clone(n1);
+		Node h2 = Ops.clone(n2);
+		return unionInPlace(h1, h2, split, merge);
+	}
+
+	public static Node unionInPlace(Node n1, Node n2, LinkType split, LinkType merge) {
+		Node h1 = Ops.head(n1);
+		Node h2 = Ops.head(n2);
+		Node t1 = Ops.tail(n1);
+		Node t2 = Ops.tail(n2);
+		// add epsilon nodes to prevent overwrite of existing links
+		h1 = Ops.epsilon(h1, Node.LEFT);
+		h2 = Ops.epsilon(h2, Node.LEFT);
+		t1 = Ops.epsilon(t1, Node.RIGHT);
+		t2 = Ops.epsilon(t2, Node.RIGHT);
+		Link l1 = h1.linkVertical(h2);
+		Link l2 = t2.linkVertical(t1);
+		l1.type = split;
+		l2.type = merge;
+		return h1;
+	}
+
+	/**
+	 * Create a vertical link within the same node sequence.
+	 * @param n1
+	 * @param n2
+	 * @param type
+	 * @return
+	 */
+	public static void unionShortcut(Node n1, Node n2, LinkType type) {
+		Link link = n1.linkVertical(n2);
+		link.type = type;
+	}
+
+	/**
+	 * Repeat the node sequence
+	 * @param node
+	 * @param repeat
+	 * @return
+	 */
 	public static Node iter(Node node, int repeat) {
 		Node clone = Ops.clone(node);
 		iterInPlace(clone, repeat);
@@ -179,7 +271,6 @@ public class Ops {
 			}
 			@Override
 			public void visitNode(Node node) {
-				int s = sum.size;
 				sum.size++;
 				for (int i = 0; i < node.links.length; i++) {
 					if (node.links[i] != null)
@@ -194,6 +285,11 @@ public class Ops {
 	}
 
 	public static Graph toGraph(Node head) {
+		Node clone = Ops.clone(head);
+		return toGraphInPlace(clone);
+	}
+
+	public static Graph toGraphInPlace(Node head) {
 		final Graph g = new Graph();
 		FloodTraverse.traverse(head, new Visitor() {
 			Long actor = -1L;
@@ -203,11 +299,7 @@ public class Ops {
 			}
 			@Override
 			public void visitNode(Node node) {
-				Link l1 = g.append(actor, new Node(node));
-				Link l2 = node.links[Node.LEFT];
-				if (l1 != null && l2 != null) {
-					l1.type = l2.type;
-				}
+				g.add(actor, node);
 			}
 			@Override
 			public void visitLink(Link link, boolean hori) {
@@ -233,6 +325,36 @@ public class Ops {
 			}
 		});
 		return str.toString();
+	}
+
+	private static class ValidateState {
+		boolean ok = true;
+	}
+	/**
+	 * Check that timestamps increase monotonically
+	 * @return
+	 */
+	public static boolean validate(Node node) {
+		final ValidateState state = new ValidateState();
+		FloodTraverse.traverse(node, new Visitor() {
+			@Override
+			public void visitHead(Node node) {
+			}
+			@Override
+			public void visitNode(Node node) {
+			}
+			@Override
+			public void visitLink(Link link, boolean hori) {
+				long elapsed = link.to.getTs() - link.from.getTs();
+				if (elapsed < 0) {
+					state.ok = false;
+					System.err.println("timestamps error on link " + link +
+							" : " + link.from.getTs() + " -> " + link.to.getTs() +
+							" (" + elapsed + ")");
+				}
+			}
+		});
+		return state.ok;
 	}
 
 }

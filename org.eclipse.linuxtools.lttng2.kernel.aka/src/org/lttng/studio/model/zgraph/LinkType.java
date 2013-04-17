@@ -2,6 +2,7 @@ package org.lttng.studio.model.zgraph;
 
 public enum LinkType {
 
+	EPS,
 	DEFAULT,
 	RUNNING,
 	BLOCKED,

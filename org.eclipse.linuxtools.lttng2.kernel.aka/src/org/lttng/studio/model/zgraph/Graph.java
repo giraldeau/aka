@@ -52,10 +52,7 @@ public class Graph {
 		Node tail = getTail(obj);
 		Link link = null;
 		if (tail != null) {
-			if (tail.getTs() > node.getTs()) {
-				throw new IllegalArgumentException("node must be ordered by ts: " + tail.getTs() + ">" + node.getTs());
-			}
-			link = tail.linkHorizontal(node);
+			link = tail.linkHorizontal (node);
 		}
 		list.add(node);
 		reverse.put(node, obj);

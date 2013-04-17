@@ -14,6 +14,16 @@ public class Dot {
 	private static final String fmtLink = "    %d -> %d [ label=\"%s,%d\" ];\n"; 	// id, id, type, duration
 
 	/**
+	 * Generate dot string from head node
+	 * @param node
+	 * return
+	 */
+	public static String todot(Node node) {
+		Graph g = Ops.toGraph(node);
+		return todot(g);
+	}
+
+	/**
 	 * Generate dot string for the complete graph, grouped by objects
 	 * @param g
 	 * @return

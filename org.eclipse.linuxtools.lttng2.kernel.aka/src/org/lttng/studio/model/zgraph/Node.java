@@ -59,11 +59,9 @@ public class Node implements Comparable<Node> {
 	 * @param node
 	 * @return
 	 */
-	public Link linkHorizontal(Node node) {
-		Link link = new Link(this, node);
-		this.links[RIGHT] = link;
-		node.links[LEFT] = link;
-		return link;
+	public Link linkHorizontal(Node to) {
+		checkTimestamps(to);
+		return linkHorizontalRaw(to);
 	}
 
 	/**
@@ -73,10 +71,29 @@ public class Node implements Comparable<Node> {
 	 * @return
 	 */
 	public Link linkVertical(Node to) {
+		checkTimestamps(to);
+		return linkVerticalRaw(to);
+	}
+
+	public Link linkVerticalRaw(Node to) {
 		Link link = new Link(this, to);
 		this.links[UP] = link;
 		to.links[DOWN] = link;
 		return link;
+	}
+
+	public Link linkHorizontalRaw(Node node) {
+		Link link = new Link(this, node);
+		this.links[RIGHT] = link;
+		node.links[LEFT] = link;
+		return link;
+	}
+
+	private void checkTimestamps(Node to) {
+		if (this.ts > to.ts)
+			throw new IllegalArgumentException("Next node timestamps must be " +
+					"greater or equal to current timestamps: " +
+					String.format("(curr=%d,next=%d,elapsed=%d)", ts, to.ts, to.ts - ts));
 	}
 
 	public Node neighbor(int dir) {
