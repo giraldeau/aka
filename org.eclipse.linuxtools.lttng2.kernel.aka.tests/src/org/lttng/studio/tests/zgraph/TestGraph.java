@@ -150,11 +150,10 @@ public class TestGraph {
 	public void testIter() {
 		Node n = Ops.basic(10, LinkType.DEFAULT);
 		Node head = Ops.iter(n, 1);
-		System.out.println(Ops.debug(head));
 		Graph g = Ops.toGraph(head);
 		String content = Dot.todot(g);
 		writeString(this, "iter.dot", content);
-		assertEquals(Ops.size(head), 5);
+		assertEquals(2 + 3 + 3 + 2, Ops.size(head));
 	}
 
 	@Test
