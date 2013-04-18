@@ -12,7 +12,7 @@ public class Ops {
 		public void visitLink(Link link, boolean horizontal);
 	}
 
-	private static class FloodTraverse {
+	private static class ScanLineTraverse {
 		public static void traverse(Node start, Visitor visitor) {
 			Stack<Node> stack = new Stack<Node>();
 			HashSet<Node> visited = new HashSet<Node>();
@@ -41,7 +41,6 @@ public class Ops {
 			}
 		}
 	}
-
 
 	private static Node epsilon(Node node, int direction) {
 		Node eps = new Node(node);
@@ -92,7 +91,7 @@ public class Ops {
 		// 1- clone all nodes
 		// 2- create links
 		final CloneState state = new CloneState();
-		FloodTraverse.traverse(orig, new Visitor() {
+		ScanLineTraverse.traverse(orig, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
 			}
@@ -106,7 +105,7 @@ public class Ops {
 			}
 		});
 		// FIXME: can iterate over map keys
-		FloodTraverse.traverse(orig, new Visitor() {
+		ScanLineTraverse.traverse(orig, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
 				if (state.head == null)
@@ -253,7 +252,9 @@ public class Ops {
 	}
 
 	public static void offset(Node node, final long offset) {
-		FloodTraverse.traverse(node, new Visitor() {
+		if (offset == 0)
+			return;
+		ScanLineTraverse.traverse(node, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
 			}
@@ -274,7 +275,7 @@ public class Ops {
 
 	public static int size(Node node) {
 		final Sum sum = new Sum();
-		FloodTraverse.traverse(node, new Visitor() {
+		ScanLineTraverse.traverse(node, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
 			}
@@ -300,7 +301,7 @@ public class Ops {
 
 	public static Graph toGraphInPlace(Node head) {
 		final Graph g = new Graph();
-		FloodTraverse.traverse(head, new Visitor() {
+		ScanLineTraverse.traverse(head, new Visitor() {
 			Long actor = -1L;
 			@Override
 			public void visitHead(Node node) {
@@ -319,7 +320,7 @@ public class Ops {
 
 	public static String debug(Node node) {
 		final StringBuilder str = new StringBuilder();
-		FloodTraverse.traverse(node, new Visitor() {
+		ScanLineTraverse.traverse(node, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
 				str.append("visitHead " + node + "\n");
@@ -345,7 +346,7 @@ public class Ops {
 	 */
 	public static boolean validate(Node node) {
 		final ValidateState state = new ValidateState();
-		FloodTraverse.traverse(node, new Visitor() {
+		ScanLineTraverse.traverse(node, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
 			}
@@ -364,6 +365,83 @@ public class Ops {
 			}
 		});
 		return state.ok;
+	}
+
+	/**
+	 * Check if traversing N1 and N2 yields the same node sequence,
+	 * that all nodes have the same timestamps and that links type is the same.
+	 * @param n1
+	 * @param n2
+	 * @return
+	 */
+	public static boolean match(Node n1, Node n2) {
+		return match(n1, n2, MATCH_TIMESTAMPS | MATCH_LINKS_TYPE);
+	}
+
+	/**
+	 * Check nodes and links structure
+	 */
+	public static final int MATCH_ISOMORPH = 0;
+
+	/**
+	 * Check all nodes timestamps for equality
+	 */
+	public static final int MATCH_TIMESTAMPS = 1 << 0;
+
+	/**
+	 * Check all links types for equality
+	 */
+	public static final int MATCH_LINKS_TYPE = 1 << 1;
+
+	/**
+	 * Check if traversing N1 and N2 respect properties PROP. Properties can be ORed.
+	 * @param n1
+	 * @param n2
+	 * @param items
+	 * @return
+	 */
+	public static boolean match(Node n1, Node n2, int prop) {
+		Stack<Node> stack = new Stack<Node>();
+		HashSet<Node> visited = new HashSet<Node>();
+		stack.push(n2);
+		stack.push(n1);
+		boolean ok = true;
+		while(!stack.isEmpty() && ok) {
+			Node c1 = stack.pop();
+			Node c2 = stack.pop();
+			if (visited.contains(c1) && visited.contains(c2))
+				continue;
+			visited.add(c1);
+			visited.add(c2);
+			// check timestamps
+			if ((prop & MATCH_TIMESTAMPS) != 0) {
+				if (c1.compareTo(c2) != 0) {
+					ok = false;
+					break;
+				}
+			}
+			// follow links, push next nodes
+			for (int i = 0; i < c1.links.length; i++) {
+				if (c1.hasNeighbor(i) && !c2.hasNeighbor(i) ||
+					!c1.hasNeighbor(i) && c2.hasNeighbor(i)) {
+					ok = false;
+					break;
+				} else {
+					if (c1.hasNeighbor(i) && c2.hasNeighbor(i)) {
+						// check links type
+						if ((prop & MATCH_LINKS_TYPE) != 0) {
+							if (c1.links[i].type != c2.links[i].type) {
+								ok = false;
+								break;
+							}
+						}
+						stack.push(c2.neighbor(i));
+						stack.push(c1.neighbor(i));
+					}
+				}
+			}
+		}
+		return ok;
 	}
 
 }

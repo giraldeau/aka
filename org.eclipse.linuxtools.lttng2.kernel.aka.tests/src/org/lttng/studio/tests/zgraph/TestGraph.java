@@ -205,7 +205,7 @@ public class TestGraph {
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceLeft(n1, n2, LinkType.DEFAULT);
 		writeString(this, "union_left.dot", Dot.todot(n1));
-		assertEquals(2 + 3 + 3 + 2, Ops.size(n1));
+		assertEquals(16, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
 
@@ -215,7 +215,7 @@ public class TestGraph {
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
 		writeString(this, "union_right.dot", Dot.todot(n1));
-		assertEquals(2 + 3 + 3 + 2, Ops.size(n1));
+		assertEquals(16, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
 
@@ -224,10 +224,51 @@ public class TestGraph {
 		Node n1 = Ops.basic(10);
 		Node n2 = Ops.basic(10);
 		Node u1 = Ops.union(n1, n2);
-		System.out.println(Ops.debug(u1));
 		writeString(this, "union.dot", Dot.todot(u1));
 		assertEquals(3 * 8, Ops.size(u1));
 		assertTrue(Ops.validate(u1));
+	}
+
+	@Test
+	public void testCheckMatchOk() {
+		Node n1 = Ops.basic(10);
+		Node n2 = Ops.clone(n1);
+		assertTrue(Ops.match(n1, n2));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_ISOMORPH));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_TIMESTAMPS));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_LINKS_TYPE));
+	}
+
+	@Test
+	public void testCheckEqualityMatchFailTimestamps() {
+		Node n1 = Ops.basic(10);
+		Node n2 = Ops.basic(11);
+		assertFalse(Ops.match(n1, n2));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_ISOMORPH));
+		assertFalse(Ops.match(n1, n2, Ops.MATCH_TIMESTAMPS));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_LINKS_TYPE));
+	}
+
+	@Test
+	public void testCheckEqualityMatchFailNode() {
+		Node n1 = Ops.iter(Ops.basic(10), 2);
+		Node n2 = Ops.basic(10);
+		assertFalse(Ops.match(n1, n2));
+		assertFalse(Ops.match(n1, n2, Ops.MATCH_ISOMORPH));
+		assertFalse(Ops.match(n1, n2, Ops.MATCH_TIMESTAMPS));
+		assertFalse(Ops.match(n1, n2, Ops.MATCH_LINKS_TYPE));
+	}
+
+	@Test
+	public void testCheckEqualityMatchFailLink() {
+		Node n1 = Ops.basic(10);
+		n1.links[Node.RIGHT].type = LinkType.EPS;
+		Node n2 = Ops.basic(10);
+		n2.links[Node.RIGHT].type = LinkType.DEFAULT;
+		assertFalse(Ops.match(n1, n2));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_ISOMORPH));
+		assertTrue(Ops.match(n1, n2, Ops.MATCH_TIMESTAMPS));
+		assertFalse(Ops.match(n1, n2, Ops.MATCH_LINKS_TYPE));
 	}
 
 	@Test

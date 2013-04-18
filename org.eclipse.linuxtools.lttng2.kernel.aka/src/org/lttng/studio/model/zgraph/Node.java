@@ -112,6 +112,10 @@ public class Node implements Comparable<Node> {
 		return null;
 	}
 
+	public boolean hasNeighbor(int dir) {
+		return neighbor(dir) != null;
+	}
+
 	public Node up() {
 		if (links[UP] != null)
 			return links[UP].to;
