@@ -228,6 +228,51 @@ public class Ops {
 		}
 	}
 
+	/**
+	 * Insert N2 and its siblings on the left of N1
+	 * @param n1
+	 * @param n2
+	 */
+	public static void insertBefore(Node n1, Node n2) {
+		if (n1.hasNeighbor(Node.LEFT)) {
+			n1.neighbor(Node.LEFT).linkHorizontal(n2);
+		}
+		Node tail = tail(n2);
+		tail.linkHorizontal(n1);
+	}
+
+	/**
+	 * Insert N2 and its siblings on the right of N1
+	 * @param n1
+	 * @param n2
+	 */
+	public static void insertAfter(Node n1, Node n2) {
+		if (n1.hasNeighbor(Node.RIGHT)) {
+			Node tail = tail(n2);
+			tail.linkHorizontal(n1.neighbor(Node.RIGHT));
+		}
+		n1.linkHorizontal(n2);
+	}
+
+	/**
+	 * Generate an horizontal sequence of NUM nodes with STEP timestamps
+	 * @param num
+	 * @param step
+	 * @return
+	 */
+	public static Node sequence(int num, int step) {
+		Node curr = null;
+		Node next = null;
+		for (int i = 0; i < num; i++) {
+			next = new Node(i * step);
+			if (curr != null) {
+				curr.linkHorizontal(next);
+			}
+			curr = next;
+		}
+		return head(curr);
+	}
+
 	public static Node superimpose() {
 		return null;
 	}

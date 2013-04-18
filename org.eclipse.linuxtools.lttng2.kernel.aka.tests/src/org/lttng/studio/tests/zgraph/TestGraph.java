@@ -230,6 +230,49 @@ public class TestGraph {
 	}
 
 	@Test
+	public void testInsertAfter() {
+		Node head = Ops.basic(2);
+		Node node = new Node(1);
+		Node exp = Ops.sequence(3, 1);
+		Ops.insertAfter(head, node);
+		assertEquals(Ops.size(exp), Ops.size(head));
+		assertTrue(Ops.match(head, exp));
+	}
+
+	@Test
+	public void testInsertBerfore() {
+		Node head = Ops.basic(2);
+		Node node = new Node(1);
+		Node exp = Ops.sequence(3, 1);
+		Ops.insertBefore(Ops.tail(head), node);
+		assertEquals(Ops.size(exp), Ops.size(head));
+		assertTrue(Ops.match(head, exp));
+	}
+
+	@Test
+	public void testInsertAfterMulti() {
+		Node head = Ops.basic(9);
+		Node node = Ops.sequence(2, 3);
+		Ops.offset(node, 3);
+		Node exp = Ops.sequence(4, 3);
+		Ops.insertAfter(head, node);
+		assertEquals(Ops.size(exp), Ops.size(head));
+		assertTrue(Ops.match(head, exp));
+	}
+
+	@Test
+	public void testInsertBerforeMulti() {
+		Node head = Ops.basic(9);
+		Node node = Ops.sequence(2, 3);
+		Ops.offset(node, 3);
+		Node exp = Ops.sequence(4, 3);
+		Ops.insertBefore(Ops.tail(head), node);
+		assertEquals(Ops.size(exp), Ops.size(head));
+		assertTrue(Ops.match(head, exp));
+	}
+
+
+	@Test
 	public void testCheckMatchOk() {
 		Node n1 = Ops.basic(10);
 		Node n2 = Ops.clone(n1);
