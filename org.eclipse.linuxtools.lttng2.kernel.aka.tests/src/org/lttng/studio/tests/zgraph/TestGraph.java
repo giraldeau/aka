@@ -14,6 +14,7 @@ import java.util.List;
 import org.junit.Test;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Operations;
 import org.lttng.studio.model.zgraph.Ops;
@@ -196,6 +197,26 @@ public class TestGraph {
 		writeString(this, "iter.dot", Dot.todot(head));
 		assertEquals(2 + 3 + 3 + 2, Ops.size(head));
 		assertTrue(Ops.validate(head));
+	}
+
+	@Test
+	public void testUnionLeft() {
+		Node n1 = Ops.basic(20);
+		Node n2 = Ops.basic(10);
+		Ops.unionInPlaceLeft(n1, n2, LinkType.DEFAULT);
+		writeString(this, "union_left.dot", Dot.todot(n1));
+		assertEquals(2 + 3 + 3 + 2, Ops.size(n1));
+		assertTrue(Ops.validate(n1));
+	}
+
+	@Test
+	public void testUnionRight() {
+		Node n1 = Ops.basic(20);
+		Node n2 = Ops.basic(10);
+		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
+		writeString(this, "union_right.dot", Dot.todot(n1));
+		assertEquals(2 + 3 + 3 + 2, Ops.size(n1));
+		assertTrue(Ops.validate(n1));
 	}
 
 	@Test

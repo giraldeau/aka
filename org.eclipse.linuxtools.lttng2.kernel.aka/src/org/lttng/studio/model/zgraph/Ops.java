@@ -171,20 +171,29 @@ public class Ops {
 	}
 
 	public static Node unionInPlace(Node n1, Node n2, LinkType split, LinkType merge) {
+		unionInPlaceRight(n1, n2, merge);
+		return unionInPlaceLeft(n1, n2, split);
+	}
+
+	public static Node unionInPlaceLeft(Node n1, Node n2, LinkType split) {
 		Node h1 = Ops.head(n1);
 		Node h2 = Ops.head(n2);
-		Node t1 = Ops.tail(n1);
-		Node t2 = Ops.tail(n2);
 		// add epsilon nodes to prevent overwrite of existing links
 		h1 = Ops.epsilon(h1, Node.LEFT);
 		h2 = Ops.epsilon(h2, Node.LEFT);
+		Link l1 = h1.linkVertical(h2);
+		l1.type = split;
+		return h1;
+	}
+
+	public static Node unionInPlaceRight(Node n1, Node n2, LinkType merge) {
+		Node t1 = Ops.tail(n1);
+		Node t2 = Ops.tail(n2);
 		t1 = Ops.epsilon(t1, Node.RIGHT);
 		t2 = Ops.epsilon(t2, Node.RIGHT);
-		Link l1 = h1.linkVertical(h2);
 		Link l2 = t2.linkVertical(t1);
-		l1.type = split;
 		l2.type = merge;
-		return h1;
+		return t1;
 	}
 
 	/**
