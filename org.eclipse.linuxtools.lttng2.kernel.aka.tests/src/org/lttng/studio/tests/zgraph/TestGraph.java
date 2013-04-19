@@ -286,6 +286,70 @@ public class TestGraph {
 	}
 
 	@Test
+	public void testAlignRight() {
+		Node n1 = Ops.sequence(3, 4);
+		Ops.offset(n1, 100);
+
+		Node exp = Ops.sequence(3, 2);
+		Ops.offset(exp, 100 + 4);
+
+		for (int i = -9; i < 10; i++) {
+			Node n2 = Ops.sequence(3, 2);
+			Ops.offset(n2, i);
+			Ops.alignRight(n1, n2);
+			assertTrue(Ops.match(n2, exp));
+		}
+	}
+
+	@Test
+	public void testAlignLeft() {
+		Node n1 = Ops.sequence(3, 4);
+		Ops.offset(n1, 100);
+
+		Node exp = Ops.sequence(3, 2);
+		Ops.offset(exp, 100);
+
+		for (int i = -9; i < 10; i++) {
+			Node n2 = Ops.sequence(3, 2);
+			Ops.offset(n2, i);
+			Ops.alignLeft(n1, n2);
+			assertTrue(Ops.match(n2, exp));
+		}
+	}
+
+	@Test
+	public void testAlignCenter1() {
+		Node n1 = Ops.sequence(3, 4);
+		Ops.offset(n1, 100);
+
+		Node exp = Ops.sequence(3, 2);
+		Ops.offset(exp, 100 + 2);
+
+		for (int i = -9; i < 10; i++) {
+			Node n2 = Ops.sequence(3, 2);
+			Ops.offset(n2, i);
+			Ops.alignCenter(n1, n2);
+			assertTrue(Ops.match(n2, exp));
+		}
+	}
+
+	@Test
+	public void testAlignCenter2() {
+		Node n1 = Ops.sequence(3, 2);
+		Ops.offset(n1, 100);
+
+		Node exp = Ops.sequence(3, 4);
+		Ops.offset(exp, 100 - 2);
+
+		for (int i = -9; i < 10; i++) {
+			Node n2 = Ops.sequence(3, 4);
+			Ops.offset(n2, i);
+			Ops.alignCenter(n1, n2);
+			assertTrue(Ops.match(n2, exp));
+		}
+	}
+
+	@Test
 	public void testCheckMatchOk() {
 		Node n1 = Ops.basic(10);
 		Node n2 = Ops.clone(n1);

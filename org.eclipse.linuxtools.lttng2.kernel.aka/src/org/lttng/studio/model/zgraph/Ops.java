@@ -302,6 +302,45 @@ public class Ops {
 		}
 	}
 
+	/**
+	 * Align tail timestamps of N2 according to tail of N1
+	 * @param n1
+	 * @param n2
+	 */
+	public static void alignRight(Node n1, Node n2) {
+		Node t1 = tail(n1);
+		Node t2 = tail(n2);
+		long diff = t1.getTs() - t2.getTs();
+		offset(n2, diff);
+	}
+
+	/**
+	 * Align head timestamps of N2 according to head of N1
+	 * @param n1
+	 * @param n2
+	 */
+	public static void alignLeft(Node n1, Node n2) {
+		Node h1 = head(n1);
+		Node h2 = head(n2);
+		long diff = h1.getTs() - h2.getTs();
+		offset(n2, diff);
+	}
+
+	/**
+	 * Align N2 timestamps according to N1 center.
+	 * @param n1
+	 * @param n2
+	 */
+	public static void alignCenter(Node n1, Node n2) {
+		long h1 = head(n1).getTs();
+		long h2 = head(n2).getTs();
+		long shift = h1 - h2;
+		long d1 = (tail(n1).getTs() - head(n1).getTs());
+		long d2 = (tail(n2).getTs() - head(n2).getTs());
+		long diff = shift + ((d1 - d2) / 2);
+		offset(n2, diff);
+	}
+
 	public static Node minimize() {
 		return null;
 
