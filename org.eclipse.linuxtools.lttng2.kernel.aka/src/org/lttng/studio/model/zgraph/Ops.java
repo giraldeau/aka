@@ -341,9 +341,8 @@ public class Ops {
 		offset(n2, diff);
 	}
 
-	public static Node minimize() {
-		return null;
-
+	public static Node minimize(Node node) {
+		throw new UnsupportedOperationException();
 	}
 
 	public static Node tail(Node node) {
