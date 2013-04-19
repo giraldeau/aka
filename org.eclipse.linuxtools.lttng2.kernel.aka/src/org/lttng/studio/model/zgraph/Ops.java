@@ -2,6 +2,7 @@ package org.lttng.studio.model.zgraph;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.PriorityQueue;
 import java.util.Stack;
 
 public class Ops {
@@ -273,8 +274,32 @@ public class Ops {
 		return head(curr);
 	}
 
-	public static Node superimpose() {
-		return null;
+	/**
+	 * Merge N2 sequence into N1 according to timestamps. The resulting order of
+	 * nodes with equal timestamps is undefined.
+	 * @param n1
+	 * @param n2
+	 */
+	public static Node merge(Node n1, Node n2) {
+		Node c1 = Ops.clone(n1);
+		Node c2 = Ops.clone(n2);
+		Ops.mergeInPlace(c1, c2);
+		return c1;
+	}
+
+	public static void mergeInPlace(Node n1, Node n2) {
+		PriorityQueue<Node> queue = new PriorityQueue<Node>();
+		queue.add(n1);
+		queue.add(n2);
+		Node prev = null;
+		while(!queue.isEmpty()) {
+			Node curr = queue.poll();
+			if (curr.hasNeighbor(Node.RIGHT))
+				queue.add(curr.neighbor(Node.RIGHT));
+			if (prev != null)
+				prev.linkHorizontal(curr);
+			prev = curr;
+		}
 	}
 
 	public static Node minimize() {

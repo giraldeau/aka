@@ -271,6 +271,19 @@ public class TestGraph {
 		assertTrue(Ops.match(head, exp));
 	}
 
+	@Test
+	public void testMerge() {
+		Node n1 = Ops.sequence(3, 2);
+		Node n2 = Ops.sequence(3, 2);
+		Node exp = Ops.sequence(6, 1);
+		Ops.offset(n2, 1);
+		Node res = Ops.merge(n1, n2);
+		writeString(this, "merge_1.dot", Dot.todot(n1));
+		writeString(this, "merge_2.dot", Dot.todot(n2));
+		writeString(this, "merge.dot", Dot.todot(res));
+		assertEquals(Ops.size(exp), Ops.size(res));
+		assertTrue(Ops.match(res, exp));
+	}
 
 	@Test
 	public void testCheckMatchOk() {
