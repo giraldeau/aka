@@ -5,9 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,22 +20,6 @@ public class TestGraph {
 
 	private static Object A = "A";
 	private static Object B = "B";
-
-	public static void writeString(Object writer, String fname, String content) {
-		String folder = writer.getClass().getName();
-		try {
-			File dir = new File("results", folder);
-			dir.mkdirs();
-			File fout = new File(dir, fname);
-			FileWriter fwriter = new FileWriter(fout);
-			fwriter.write(content);
-			fwriter.flush();
-			fwriter.close();
-			System.out.println("wrote " + fout);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 
 	@Test
 	public void testCreateGraph() {
@@ -104,10 +85,10 @@ public class TestGraph {
 		la.get(0).linkVertical(la.get(2));
 		la.get(1).linkVertical(lb.get(1));
 		lb.get(5).linkVertical(la.get(6));
-		writeString(this, "full.dot", Dot.todot(g));
+		Dot.writeString(this, "full.dot", Dot.todot(g));
 		List<Object> list = new LinkedList<Object>();
 		list.add(A);
-		writeString(this, "partial.dot", Dot.todot(g, list));
+		Dot.writeString(this, "partial.dot", Dot.todot(g, list));
 	}
 
 	@Test
@@ -147,7 +128,7 @@ public class TestGraph {
 	@Test
 	public void testMakeGraphBasic() {
 		Node head = Ops.basic(10);
-		writeString(this, "basic.dot", Dot.todot(head));
+		Dot.writeString(this, "basic.dot", Dot.todot(head));
 		assertTrue(Ops.validate(head));
 	}
 
@@ -168,7 +149,7 @@ public class TestGraph {
 	public void testOffset() {
 		Node head = Ops.basic(10);
 		Ops.offset(head, 100);
-		writeString(this, "offset.dot", Dot.todot(head));
+		Dot.writeString(this, "offset.dot", Dot.todot(head));
 		assertTrue(Ops.validate(head));
 	}
 
@@ -185,7 +166,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(1);
 		Node n2 = Ops.basic(1);
 		Node head = Ops.concat(n1, n2);
-		writeString(this, "concat.dot", Dot.todot(head));
+		Dot.writeString(this, "concat.dot", Dot.todot(head));
 		assertEquals(Ops.size(head), Ops.size(n1) + Ops.size(n2) + 2);
 		assertTrue(Ops.validate(head));
 	}
@@ -194,7 +175,7 @@ public class TestGraph {
 	public void testIter() {
 		Node n = Ops.basic(10);
 		Node head = Ops.iter(n, 1);
-		writeString(this, "iter.dot", Dot.todot(head));
+		Dot.writeString(this, "iter.dot", Dot.todot(head));
 		assertEquals(2 + 3 + 3 + 2, Ops.size(head));
 		assertTrue(Ops.validate(head));
 	}
@@ -204,7 +185,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(20);
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceLeft(n1, n2, LinkType.DEFAULT);
-		writeString(this, "union_left.dot", Dot.todot(n1));
+		Dot.writeString(this, "union_left.dot", Dot.todot(n1));
 		assertEquals(16, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
@@ -214,7 +195,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(20);
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
-		writeString(this, "union_right.dot", Dot.todot(n1));
+		Dot.writeString(this, "union_right.dot", Dot.todot(n1));
 		assertEquals(16, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
@@ -224,7 +205,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(10);
 		Node n2 = Ops.basic(10);
 		Node u1 = Ops.union(n1, n2);
-		writeString(this, "union.dot", Dot.todot(u1));
+		Dot.writeString(this, "union.dot", Dot.todot(u1));
 		assertEquals(3 * 8, Ops.size(u1));
 		assertTrue(Ops.validate(u1));
 	}
@@ -278,9 +259,9 @@ public class TestGraph {
 		Node exp = Ops.sequence(6, 1);
 		Ops.offset(n2, 1);
 		Node res = Ops.merge(n1, n2);
-		writeString(this, "merge_1.dot", Dot.todot(n1));
-		writeString(this, "merge_2.dot", Dot.todot(n2));
-		writeString(this, "merge.dot", Dot.todot(res));
+		Dot.writeString(this, "merge_1.dot", Dot.todot(n1));
+		Dot.writeString(this, "merge_2.dot", Dot.todot(n2));
+		Dot.writeString(this, "merge.dot", Dot.todot(res));
 		assertEquals(Ops.size(exp), Ops.size(res));
 		assertTrue(Ops.match(res, exp));
 	}
@@ -288,12 +269,12 @@ public class TestGraph {
 	@Test
 	public void testAlignRight() {
 		Node n1 = Ops.sequence(3, 4);
-		Ops.offset(n1, 100);
+		Ops.offset(n1, 10);
 
 		Node exp = Ops.sequence(3, 2);
-		Ops.offset(exp, 100 + 4);
+		Ops.offset(exp, 10 + 4);
 
-		for (int i = -9; i < 10; i++) {
+		for (int i = -20; i < 20; i++) {
 			Node n2 = Ops.sequence(3, 2);
 			Ops.offset(n2, i);
 			Ops.alignRight(n1, n2);
@@ -304,12 +285,12 @@ public class TestGraph {
 	@Test
 	public void testAlignLeft() {
 		Node n1 = Ops.sequence(3, 4);
-		Ops.offset(n1, 100);
+		Ops.offset(n1, 10);
 
 		Node exp = Ops.sequence(3, 2);
-		Ops.offset(exp, 100);
+		Ops.offset(exp, 10);
 
-		for (int i = -9; i < 10; i++) {
+		for (int i = -20; i < 20; i++) {
 			Node n2 = Ops.sequence(3, 2);
 			Ops.offset(n2, i);
 			Ops.alignLeft(n1, n2);
@@ -320,12 +301,12 @@ public class TestGraph {
 	@Test
 	public void testAlignCenter1() {
 		Node n1 = Ops.sequence(3, 4);
-		Ops.offset(n1, 100);
+		Ops.offset(n1, 10);
 
 		Node exp = Ops.sequence(3, 2);
-		Ops.offset(exp, 100 + 2);
+		Ops.offset(exp, 10 + 2);
 
-		for (int i = -9; i < 10; i++) {
+		for (int i = -20; i < 20; i++) {
 			Node n2 = Ops.sequence(3, 2);
 			Ops.offset(n2, i);
 			Ops.alignCenter(n1, n2);
@@ -399,9 +380,9 @@ public class TestGraph {
 		}
 		Graph path = Operations.criticalPath(g, A, 25, 75);
 		String content = Dot.todot(g);
-		writeString(this, "task1_full.dot", content);
+		Dot.writeString(this, "task1_full.dot", content);
 		content = Dot.todot(path);
-		writeString(this, "task1_A.dot", content);
+		Dot.writeString(this, "task1_A.dot", content);
 		assertEquals(7, path.getNodesOf(A).size());
 	}
 

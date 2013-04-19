@@ -1,5 +1,8 @@
 package org.lttng.studio.model.zgraph;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -104,6 +107,22 @@ public class Dot {
 			str.append(String.format(fmtNode, node.getID(), node.getID(), node.getTs()));
 		}
 		str.append("}\n");
+	}
+
+	public static void writeString(Object writer, String fname, String content) {
+		String folder = writer.getClass().getName();
+		try {
+			File dir = new File("results", folder);
+			dir.mkdirs();
+			File fout = new File(dir, fname);
+			FileWriter fwriter = new FileWriter(fout);
+			fwriter.write(content);
+			fwriter.flush();
+			fwriter.close();
+			System.out.println("wrote " + fout);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
