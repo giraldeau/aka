@@ -5,13 +5,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
-import org.lttng.studio.model.zgraph.Link;
+import org.lttng.studio.model.zgraph.GraphBuilder;
+import org.lttng.studio.model.zgraph.GraphBuilderData;
+import org.lttng.studio.model.zgraph.GraphFactory;
 import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
@@ -85,10 +88,10 @@ public class TestGraph {
 		la.get(0).linkVertical(la.get(2));
 		la.get(1).linkVertical(lb.get(1));
 		lb.get(5).linkVertical(la.get(6));
-		Dot.writeString(this, "full.dot", Dot.todot(g));
+		Dot.writeString(this, "dot_full.dot", Dot.todot(g));
 		List<Object> list = new LinkedList<Object>();
 		list.add(A);
-		Dot.writeString(this, "partial.dot", Dot.todot(g, list));
+		Dot.writeString(this, "dot_partial.dot", Dot.todot(g, list));
 	}
 
 	@Test
@@ -167,7 +170,7 @@ public class TestGraph {
 		Node n2 = Ops.basic(1);
 		Node head = Ops.concat(n1, n2);
 		Dot.writeString(this, "concat.dot", Dot.todot(head));
-		assertEquals(Ops.size(head), Ops.size(n1) + Ops.size(n2) + 2);
+		assertEquals(2 + 3 + 2, Ops.size(head));
 		assertTrue(Ops.validate(head));
 	}
 
@@ -176,7 +179,7 @@ public class TestGraph {
 		Node n = Ops.basic(10);
 		Node head = Ops.iter(n, 1);
 		Dot.writeString(this, "iter.dot", Dot.todot(head));
-		assertEquals(2 + 3 + 3 + 2, Ops.size(head));
+		assertEquals(2 + 3 + 2, Ops.size(head));
 		assertTrue(Ops.validate(head));
 	}
 
@@ -186,7 +189,7 @@ public class TestGraph {
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceLeft(n1, n2, LinkType.DEFAULT);
 		Dot.writeString(this, "union_left.dot", Dot.todot(n1));
-		assertEquals(16, Ops.size(n1));
+		assertEquals(10, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
 
@@ -196,7 +199,7 @@ public class TestGraph {
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
 		Dot.writeString(this, "union_right.dot", Dot.todot(n1));
-		assertEquals(16, Ops.size(n1));
+		assertEquals(10, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
 
@@ -206,7 +209,7 @@ public class TestGraph {
 		Node n2 = Ops.basic(10);
 		Node u1 = Ops.union(n1, n2);
 		Dot.writeString(this, "union.dot", Dot.todot(u1));
-		assertEquals(3 * 8, Ops.size(u1));
+		assertEquals(12, Ops.size(u1));
 		assertTrue(Ops.validate(u1));
 	}
 
@@ -331,6 +334,16 @@ public class TestGraph {
 	}
 
 	@Test
+	public void testSeek() {
+		int x = 10;
+		Node n1 = Ops.sequence(x, x);
+		for (int i = 0; i < x; i++) {
+			assertEquals(i * x, Ops.seek(n1, i).getTs());
+			assertEquals((x - i - 1) * x, Ops.seek(Ops.tail(n1), -i).getTs());
+		}
+	}
+
+	@Test
 	public void testCheckMatchOk() {
 		Node n1 = Ops.basic(10);
 		Node n2 = Ops.clone(n1);
@@ -373,38 +386,17 @@ public class TestGraph {
 	}
 
 	@Test
-	public void testCriticalPath1() {
-		/*
-		 * Make simple graph sequence with wake-up from subtask
-		 *
-		 * ===+---+===
-		 *       /
-		 * =====+====
-		 */
-		Node n1 = Ops.sequence(3, 10);
-		n1.links[Node.RIGHT].type = LinkType.RUNNING;
-		n1.neighbor(Node.RIGHT).links[Node.RIGHT].type = LinkType.BLOCKED;
-		Node n2 = Ops.sequence(2, 10);
-		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
-		Link l = Ops.tail(n2).linkHorizontal(new Node(30));
-		l.type = LinkType.RUNNING;
-		Graph graph = Ops.toGraph(n1);
-		Node start = graph.getHead(0L);
-
-		// Expected path
-		Node e1 = Ops.basic(10, LinkType.RUNNING);
-		Node e2 = Ops.basic(10, LinkType.RUNNING);
-		Node e3 = Ops.basic(10, LinkType.RUNNING);
-		Ops.offset(e2, 10);
-		Ops.offset(e3, 20);
-		Ops.tail(e1).linkVertical(e2);
-		Ops.tail(e2).linkVertical(e3);
-
-		Graph path = Ops.criticalPathBounded(graph, start);
-		System.out.println(Ops.debug(start));
-		Dot.writeString(this, "critical1_exp.dot", Dot.todot(e1));
-		for (Object parent: path.getNodesMap().keySet()) {
-			Dot.writeString(this, "critical1_act_" + parent + ".dot", Dot.todot(path.getHead(parent)));
+	public void testCriticalPathAll() {
+		GraphFactory factory = new GraphFactory();
+		Collection<GraphBuilder> kind = factory.getBuildersMap().values();
+		for (GraphBuilder builder: kind) {
+			GraphBuilderData data = builder.getDefaults();
+			builder.build(data);
+			builder.criticalPath(data);
+			Graph main = Ops.toGraph(data.head);
+			Graph path = Ops.criticalPathBounded(main, data.path);
+			Dot.writeString(this, builder.getName() + "_exp.dot", Dot.todot(data.path));
+			Dot.writeString(this, builder.getName() + "_act.dot", Dot.todot(path.getHead(0L)));
 		}
 		//assertTrue(Ops.match(e1, path));
 		//assertTrue(Ops.validate(e1));

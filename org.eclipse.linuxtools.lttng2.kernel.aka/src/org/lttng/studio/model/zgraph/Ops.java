@@ -152,10 +152,26 @@ public class Ops {
 	public static void concatInPlace(Node n1, Node n2) {
 		Node x = Ops.tail(n1);
 		Node y = Ops.head(n2);
+		if (!y.hasNeighbor(Node.RIGHT))
+			return;
 		long offset = x.getTs() - y.getTs();
 		Ops.offset(n2, offset);
-		Link link = x.linkHorizontal(y);
-		link.type = LinkType.EPS;
+		if ((x.hasNeighbor(Node.UP) && y.hasNeighbor(Node.UP)) ||
+				x.hasNeighbor(Node.DOWN) && y.hasNeighbor(Node.DOWN))
+				throw new RuntimeException("concat would overwrite links");
+		Node rightNode = y.neighbor(Node.RIGHT);
+		LinkType oldType = y.links[Node.RIGHT].type;
+		x.linkHorizontal(rightNode).type = oldType;
+		if (y.hasNeighbor(Node.UP)) {
+			Node up = y.neighbor(Node.UP);
+			oldType = y.links[Node.UP].type;
+			x.linkVertical(up).type = oldType;
+		}
+		if (y.hasNeighbor(Node.DOWN)) {
+			Node down = y.neighbor(Node.DOWN);
+			oldType = y.links[Node.DOWN].type;
+			down.linkVertical(x).type = oldType;
+		}
 	}
 
 	/**
@@ -182,21 +198,18 @@ public class Ops {
 	public static Node unionInPlaceLeft(Node n1, Node n2, LinkType split) {
 		Node h1 = Ops.head(n1);
 		Node h2 = Ops.head(n2);
-		// add epsilon nodes to prevent overwrite of existing links
-		h1 = Ops.epsilon(h1, Node.LEFT);
-		h2 = Ops.epsilon(h2, Node.LEFT);
-		Link l1 = h1.linkVertical(h2);
-		l1.type = split;
+		if (h1.hasNeighbor(Node.UP) || h2.hasNeighbor(Node.DOWN))
+			throw new RuntimeException("union would overwrite links");
+		h1.linkVertical(h2).type = split;
 		return h1;
 	}
 
 	public static Node unionInPlaceRight(Node n1, Node n2, LinkType merge) {
 		Node t1 = Ops.tail(n1);
 		Node t2 = Ops.tail(n2);
-		t1 = Ops.epsilon(t1, Node.RIGHT);
-		t2 = Ops.epsilon(t2, Node.RIGHT);
-		Link l2 = t2.linkVertical(t1);
-		l2.type = merge;
+		if (t1.hasNeighbor(Node.UP) || t2.hasNeighbor(Node.DOWN))
+			throw new RuntimeException("union would overwrite links");
+		t2.linkVertical(t1).type = merge;
 		return t1;
 	}
 
@@ -265,17 +278,22 @@ public class Ops {
 	 * @param step
 	 * @return
 	 */
-	public static Node sequence(int num, int step) {
+	public static Node sequence(int num, int step, LinkType type) {
 		Node curr = null;
 		Node next = null;
 		for (int i = 0; i < num; i++) {
 			next = new Node(i * step);
 			if (curr != null) {
-				curr.linkHorizontal(next);
+				Link link = curr.linkHorizontal(next);
+				link.type = type;
 			}
 			curr = next;
 		}
 		return head(curr);
+	}
+
+	public static Node sequence(int num, int step) {
+		return sequence(num, step, LinkType.DEFAULT);
 	}
 
 	/**
@@ -359,6 +377,19 @@ public class Ops {
 	public static Node head(Node node) {
 		while(node.left() != null) {
 			node = node.left();
+		}
+		return node;
+	}
+
+	public static Node seek(Node node, int disp) {
+		int dir = Node.RIGHT;
+		if (disp < 0) {
+			disp = Math.abs(disp);
+			dir = Node.LEFT;
+		}
+		for (int i = 0; i < disp; i++) {
+			if (node.hasNeighbor(dir))
+				node = node.neighbor(dir);
 		}
 		return node;
 	}
@@ -566,10 +597,13 @@ public class Ops {
 			Node next = curr.neighbor(Node.RIGHT);
 			Link link = curr.links[Node.RIGHT];
 			switch(link.type) {
+			case USER_INPUT:
+			case BLOCK_DEVICE:
+			case TIMER:
 			case INTERRUPTED:
 			case PREEMPTED:
 			case RUNNING:
-				System.out.println("handle " + link.type);
+				//System.out.println("handle " + link.type);
 				Link link1 = path.append(main.getParentOf(link.to), new Node(link.to));
 				link1.type = link.type;
 				break;
@@ -582,11 +616,8 @@ public class Ops {
 					throw new RuntimeException("epsilon duration is not zero " + link);
 				System.out.println("skip epsilon");
 				break;
-			case BLOCK_DEVICE:
 			case DEFAULT:
 			case NETWORK:
-			case TIMER:
-			case USER_INPUT:
 				throw new RuntimeException("Illegal link type " + link.type);
 			default:
 				break;
@@ -617,10 +648,13 @@ public class Ops {
 			Node prev = node.neighbor(Node.LEFT);
 			Link link = node.links[Node.LEFT];
 			switch (link.type) {
+			case USER_INPUT:
+			case BLOCK_DEVICE:
+			case TIMER:
 			case INTERRUPTED:
 			case PREEMPTED:
 			case RUNNING:
-				System.out.println("handle " + link.type);
+				//System.out.println("handle " + link.type);
 				subPath.add(0, link);
 				break;
 			case BLOCKED:
@@ -632,11 +666,8 @@ public class Ops {
 				if (link.duration() != 0)
 					throw new RuntimeException("epsilon duration is not zero " + link);
 				break;
-			case BLOCK_DEVICE:
 			case DEFAULT:
 			case NETWORK:
-			case TIMER:
-			case USER_INPUT:
 				throw new RuntimeException("Illegal link type " + link.type);
 			default:
 				break;
