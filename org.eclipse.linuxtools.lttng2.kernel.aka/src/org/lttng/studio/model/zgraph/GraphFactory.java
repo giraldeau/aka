@@ -9,12 +9,6 @@ import java.util.HashMap;
 
 public class GraphFactory {
 
-	public static final String A = "A";
-	public static final String B = "B";
-	public static final String C = "C";
-	public static final String D = "D";
-	public static final String E = "E";
-
 	private final HashMap<String, GraphBuilder> builders;
 
 	public static String GRAPH_BASIC = "basic";

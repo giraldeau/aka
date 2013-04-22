@@ -11,9 +11,9 @@ import java.util.List;
 import org.junit.Test;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.Link;
 import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
-import org.lttng.studio.model.zgraph.Operations;
 import org.lttng.studio.model.zgraph.Ops;
 
 public class TestGraph {
@@ -374,16 +374,40 @@ public class TestGraph {
 
 	@Test
 	public void testCriticalPath1() {
-		Graph g = new Graph();
-		for (int i = 0; i < 10; i++) {
-			g.append(A, new Node(i * 10));
+		/*
+		 * Make simple graph sequence with wake-up from subtask
+		 *
+		 * ===+---+===
+		 *       /
+		 * =====+====
+		 */
+		Node n1 = Ops.sequence(3, 10);
+		n1.links[Node.RIGHT].type = LinkType.RUNNING;
+		n1.neighbor(Node.RIGHT).links[Node.RIGHT].type = LinkType.BLOCKED;
+		Node n2 = Ops.sequence(2, 10);
+		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
+		Link l = Ops.tail(n2).linkHorizontal(new Node(30));
+		l.type = LinkType.RUNNING;
+		Graph graph = Ops.toGraph(n1);
+		Node start = graph.getHead(0L);
+
+		// Expected path
+		Node e1 = Ops.basic(10, LinkType.RUNNING);
+		Node e2 = Ops.basic(10, LinkType.RUNNING);
+		Node e3 = Ops.basic(10, LinkType.RUNNING);
+		Ops.offset(e2, 10);
+		Ops.offset(e3, 20);
+		Ops.tail(e1).linkVertical(e2);
+		Ops.tail(e2).linkVertical(e3);
+
+		Graph path = Ops.criticalPathBounded(graph, start);
+		System.out.println(Ops.debug(start));
+		Dot.writeString(this, "critical1_exp.dot", Dot.todot(e1));
+		for (Object parent: path.getNodesMap().keySet()) {
+			Dot.writeString(this, "critical1_act_" + parent + ".dot", Dot.todot(path.getHead(parent)));
 		}
-		Graph path = Operations.criticalPath(g, A, 25, 75);
-		String content = Dot.todot(g);
-		Dot.writeString(this, "task1_full.dot", content);
-		content = Dot.todot(path);
-		Dot.writeString(this, "task1_A.dot", content);
-		assertEquals(7, path.getNodesOf(A).size());
+		//assertTrue(Ops.match(e1, path));
+		//assertTrue(Ops.validate(e1));
 	}
 
 }

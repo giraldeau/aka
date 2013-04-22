@@ -21,6 +21,6 @@ public class Link {
 
 	@Override
 	public String toString() {
-		return "[" + from.getID() + "->" + to.getID() + "]";
+		return "[" + from + "--" + type + "->" + to + "]";
 	}
 }

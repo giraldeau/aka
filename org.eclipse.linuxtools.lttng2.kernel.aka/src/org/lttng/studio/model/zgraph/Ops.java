@@ -2,6 +2,8 @@ package org.lttng.studio.model.zgraph;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
@@ -15,6 +17,8 @@ public class Ops {
 
 	private static class ScanLineTraverse {
 		public static void traverse(Node start, Visitor visitor) {
+			if (start == null)
+				return;
 			Stack<Node> stack = new Stack<Node>();
 			HashSet<Node> visited = new HashSet<Node>();
 			stack.add(start);
@@ -550,6 +554,109 @@ public class Ops {
 			}
 		}
 		return ok;
+	}
+
+	// TODO: implements slice method that returns subpath for interval
+	public static Graph criticalPathBounded(Graph main, Node start) {
+		Graph path = new Graph();
+		Object parent = main.getParentOf(start);
+		path.add(parent, new Node(start));
+		Node curr = start;
+		while(curr.hasNeighbor(Node.RIGHT)) {
+			Node next = curr.neighbor(Node.RIGHT);
+			Link link = curr.links[Node.RIGHT];
+			switch(link.type) {
+			case INTERRUPTED:
+			case PREEMPTED:
+			case RUNNING:
+				System.out.println("handle " + link.type);
+				Link link1 = path.append(main.getParentOf(link.to), new Node(link.to));
+				link1.type = link.type;
+				break;
+			case BLOCKED:
+				List<Link> links = resolveBlocking(main, link);
+				System.out.println(links);
+				break;
+			case EPS:
+				if (link.duration() != 0)
+					throw new RuntimeException("epsilon duration is not zero " + link);
+				System.out.println("skip epsilon");
+				break;
+			case BLOCK_DEVICE:
+			case DEFAULT:
+			case NETWORK:
+			case TIMER:
+			case USER_INPUT:
+				throw new RuntimeException("Illegal link type " + link.type);
+			default:
+				break;
+			}
+			curr = next;
+		}
+		return path;
+	}
+
+	private static List<Link> resolveBlocking(Graph main, Link blocking) {
+		System.out.println("resolve blocking " + blocking);
+		List<Link> subPath = new LinkedList<Link>();
+		Node junction = findIncoming(blocking.to, Node.RIGHT);
+		// if wake-up source is not found, return the blocking itself
+		if (junction == null) {
+			subPath.add(blocking);
+			return subPath;
+		}
+		System.out.println("junction " + junction + " " + junction.links[Node.DOWN]);
+		Link down = junction.links[Node.DOWN];
+		subPath.add(down);
+		Node node = down.from;
+		while(node.hasNeighbor(Node.LEFT)) {
+			if (node.compareTo(blocking.from) <= 0) {
+				System.out.println("reached time bound " + node);
+				break;
+			}
+			Node prev = node.neighbor(Node.LEFT);
+			Link link = node.links[Node.LEFT];
+			switch (link.type) {
+			case INTERRUPTED:
+			case PREEMPTED:
+			case RUNNING:
+				System.out.println("handle " + link.type);
+				subPath.add(0, link);
+				break;
+			case BLOCKED:
+				List<Link> links = resolveBlocking(main, link);
+				System.out.println(links);
+				//subPath.addAll(0, links);
+				break;
+			case EPS:
+				if (link.duration() != 0)
+					throw new RuntimeException("epsilon duration is not zero " + link);
+				break;
+			case BLOCK_DEVICE:
+			case DEFAULT:
+			case NETWORK:
+			case TIMER:
+			case USER_INPUT:
+				throw new RuntimeException("Illegal link type " + link.type);
+			default:
+				break;
+			}
+			node = prev;
+		}
+		return subPath;
+	}
+
+	public static Node findIncoming(Node node, int dir) {
+		while(true) {
+			if (node.hasNeighbor(Node.DOWN))
+				return node;
+			if (!(node.hasNeighbor(dir) &&
+					node.links[dir].type == LinkType.EPS)) {
+				break;
+			}
+			node = node.neighbor(dir);
+		}
+		return null;
 	}
 
 }
