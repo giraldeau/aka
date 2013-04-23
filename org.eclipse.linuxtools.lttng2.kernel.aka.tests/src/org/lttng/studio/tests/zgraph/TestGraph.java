@@ -334,6 +334,15 @@ public class TestGraph {
 	}
 
 	@Test
+	public void testMinimize() {
+		Node n1 = Ops.sequence(10, 10);
+		Node n2 = Ops.basic(90);
+		Node min = Ops.minimize(n1);
+		System.out.println(Ops.debug(min));
+		assertTrue(Ops.match(n2, min));
+	}
+
+	@Test
 	public void testSeek() {
 		int x = 10;
 		Node n1 = Ops.sequence(x, x);
@@ -385,21 +394,52 @@ public class TestGraph {
 		assertFalse(Ops.match(n1, n2, Ops.MATCH_LINKS_TYPE));
 	}
 
+	static GraphFactory factory = new GraphFactory();
+
+	public void testCriticalPathOne(GraphBuilder builder, GraphBuilderData data) {
+		builder.build(data);
+		builder.criticalPath(data);
+		Graph main = Ops.toGraphInPlace(data.head);
+		Graph path = Ops.criticalPathBounded(main, data.head);
+		System.out.println(main);
+		System.out.println(main.dump());
+		System.out.println(path);
+		System.out.println(path.dump());
+		System.out.println(Ops.debug(data.path));
+		Node act = path.getHead(0L);
+		Dot.writeString(this, builder.getName() + "_all.dot", Dot.todot(main));
+		Dot.writeString(this, builder.getName() + "_exp.dot", Dot.todot(data.path));
+		Dot.writeString(this, builder.getName() + "_act.dot", Dot.todot(act));
+		assertTrue(Ops.validate(act));
+		assertTrue(Ops.match(data.path, act));
+	}
+
 	@Test
 	public void testCriticalPathAll() {
 		GraphFactory factory = new GraphFactory();
 		Collection<GraphBuilder> kind = factory.getBuildersMap().values();
 		for (GraphBuilder builder: kind) {
 			GraphBuilderData data = builder.getDefaults();
-			builder.build(data);
-			builder.criticalPath(data);
-			Graph main = Ops.toGraph(data.head);
-			Graph path = Ops.criticalPathBounded(main, data.path);
-			Dot.writeString(this, builder.getName() + "_exp.dot", Dot.todot(data.path));
-			Dot.writeString(this, builder.getName() + "_act.dot", Dot.todot(path.getHead(0L)));
+			testCriticalPathOne(builder, data);
 		}
-		//assertTrue(Ops.match(e1, path));
-		//assertTrue(Ops.validate(e1));
+	}
+
+	@Test
+	public void testCriticalPathBasic() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_BASIC);
+		testCriticalPathOne(builder, builder.getDefaults());
+	}
+
+	@Test
+	public void testCriticalPathWakeupSelf() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_SELF);
+		testCriticalPathOne(builder, builder.getDefaults());
+	}
+
+	@Test
+	public void testCriticalPathWakeupNew() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_NEW);
+		testCriticalPathOne(builder, builder.getDefaults());
 	}
 
 }

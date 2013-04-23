@@ -52,7 +52,7 @@ public class Graph {
 		Node tail = getTail(obj);
 		Link link = null;
 		if (tail != null) {
-			link = tail.linkHorizontal (node);
+			link = tail.linkHorizontal(node);
 		}
 		list.add(node);
 		reverse.put(node, obj);
@@ -112,6 +112,22 @@ public class Graph {
 			}
 		}
 		return size;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("Graph { actors=%d, nodes=%d }",
+				nodeMap.keySet().size(), nodeMap.values().size());
+	}
+
+	public String dump() {
+		StringBuilder str = new StringBuilder();
+		for (Object obj: nodeMap.keySet()) {
+			str.append(String.format("%10s ", obj));
+			str.append(nodeMap.get(obj));
+			str.append("\n");
+		}
+		return str.toString();
 	}
 
 }

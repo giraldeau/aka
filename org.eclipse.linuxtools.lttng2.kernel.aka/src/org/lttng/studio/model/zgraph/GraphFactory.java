@@ -16,7 +16,7 @@ public class GraphFactory {
 		new GraphBuilder(GRAPH_BASIC) {
 			@Override
 			public void build(GraphBuilderData data) {
-				data.head = Ops.basic(data.len);
+				data.head = Ops.basic(data.len, LinkType.RUNNING);
 			}
 
 			@Override
@@ -28,7 +28,7 @@ public class GraphFactory {
 
 			@Override
 			public void criticalPath(GraphBuilderData data) {
-				data.path = Ops.basic(data.len);
+				data.path = Ops.basic(data.len, LinkType.RUNNING);
 			}
 		};
 
@@ -55,10 +55,8 @@ public class GraphFactory {
 
 			@Override
 			public void criticalPath(GraphBuilderData data) {
-				Node n1 = Ops.sequence(4, data.len, LinkType.RUNNING);
-				Ops.offset(n1, data.len);
-				n1.setTs(0);
-				Ops.seek(n1, 1).links[Node.RIGHT].type = LinkType.TIMER;
+				Node n1 = Ops.sequence(5, data.len, LinkType.RUNNING);
+				Ops.seek(n1, 2).links[Node.RIGHT].type = LinkType.TIMER;
 				data.path = n1;
 			}
 		};
@@ -229,7 +227,7 @@ public class GraphFactory {
 			public GraphBuilderData getDefaults() {
 				GraphBuilderData data = new GraphBuilderData();
 				data.len = 1;
-				data.depth = 3;
+				data.depth = 10;
 				return data;
 			}
 
@@ -280,6 +278,10 @@ public class GraphFactory {
 
 	public HashMap<String, GraphBuilder> getBuildersMap() {
 		return builders;
+	}
+
+	public GraphBuilder get(String name) {
+		return builders.get(name);
 	}
 
 	public static void main(String[] args) throws IOException {

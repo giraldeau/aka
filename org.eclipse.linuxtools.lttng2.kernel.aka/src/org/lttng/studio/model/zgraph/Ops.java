@@ -1,5 +1,7 @@
 package org.lttng.studio.model.zgraph;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -363,8 +365,49 @@ public class Ops {
 		offset(n2, diff);
 	}
 
+	/**
+	 * Merge consecutive nodes if possible
+	 * @param node
+	 * @return
+	 */
 	public static Node minimize(Node node) {
-		throw new UnsupportedOperationException();
+		Node clone = Ops.clone(node);
+		minimizeInPlace(clone);
+		return clone;
+	}
+
+	public static void minimizeInPlace(Node node) {
+		final List<Node> heads = new ArrayList<Node>();
+		ScanLineTraverse.traverse(node, new Visitor() {
+			@Override
+			public void visitHead(Node node) {
+				heads.add(node);
+			}
+			@Override
+			public void visitNode(Node node) {
+			}
+			@Override
+			public void visitLink(Link link, boolean hori) {
+			}
+		});
+		for (Node head: heads) {
+			Node curr = head;
+			while(curr.hasNeighbor(Node.RIGHT)) {
+				Node right = curr.right();
+				if (curr.hasNeighbor(Node.LEFT)) {
+					Node left = curr.left();
+					if ((left.links[Node.RIGHT].type == right.links[Node.LEFT].type) &&
+							!(curr.hasNeighbor(Node.UP) || curr.hasNeighbor(Node.DOWN))) {
+						LinkType oldType = left.links[Node.RIGHT].type;
+						left.linkHorizontal(right).type = oldType;
+						curr.links[Node.LEFT] = null;
+						curr.links[Node.RIGHT] = null;
+					}
+				}
+				curr = right;
+			}
+		}
+
 	}
 
 	public static Node tail(Node node) {
@@ -593,6 +636,7 @@ public class Ops {
 		Object parent = main.getParentOf(start);
 		path.add(parent, new Node(start));
 		Node curr = start;
+		Link prev = null;
 		while(curr.hasNeighbor(Node.RIGHT)) {
 			Node next = curr.neighbor(Node.RIGHT);
 			Link link = curr.links[Node.RIGHT];
@@ -603,13 +647,13 @@ public class Ops {
 			case INTERRUPTED:
 			case PREEMPTED:
 			case RUNNING:
-				//System.out.println("handle " + link.type);
 				Link link1 = path.append(main.getParentOf(link.to), new Node(link.to));
 				link1.type = link.type;
 				break;
 			case BLOCKED:
 				List<Link> links = resolveBlocking(main, link);
-				System.out.println(links);
+				Collections.reverse(links);
+				glue(main, path, curr, links);
 				break;
 			case EPS:
 				if (link.duration() != 0)
@@ -627,19 +671,62 @@ public class Ops {
 		return path;
 	}
 
+	private static void glue(Graph main, Graph path, Node curr, List<Link> links) {
+		Object currentActor = main.getParentOf(curr);
+		if (links.isEmpty()) {
+			Node next = curr.neighbor(Node.RIGHT);
+			path.append(currentActor, new Node(next)).type = LinkType.UNKNOWN;
+			return;
+		}
+		// FIXME: fill any gap with UNKNOWN task
+		// FIXME: assert last link.to actor == currentActor
+
+		// attach subpath to b1 and b2
+		Node b1 = path.getTail(currentActor);
+		Node b2 = new Node(curr.neighbor(Node.RIGHT));
+		Node anchor;
+
+		// glue head
+		Link lnk = links.get(0);
+		Object objSrc = main.getParentOf(lnk.from);
+		if (objSrc == currentActor) {
+			anchor = b1;
+		} else {
+			anchor = new Node(curr);
+			path.add(objSrc, anchor);
+			b1.linkHorizontal(anchor);
+		}
+
+		// glue body
+		for (Link link: links) {
+			Node from = link.from;
+			Node to = link.to;
+			Object parentFrom = main.getParentOf(from);
+			Object parentTo = main.getParentOf(to);
+			Node tmp = new Node(to);
+			path.add(parentTo, tmp);
+			if (parentFrom == parentTo) {
+				anchor.linkHorizontal(tmp).type = link.type;
+			} else {
+				anchor.linkVertical(tmp).type = link.type;
+			}
+			anchor = tmp;
+		}
+	}
+
 	private static List<Link> resolveBlocking(Graph main, Link blocking) {
 		System.out.println("resolve blocking " + blocking);
 		List<Link> subPath = new LinkedList<Link>();
 		Node junction = findIncoming(blocking.to, Node.RIGHT);
-		// if wake-up source is not found, return the blocking itself
+		// if wake-up source is not found, return empty list
 		if (junction == null) {
-			subPath.add(blocking);
 			return subPath;
 		}
 		System.out.println("junction " + junction + " " + junction.links[Node.DOWN]);
 		Link down = junction.links[Node.DOWN];
 		subPath.add(down);
 		Node node = down.from;
+		// FIXME: check for Node.DOWN: does scan line should be replaced by a stack
 		while(node.hasNeighbor(Node.LEFT)) {
 			if (node.compareTo(blocking.from) <= 0) {
 				System.out.println("reached time bound " + node);
@@ -655,12 +742,12 @@ public class Ops {
 			case PREEMPTED:
 			case RUNNING:
 				//System.out.println("handle " + link.type);
-				subPath.add(0, link);
+				subPath.add(link);
 				break;
 			case BLOCKED:
 				List<Link> links = resolveBlocking(main, link);
 				System.out.println(links);
-				//subPath.addAll(0, links);
+				subPath.addAll(links);
 				break;
 			case EPS:
 				if (link.duration() != 0)
