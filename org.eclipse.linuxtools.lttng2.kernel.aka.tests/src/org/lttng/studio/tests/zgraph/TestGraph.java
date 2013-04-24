@@ -487,4 +487,10 @@ public class TestGraph {
 		assertTrue(testCriticalPathOne(builder));
 	}
 
+	@Test
+	public void testCriticalPathWakeupMissing() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_MISSING);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
 }

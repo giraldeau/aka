@@ -71,6 +71,37 @@ public class GraphFactory {
 			}
 		};
 
+	public static String GRAPH_WAKEUP_MISSING = "wakeup_missing";
+	public static GraphBuilder wakeupMissing =
+		new GraphBuilder(GRAPH_WAKEUP_MISSING) {
+			@Override
+			public void build(GraphBuilderData data) {
+				Node t1 = Ops.sequence(4, data.len, LinkType.RUNNING);
+				Ops.seek(t1, 1).links[Node.RIGHT].type = LinkType.BLOCKED;
+				data.head = t1;
+			}
+
+			@Override
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+				}
+				return data;
+			}
+
+			@Override
+			public void criticalPath(GraphBuilderData data) {
+				Node n1 = Ops.sequence(4, data.len, LinkType.RUNNING);
+				Ops.seek(n1, 1).links[Node.RIGHT].type = LinkType.UNKNOWN;
+				data.path = n1;
+			}
+		};
+
+
 	public static String GRAPH_WAKEUP_UNKNOWN = "wakeup_unknown";
 	public static GraphBuilder wakeupUnknown =
 		new GraphBuilder(GRAPH_WAKEUP_UNKNOWN) {
