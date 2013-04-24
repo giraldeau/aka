@@ -171,13 +171,13 @@ public class GraphFactory {
 
 			@Override
 			public GraphBuilderData[] params() {
-				int max = 1;
+				int max = 5;
 				GraphBuilderData[] data = new GraphBuilderData[max];
 				for (int i = 0; i < max; i++) {
 					data[i] = new GraphBuilderData();
 					data[i].id = i;
 					data[i].len = 3;
-					data[i].delay = 2;
+					data[i].delay = i;
 				}
 				return data;
 			}
@@ -186,7 +186,9 @@ public class GraphFactory {
 			public void criticalPath(GraphBuilderData data) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				long duration = (data.len <= data.delay) ? 0 : data.len - data.delay;
-				Node n2 = Ops.basic(duration, LinkType.RUNNING);
+				Node n2 = new Node(0);
+				if (duration > 0)
+					n2 = Ops.basic(duration, LinkType.RUNNING);
 				Ops.offset(n2, data.len);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
 				Ops.offset(n3, data.len * 2);
@@ -257,13 +259,13 @@ public class GraphFactory {
 
 			@Override
 			public GraphBuilderData[] params() {
-				int max = 2;
+				int max = 4;
 				GraphBuilderData[] data = new GraphBuilderData[max];
 				for (int i = 0; i < max; i++) {
 					data[i] = new GraphBuilderData();
 					data[i].id = i;
 					data[i].len = 1;
-					data[i].depth = 3;
+					data[i].depth = i;
 				}
 				return data;
 			}

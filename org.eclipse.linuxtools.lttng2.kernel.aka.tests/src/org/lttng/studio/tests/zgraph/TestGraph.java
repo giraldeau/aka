@@ -481,4 +481,10 @@ public class TestGraph {
 		assertTrue(testCriticalPathOne(builder));
 	}
 
+	@Test
+	public void testCriticalPathWakeupOpened() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_OPENED);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
 }
