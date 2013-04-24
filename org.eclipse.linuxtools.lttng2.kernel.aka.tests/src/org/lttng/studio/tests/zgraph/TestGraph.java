@@ -493,4 +493,10 @@ public class TestGraph {
 		assertTrue(testCriticalPathOne(builder));
 	}
 
+	@Test
+	public void testCriticalPathWakeupEmbeded() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_EMBEDED);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
 }

@@ -268,6 +268,56 @@ public class GraphFactory {
 			}
 		};
 
+	public static String GRAPH_WAKEUP_EMBEDED = "wakeup_embeded";
+	public static GraphBuilder wakeupEmbeded =
+		new GraphBuilder(GRAPH_WAKEUP_EMBEDED) {
+			@Override
+			public void build(GraphBuilderData data) {
+				Node t1 = Ops.sequence(3, data.len, LinkType.RUNNING);
+				for (int i = 0; i < data.depth; i++) {
+					Ops.tail(t1).links[Node.LEFT].type = LinkType.BLOCKED;
+					long duration = Ops.tail(t1).getTs() - t1.getTs();
+					Node sub = Ops.basic(duration, LinkType.RUNNING);
+					Ops.unionInPlace(t1, sub, LinkType.DEFAULT, LinkType.DEFAULT);
+					Node x1 = Ops.basic(data.len, LinkType.RUNNING);
+					Node x2 = Ops.basic(data.len, LinkType.RUNNING);
+					Ops.concatInPlace(x1, t1);
+					Ops.concatInPlace(t1, x2);
+					t1 = x1;
+				}
+				data.head = t1;
+			}
+
+			@Override
+			public GraphBuilderData[] params() {
+				int max = 3;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+					data[i].depth = i;
+				}
+				return data;
+			}
+
+			@Override
+			public void criticalPath(GraphBuilderData data) {
+				Node n1 = Ops.sequence(data.depth + 2, data.len, LinkType.RUNNING);
+				Node curr = n1;
+				for (int i = 0; i < data.depth; i++) {
+					Node sub = Ops.basic(data.len, LinkType.RUNNING);
+					Ops.offset(sub, Ops.tail(curr).getTs());
+					Ops.tail(curr).linkVertical(sub);
+					Node x = new Node(Ops.tail(sub));
+					Ops.tail(sub).linkVertical(x);
+					curr = x;
+				}
+				Ops.concatInPlace(curr, Ops.basic(data.len, LinkType.RUNNING));
+				data.path = n1;
+			}
+		};
+
 	public static String GRAPH_NESTED = "wakeup_nested";
 	public static GraphBuilder wakeupNested =
 		new GraphBuilder(GRAPH_NESTED) {
