@@ -412,9 +412,11 @@ public class TestGraph {
 			StringBuilder str = new StringBuilder();
 			str.append("Main graph:\n");
 			str.append(main.toString());
+			str.append("\n");
 			str.append(main.dump());
 			str.append("Critical path:\n");
 			str.append(path.toString());
+			str.append("\n");
 			str.append(path.dump());
 
 			Dot.writeString(this, filePrefix + ".log", str.toString());
@@ -458,6 +460,24 @@ public class TestGraph {
 	@Test
 	public void testCriticalPathWakeupNew() {
 		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_NEW);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
+	@Test
+	public void testCriticalPathWakeupUnknown() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_UNKNOWN);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
+	@Test
+	public void testCriticalPathWakeupMutual() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_MUTUAL);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
+	@Test
+	public void testCriticalPathWakeupNested() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_NESTED);
 		assertTrue(testCriticalPathOne(builder));
 	}
 

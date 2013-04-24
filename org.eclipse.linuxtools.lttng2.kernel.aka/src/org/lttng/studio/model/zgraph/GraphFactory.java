@@ -126,13 +126,13 @@ public class GraphFactory {
 
 			@Override
 			public GraphBuilderData[] params() {
-				int max = 3;
+				int max = 5;
 				GraphBuilderData[] data = new GraphBuilderData[max];
 				for (int i = 0; i < max; i++) {
 					data[i] = new GraphBuilderData();
 					data[i].id = i;
 					data[i].len = 2;
-					data[i].delay = 3;
+					data[i].delay = i;
 				}
 				return data;
 			}
@@ -140,12 +140,14 @@ public class GraphFactory {
 			@Override
 			public void criticalPath(GraphBuilderData data) {
 				Node n1 = Ops.sequence(3, data.len, LinkType.RUNNING);
-				long duration = ((data.len * 2) <= data.delay) ? 0 : (data.len * 2) - data.delay;
+
+				long duration = (data.delay < data.len) ? data.len : (data.len * 2) - data.delay;
 				Node n2 = Ops.basic(duration, LinkType.RUNNING);
-				Ops.offset(n2, data.len + data.delay);
+				Ops.offset(n2, data.len * 2 + (data.len - duration));
+
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
 				Ops.offset(n3, data.len * 3);
-				Ops.tail(n1).linkVertical(n2);
+				Ops.seek(n1, 2).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3);
 				data.path = n1;
 			}
@@ -215,14 +217,14 @@ public class GraphFactory {
 				for (int i = 0; i < max; i++) {
 					data[i] = new GraphBuilderData();
 					data[i].id = i;
-					data[i].len = 2;
+					data[i].len = 1;
 				}
 				return data;
 			}
 
 			@Override
 			public void criticalPath(GraphBuilderData data) {
-				Node n1 = Ops.basic(data.len * 3, LinkType.RUNNING);
+				Node n1 = Ops.sequence(4, data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len, LinkType.RUNNING);
 				Ops.offset(n2, Ops.tail(n1).getTs());
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);

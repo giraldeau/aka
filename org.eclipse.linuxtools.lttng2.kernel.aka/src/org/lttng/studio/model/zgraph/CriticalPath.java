@@ -56,7 +56,6 @@ public class CriticalPath {
 			path.append(currentActor, new Node(next)).type = LinkType.UNKNOWN;
 			return;
 		}
-		// FIXME: fill any gap with UNKNOWN task
 		// FIXME: assert last link.to actor == currentActor
 
 		// attach subpath to b1 and b2
@@ -72,24 +71,49 @@ public class CriticalPath {
 		} else {
 			anchor = new Node(curr);
 			path.add(objSrc, anchor);
-			b1.linkHorizontal(anchor);
+			b1.linkVertical(anchor);
+			// fill any gap with UNKNOWN
+			if (lnk.from.compareTo(anchor) > 0) {
+				anchor = new Node(lnk.from);
+				path.append(objSrc, anchor).type = LinkType.UNKNOWN;
+			}
 		}
 
 		// glue body
+		Link prev = null;
 		for (Link link: links) {
-			Node from = link.from;
-			Node to = link.to;
-			Object parentFrom = main.getParentOf(from);
-			Object parentTo = main.getParentOf(to);
-			Node tmp = new Node(to);
-			path.add(parentTo, tmp);
-			if (parentFrom == parentTo) {
-				anchor.linkHorizontal(tmp).type = link.type;
-			} else {
-				anchor.linkVertical(tmp).type = link.type;
+			// check connectivity
+			if (prev != null && prev.to != link.from) {
+				anchor = copyLink(path, anchor, prev.to, link.from,
+						prev.to.getTs(), LinkType.DEFAULT);
 			}
-			anchor = tmp;
+			anchor = copyLink(path, anchor, link.from, link.to,
+					link.to.getTs(), link.type);
+			prev = link;
 		}
+	}
+
+	/**
+	 * Copy link of type TYPE between nodes FROM and TO in the graph PATH.
+	 * The return value is the tail node for the new path.
+	 * @param path
+	 * @param anchor
+	 * @param from
+	 * @param to
+	 * @param type
+	 * @return
+	 */
+	public Node copyLink(Graph path, Node anchor, Node from, Node to, long ts, LinkType type) {
+		Object parentFrom = main.getParentOf(from);
+		Object parentTo = main.getParentOf(to);
+		Node tmp = new Node(ts);
+		path.add(parentTo, tmp);
+		if (parentFrom == parentTo) {
+			anchor.linkHorizontal(tmp).type = type;
+		} else {
+			anchor.linkVertical(tmp).type = type;
+		}
+		return tmp;
 	}
 
 	private List<Link> resolveBlocking(Link blocking, Node bound) {
@@ -111,7 +135,7 @@ public class CriticalPath {
 			if (node.hasNeighbor(Node.LEFT)) {
 				Link link = node.links[Node.LEFT];
 				if (link.type == LinkType.BLOCKED) {
-					resolveBlocking(link, bound);
+					subPath.addAll(resolveBlocking(link, bound));
 				} else {
 					subPath.add(link);
 				}
