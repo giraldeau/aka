@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
+import org.lttng.studio.model.zgraph.CriticalPath;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.GraphBuilder;
@@ -396,50 +397,68 @@ public class TestGraph {
 
 	static GraphFactory factory = new GraphFactory();
 
-	public void testCriticalPathOne(GraphBuilder builder, GraphBuilderData data) {
-		builder.build(data);
-		builder.criticalPath(data);
-		Graph main = Ops.toGraphInPlace(data.head);
-		Graph path = Ops.criticalPathBounded(main, data.head);
-		System.out.println(main);
-		System.out.println(main.dump());
-		System.out.println(path);
-		System.out.println(path.dump());
-		System.out.println(Ops.debug(data.path));
-		Node act = path.getHead(0L);
-		Dot.writeString(this, builder.getName() + "_all.dot", Dot.todot(main));
-		Dot.writeString(this, builder.getName() + "_exp.dot", Dot.todot(data.path));
-		Dot.writeString(this, builder.getName() + "_act.dot", Dot.todot(act));
-		assertTrue(Ops.validate(act));
-		assertTrue(Ops.match(data.path, act));
+	public boolean testCriticalPathOne(GraphBuilder builder) {
+		GraphBuilderData[] params = builder.params();
+		boolean ret = true;
+		for (GraphBuilderData data: params) {
+			String filePrefix = builder.getName() + "_" + data.id;
+			builder.build(data);
+			builder.criticalPath(data);
+			Graph main = Ops.toGraphInPlace(data.head);
+			CriticalPath cp = new CriticalPath(main);
+			Graph path = cp.criticalPathBounded(data.head);
+			Node act = path.getHead(0L);
+
+			StringBuilder str = new StringBuilder();
+			str.append("Main graph:\n");
+			str.append(main.toString());
+			str.append(main.dump());
+			str.append("Critical path:\n");
+			str.append(path.toString());
+			str.append(path.dump());
+
+			Dot.writeString(this, filePrefix + ".log", str.toString());
+			Dot.writeString(this, filePrefix + "_all.dot", Dot.todot(main));
+			Dot.writeString(this, filePrefix + "_exp.dot", Dot.todot(data.path));
+			Dot.writeString(this, filePrefix + "_act.dot", Dot.todot(act));
+			boolean status = Ops.validate(act) && Ops.match(data.path, act);
+			if (status)
+				System.out.println("PASS: " + filePrefix);
+			else
+				System.out.println("FAIL: " + filePrefix);
+			ret = ret && status;
+		}
+		return ret;
 	}
 
 	@Test
 	public void testCriticalPathAll() {
 		GraphFactory factory = new GraphFactory();
 		Collection<GraphBuilder> kind = factory.getBuildersMap().values();
+		boolean ok = true;
 		for (GraphBuilder builder: kind) {
-			GraphBuilderData data = builder.getDefaults();
-			testCriticalPathOne(builder, data);
+			boolean res = testCriticalPathOne(builder);
+			ok = ok && res;
 		}
+		assertTrue(ok);
 	}
 
 	@Test
 	public void testCriticalPathBasic() {
 		GraphBuilder builder = factory.get(GraphFactory.GRAPH_BASIC);
-		testCriticalPathOne(builder, builder.getDefaults());
+		assertTrue(testCriticalPathOne(builder));
 	}
 
 	@Test
 	public void testCriticalPathWakeupSelf() {
 		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_SELF);
-		testCriticalPathOne(builder, builder.getDefaults());
+		assertTrue(testCriticalPathOne(builder));
 	}
 
 	@Test
 	public void testCriticalPathWakeupNew() {
 		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_NEW);
-		testCriticalPathOne(builder, builder.getDefaults());
+		assertTrue(testCriticalPathOne(builder));
 	}
 
 }

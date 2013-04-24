@@ -7,6 +7,7 @@ public class GraphBuilderData {
 
 	public Node head;
 	public Node path;
+	public int id = 0;
 	public int len = 0;
 	public int num = 0;
 	public int depth = 0;

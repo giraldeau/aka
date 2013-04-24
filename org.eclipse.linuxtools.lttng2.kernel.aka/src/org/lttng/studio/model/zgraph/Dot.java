@@ -119,7 +119,6 @@ public class Dot {
 			fwriter.write(content);
 			fwriter.flush();
 			fwriter.close();
-			System.out.println("wrote " + fout);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

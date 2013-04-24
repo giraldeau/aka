@@ -20,9 +20,14 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 1;
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+				}
 				return data;
 			}
 
@@ -47,9 +52,14 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 1;
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 1;
+				}
 				return data;
 			}
 
@@ -74,10 +84,15 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 2;
-				data.delay = 1;
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+					data[i].delay = 1;
+				}
 				return data;
 			}
 
@@ -110,16 +125,21 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 2;
-				data.delay = 3;
+			public GraphBuilderData[] params() {
+				int max = 3;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+					data[i].delay = 3;
+				}
 				return data;
 			}
 
 			@Override
 			public void criticalPath(GraphBuilderData data) {
-				Node n1 = Ops.basic(data.len * 2, LinkType.RUNNING);
+				Node n1 = Ops.sequence(3, data.len, LinkType.RUNNING);
 				long duration = ((data.len * 2) <= data.delay) ? 0 : (data.len * 2) - data.delay;
 				Node n2 = Ops.basic(duration, LinkType.RUNNING);
 				Ops.offset(n2, data.len + data.delay);
@@ -148,10 +168,15 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 3;
-				data.delay = 2;
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 3;
+					data[i].delay = 2;
+				}
 				return data;
 			}
 
@@ -184,9 +209,14 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 1;
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+				}
 				return data;
 			}
 
@@ -224,10 +254,15 @@ public class GraphFactory {
 			}
 
 			@Override
-			public GraphBuilderData getDefaults() {
-				GraphBuilderData data = new GraphBuilderData();
-				data.len = 1;
-				data.depth = 10;
+			public GraphBuilderData[] params() {
+				int max = 2;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 1;
+					data[i].depth = 3;
+				}
 				return data;
 			}
 
@@ -291,13 +326,15 @@ public class GraphFactory {
 		Collection<GraphBuilder> kind = factory.getBuildersMap().values();
 		for (GraphBuilder builder: kind) {
 			System.out.println("processing " + builder.getName());
-			GraphBuilderData data = builder.getDefaults();
-			builder.build(data);
-			builder.criticalPath(data);
-			String graph = Dot.todot(Ops.head(data.head));
-			String path = Dot.todot(Ops.head(data.path));
-			Dot.writeString(factory, builder.getName() + "_graph.dot", graph);
-			Dot.writeString(factory, builder.getName() + "_path.dot", path);
+			GraphBuilderData[] params = builder.params();
+			for (GraphBuilderData data: params) {
+				builder.build(data);
+				builder.criticalPath(data);
+				String graph = Dot.todot(Ops.head(data.head));
+				String path = Dot.todot(Ops.head(data.path));
+				Dot.writeString(factory, builder.getName() + "_" + data.id + "_graph.dot", graph);
+				Dot.writeString(factory, builder.getName() + "_" + data.id + "_path.dot", path);
+			}
 		}
 	}
 
