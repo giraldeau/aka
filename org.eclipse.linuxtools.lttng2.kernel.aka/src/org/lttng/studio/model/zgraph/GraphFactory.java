@@ -318,6 +318,60 @@ public class GraphFactory {
 			}
 		};
 
+	public static String GRAPH_WAKEUP_INTERLEAVE = "wakeup_interleave";
+	public static GraphBuilder wakeupInterleave =
+		new GraphBuilder(GRAPH_WAKEUP_INTERLEAVE) {
+			@Override
+			public void build(GraphBuilderData data) {
+				Node t1 = Ops.sequence(3 + 2 * data.depth, data.len, LinkType.RUNNING);
+				for (int i = 0; i < data.depth; i++) {
+					Node x = Ops.seek(t1, i + 1);
+					Node y = Ops.seek(t1, i + 4);
+					y.links[Node.LEFT].type = LinkType.BLOCKED;
+					Node sub = Ops.basic(3 * data.len, LinkType.RUNNING);
+					Ops.offset(sub, x.getTs());
+					x.linkVertical(sub);
+					Ops.tail(sub).linkVertical(y);
+				}
+				Ops.concatInPlace(t1, Ops.basic(data.len, LinkType.RUNNING));
+				data.head = t1;
+			}
+
+			@Override
+			public GraphBuilderData[] params() {
+				int max = 3;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 2;
+					data[i].depth = i;
+				}
+				return data;
+			}
+
+			@Override
+			public void criticalPath(GraphBuilderData data) {
+				int n = data.depth == 0 ? 3 : 4;
+				Node n1 = Ops.sequence(n, data.len, LinkType.RUNNING);
+				Node curr = n1;
+				for (int i = 0; i < data.depth; i++) {
+					Node sub = Ops.basic(data.len, LinkType.RUNNING);
+					Ops.offset(sub, Ops.tail(curr).getTs());
+					Ops.tail(curr).linkVertical(sub);
+					Node x = new Node(Ops.tail(sub));
+					Ops.tail(sub).linkVertical(x);
+					curr = x;
+				}
+				Ops.concatInPlace(curr, Ops.basic(data.len, LinkType.RUNNING));
+				// FIXME: should replace this with proper general relationship
+				if (data.depth == 2) {
+					Ops.concatInPlace(curr, Ops.basic(data.len, LinkType.RUNNING));
+				}
+				data.path = n1;
+			}
+		};
+
 	public static String GRAPH_NESTED = "wakeup_nested";
 	public static GraphBuilder wakeupNested =
 		new GraphBuilder(GRAPH_NESTED) {

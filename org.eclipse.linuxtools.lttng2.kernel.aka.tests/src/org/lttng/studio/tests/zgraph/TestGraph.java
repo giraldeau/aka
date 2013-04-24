@@ -499,4 +499,10 @@ public class TestGraph {
 		assertTrue(testCriticalPathOne(builder));
 	}
 
+	@Test
+	public void testCriticalPathWakeupInterleave() {
+		GraphBuilder builder = factory.get(GraphFactory.GRAPH_WAKEUP_INTERLEAVE);
+		assertTrue(testCriticalPathOne(builder));
+	}
+
 }
