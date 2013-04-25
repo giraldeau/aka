@@ -28,6 +28,10 @@ public class CliProgressMonitor implements IProgressMonitor {
 
 	@Override
 	public void beginTask(String name, int totalWork) {
+		totalWork--;
+		// avoid division by zero
+		if (totalWork == 0)
+			totalWork = 1;
 		this.totalWork = totalWork;
 	}
 

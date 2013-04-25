@@ -89,10 +89,10 @@ public class TestGraph {
 		la.get(0).linkVertical(la.get(2));
 		la.get(1).linkVertical(lb.get(1));
 		lb.get(5).linkVertical(la.get(6));
-		Dot.writeString(this, "dot_full.dot", Dot.todot(g));
+		Dot.writeString(this.getClass(), "dot_full.dot", Dot.todot(g));
 		List<Object> list = new LinkedList<Object>();
 		list.add(A);
-		Dot.writeString(this, "dot_partial.dot", Dot.todot(g, list));
+		Dot.writeString(this.getClass(), "dot_partial.dot", Dot.todot(g, list));
 	}
 
 	@Test
@@ -132,7 +132,7 @@ public class TestGraph {
 	@Test
 	public void testMakeGraphBasic() {
 		Node head = Ops.basic(10);
-		Dot.writeString(this, "basic.dot", Dot.todot(head));
+		Dot.writeString(this.getClass(), "basic.dot", Dot.todot(head));
 		assertTrue(Ops.validate(head));
 	}
 
@@ -153,7 +153,7 @@ public class TestGraph {
 	public void testOffset() {
 		Node head = Ops.basic(10);
 		Ops.offset(head, 100);
-		Dot.writeString(this, "offset.dot", Dot.todot(head));
+		Dot.writeString(this.getClass(), "offset.dot", Dot.todot(head));
 		assertTrue(Ops.validate(head));
 	}
 
@@ -170,7 +170,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(1);
 		Node n2 = Ops.basic(1);
 		Node head = Ops.concat(n1, n2);
-		Dot.writeString(this, "concat.dot", Dot.todot(head));
+		Dot.writeString(this.getClass(), "concat.dot", Dot.todot(head));
 		assertEquals(2 + 3 + 2, Ops.size(head));
 		assertTrue(Ops.validate(head));
 	}
@@ -179,7 +179,7 @@ public class TestGraph {
 	public void testIter() {
 		Node n = Ops.basic(10);
 		Node head = Ops.iter(n, 1);
-		Dot.writeString(this, "iter.dot", Dot.todot(head));
+		Dot.writeString(this.getClass(), "iter.dot", Dot.todot(head));
 		assertEquals(2 + 3 + 2, Ops.size(head));
 		assertTrue(Ops.validate(head));
 	}
@@ -189,7 +189,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(20);
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceLeft(n1, n2, LinkType.DEFAULT);
-		Dot.writeString(this, "union_left.dot", Dot.todot(n1));
+		Dot.writeString(this.getClass(), "union_left.dot", Dot.todot(n1));
 		assertEquals(10, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
@@ -199,7 +199,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(20);
 		Node n2 = Ops.basic(10);
 		Ops.unionInPlaceRight(n1, n2, LinkType.DEFAULT);
-		Dot.writeString(this, "union_right.dot", Dot.todot(n1));
+		Dot.writeString(this.getClass(), "union_right.dot", Dot.todot(n1));
 		assertEquals(10, Ops.size(n1));
 		assertTrue(Ops.validate(n1));
 	}
@@ -209,7 +209,7 @@ public class TestGraph {
 		Node n1 = Ops.basic(10);
 		Node n2 = Ops.basic(10);
 		Node u1 = Ops.union(n1, n2);
-		Dot.writeString(this, "union.dot", Dot.todot(u1));
+		Dot.writeString(this.getClass(), "union.dot", Dot.todot(u1));
 		assertEquals(12, Ops.size(u1));
 		assertTrue(Ops.validate(u1));
 	}
@@ -263,9 +263,9 @@ public class TestGraph {
 		Node exp = Ops.sequence(6, 1);
 		Ops.offset(n2, 1);
 		Node res = Ops.merge(n1, n2);
-		Dot.writeString(this, "merge_1.dot", Dot.todot(n1));
-		Dot.writeString(this, "merge_2.dot", Dot.todot(n2));
-		Dot.writeString(this, "merge.dot", Dot.todot(res));
+		Dot.writeString(this.getClass(), "merge_1.dot", Dot.todot(n1));
+		Dot.writeString(this.getClass(), "merge_2.dot", Dot.todot(n2));
+		Dot.writeString(this.getClass(), "merge.dot", Dot.todot(res));
 		assertEquals(Ops.size(exp), Ops.size(res));
 		assertTrue(Ops.match(res, exp));
 	}
@@ -419,10 +419,10 @@ public class TestGraph {
 			str.append("\n");
 			str.append(path.dump());
 
-			Dot.writeString(this, filePrefix + ".log", str.toString());
-			Dot.writeString(this, filePrefix + "_all.dot", Dot.todot(main));
-			Dot.writeString(this, filePrefix + "_exp.dot", Dot.todot(data.path));
-			Dot.writeString(this, filePrefix + "_act.dot", Dot.todot(act));
+			Dot.writeString(this.getClass(), filePrefix + ".log", str.toString());
+			Dot.writeString(this.getClass(), filePrefix + "_all.dot", Dot.todot(main));
+			Dot.writeString(this.getClass(), filePrefix + "_exp.dot", Dot.todot(data.path));
+			Dot.writeString(this.getClass(), filePrefix + "_act.dot", Dot.todot(act));
 			boolean status = Ops.validate(act) && Ops.match(data.path, act);
 			if (status)
 				System.out.println("PASS: " + filePrefix);

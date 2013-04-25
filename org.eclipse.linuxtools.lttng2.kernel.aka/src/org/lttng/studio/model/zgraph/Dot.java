@@ -13,8 +13,40 @@ import com.google.common.collect.ArrayListMultimap;
 
 public class Dot {
 
-	private static final String fmtNode = "    %d [ label=\"[%d,%d]\" ];\n"; 		// id, id, timestamps
-	private static final String fmtLink = "    %d -> %d [ label=\"%s,%d\" ];\n"; 	// id, id, type, duration
+	private interface LabelProvider {
+		public String nodeLabel(Node node);
+		public String linkLabel(Node n0, Node n1, Link link);
+	}
+
+	private static class VerboseLabelProvider implements LabelProvider {
+		private static final String fmtNode = "    %d [ label=\"[%d,%d]\" ];\n"; 		// id, id, timestamps
+		private static final String fmtLink = "    %d -> %d [ label=\"%s,%d\" ];\n"; 	// id, id, type, duration
+		@Override
+		public String nodeLabel(Node node) {
+			return String.format(fmtNode, node.getID(), node.getID(), node.getTs());
+		}
+		@Override
+		public String linkLabel(Node n0, Node n1, Link link) {
+			return String.format(fmtLink, n0.getID(), n1.getID(), link.type, link.duration());
+		}
+	}
+	public static LabelProvider verbose = new VerboseLabelProvider();
+
+	private static class PrettyLabelProvider implements LabelProvider {
+		private static final String fmtNode = "    %d [ shape=box label=\"%d\" ];\n"; 		// id, id
+		private static final String fmtLink = "    %d -> %d [ label=\" %s, %.1f \" ];\n"; 	// id, id, type, duration
+		@Override
+		public String nodeLabel(Node node) {
+			return String.format(fmtNode, node.getID(), node.getID());
+		}
+		@Override
+		public String linkLabel(Node n0, Node n1, Link link) {
+			return String.format(fmtLink, n0.getID(), n1.getID(), link.type, link.duration() / 1000000.0);
+		}
+	}
+	public static LabelProvider pretty = new PrettyLabelProvider();
+
+	private static LabelProvider provider = verbose;
 
 	/**
 	 * Generate dot string from head node
@@ -32,6 +64,8 @@ public class Dot {
 	 * @return
 	 */
 	public static String todot(Graph g) {
+		if (g == null)
+			return "";
 		return todot(g, g.getNodesMap().keySet());
 	}
 
@@ -42,6 +76,8 @@ public class Dot {
 	 * @return
 	 */
 	public static String todot(Graph g, Collection<Object> keys) {
+		if (g == null || keys == null)
+			return "";
 		int i = 0;
 		StringBuilder str = new StringBuilder();
 		str.append("digraph G {\n");
@@ -90,7 +126,7 @@ public class Dot {
 				n1 = node;
 			}
 			if (!visited.contains(n)) {
-				str.append(String.format(fmtLink, n0.getID(), n1.getID(), lnk.type, lnk.duration()));
+				str.append(provider.linkLabel(n0, n1, lnk));
 				neighbor.add(n);
 			}
 		}
@@ -104,13 +140,12 @@ public class Dot {
 				"    title%d [ label=\"%s\", shape=plaintext ];\n", i,
 				obj.toString()));
 		for (Node node: list) {
-			str.append(String.format(fmtNode, node.getID(), node.getID(), node.getTs()));
+			str.append(provider.nodeLabel(node));
 		}
 		str.append("}\n");
 	}
 
-	public static void writeString(Object writer, String fname, String content) {
-		String folder = writer.getClass().getName();
+	public static void writeString(String folder, String fname, String content) {
 		try {
 			File dir = new File("results", folder);
 			dir.mkdirs();
@@ -122,6 +157,14 @@ public class Dot {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	public static void writeString(Class<? extends Object> writer, String fname, String content) {
+		String folder = writer.getClass().getName();
+		writeString(folder, fname, content);
+	}
+
+	public static void setLabelProvider(LabelProvider p) {
+		provider = p;
 	}
 
 }

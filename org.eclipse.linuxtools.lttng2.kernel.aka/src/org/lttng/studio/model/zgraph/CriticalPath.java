@@ -14,6 +14,8 @@ public class CriticalPath {
 
 	public Graph criticalPathBounded(Node start) {
 		Graph path = new Graph();
+		if (start == null)
+			return path;
 		Object parent = main.getParentOf(start);
 		path.add(parent, new Node(start));
 		Node curr = start;

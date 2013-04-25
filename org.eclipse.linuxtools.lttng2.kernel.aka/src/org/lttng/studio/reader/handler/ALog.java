@@ -50,6 +50,7 @@ public class ALog {
 		this.level = level;
 	}
 
+	// FIXME: pass format string and arguments to avoid formating the string if the log is not enabled
 	private void entry(int level, String msg) {
 		if (level > DEBUG)
 			level = DEBUG;

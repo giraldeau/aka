@@ -471,8 +471,8 @@ public class GraphFactory {
 				builder.criticalPath(data);
 				String graph = Dot.todot(Ops.head(data.head));
 				String path = Dot.todot(Ops.head(data.path));
-				Dot.writeString(factory, builder.getName() + "_" + data.id + "_graph.dot", graph);
-				Dot.writeString(factory, builder.getName() + "_" + data.id + "_path.dot", path);
+				Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_graph.dot", graph);
+				Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_path.dot", path);
 			}
 		}
 	}

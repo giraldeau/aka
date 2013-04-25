@@ -35,11 +35,13 @@ public class TestUtils {
 		}
 
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
-		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeMain();
+		Collection<ITraceEventHandler> phase2 = TraceEventHandlerFactory.makeInitialState();
+		Collection<ITraceEventHandler> phase3 = TraceEventHandlerFactory.makeMain();
 
 		thread.setTrace(ctfTmfTrace);
 		thread.addPhase(new AnalysisPhase(1, "phase1", phase1));
 		thread.addPhase(new AnalysisPhase(2, "phase2", phase2));
+		thread.addPhase(new AnalysisPhase(3, "phase3", phase3));
 		return thread;
 	}
 

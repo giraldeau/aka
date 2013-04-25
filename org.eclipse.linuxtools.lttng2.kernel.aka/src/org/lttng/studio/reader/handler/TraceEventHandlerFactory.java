@@ -44,6 +44,7 @@ public class TraceEventHandlerFactory {
 		list.add(new TraceEventHandlerSock());
 		list.add(new TraceEventHandlerNetPacket());
 		list.add(new TraceEventHandlerBlocking());
+		list.add(new TraceEventHandlerExecutionGraphLegacy());
 		list.add(new TraceEventHandlerExecutionGraph());
 		list.add(new TraceEventHandlerCounter());
 		return list;
