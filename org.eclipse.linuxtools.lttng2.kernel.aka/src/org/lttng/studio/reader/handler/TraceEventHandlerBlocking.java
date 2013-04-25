@@ -140,7 +140,7 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 			return;
 
 		// spurious wake-up
-		if (blockedTask.getProcessStatus() != Task.process_status.WAIT_BLOCKED) {
+		if (blockedTask.getProcessStatus() != Task.process_status_enum.WAIT_BLOCKED) {
 			wakeup[event.getCPU()] = null;
 			return;
 		}

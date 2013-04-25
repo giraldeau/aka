@@ -3,8 +3,8 @@ package org.lttng.studio.model.kernel;
 import java.util.EnumMap;
 import java.util.Map;
 
-import org.lttng.studio.model.kernel.Task.execution_mode;
-import org.lttng.studio.model.kernel.Task.process_status;
+import org.lttng.studio.model.kernel.Task.execution_mode_enum;
+import org.lttng.studio.model.kernel.Task.process_status_enum;
 
 public abstract class StateInfo {
 
@@ -16,8 +16,8 @@ public abstract class StateInfo {
 	}
 
 	private Task task;
-	private execution_mode mode;
-	private process_status status;
+	private execution_mode_enum mode;
+	private process_status_enum status;
 	private long start;
 	private long end;
 	private Map<Field, Object> fieldInfo;
@@ -64,19 +64,19 @@ public abstract class StateInfo {
 		return fieldInfo.get(key);
 	}
 
-	public execution_mode getMode() {
+	public execution_mode_enum getMode() {
 		return mode;
 	}
 
-	public void setMode(execution_mode mode) {
+	public void setMode(execution_mode_enum mode) {
 		this.mode = mode;
 	}
 
-	public process_status getStatus() {
+	public process_status_enum getStatus() {
 		return status;
 	}
 
-	public void setStatus(process_status status) {
+	public void setStatus(process_status_enum status) {
 		this.status = status;
 	}
 

@@ -9,18 +9,18 @@ import com.google.common.hash.Hashing;
 
 public class Task {
 
-	public enum thread_type {
+	public enum thread_type_enum {
 		USER_THREAD(0),
 		KERNEL_THREAD(1);
 		private final int val;
 
-		private thread_type(int val) {
+		private thread_type_enum(int val) {
 			this.val = val;
 		}
 		public int value() { return val; }
 	}
 
-	public enum execution_mode {
+	public enum execution_mode_enum {
 		USER_MODE(0),
 		SYSCALL(1),
 		TRAP(2),
@@ -29,18 +29,18 @@ public class Task {
 		MODE_UNKNOWN(5);
 		private final int val;
 
-		private execution_mode(int val) {
+		private execution_mode_enum(int val) {
 			this.val = val;
 		}
 		public int value() { return val; }
 	}
 
-	public enum execution_submode {
+	public enum execution_submode_enum {
 		NONE(0),
 		UNKNOWN(1);
 		private final int val;
 
-		private execution_submode(int val) {
+		private execution_submode_enum(int val) {
 			this.val = val;
 		}
 		public int value() { return val; }
@@ -75,7 +75,7 @@ public class Task {
 	#define TASK_STATE_MAX          512
 	 */
 
-	public enum process_status {
+	public enum process_status_enum {
 		UNNAMED(0),
 		WAIT_FORK(1),
 		WAIT_CPU(2),
@@ -86,7 +86,7 @@ public class Task {
 		DEAD(7);
 		private final int val;
 
-		private process_status(int val) {
+		private process_status_enum(int val) {
 			this.val = val;
 		}
 		public int value() { return val; }
@@ -99,14 +99,16 @@ public class Task {
 	private long end;
 	private String name;
 	private HashMap<Long, String> fdMap;
-	private process_status process_status;
-	private process_status process_status_prev;
-	private execution_mode execution_mode;
-	private execution_submode execution_submode;
-	private thread_type thread_type;
+	private process_status_enum process_status;
+	private process_status_enum process_status_prev;
+	private execution_mode_enum execution_mode;
+	private execution_submode_enum execution_submode;
+	private thread_type_enum thread_type;
 
 	public Task() {
 		this(0);
+		this.process_status = process_status_enum.UNNAMED;
+		this.process_status_prev = process_status_enum.UNNAMED;
 		setFdMap(new HashMap<Long, String>());
 	}
 
@@ -166,7 +168,7 @@ public class Task {
 	 * Returns the current process status
 	 * @return
 	 */
-	public process_status getProcessStatus() {
+	public process_status_enum getProcessStatus() {
 		return process_status;
 	}
 
@@ -174,11 +176,11 @@ public class Task {
 	 * Returns the previous state of t
 	 * @return
 	 */
-	public process_status getProcessStatusPrev() {
+	public process_status_enum getProcessStatusPrev() {
 		return process_status_prev;
 	}
 
-	public void setProcessStatus(process_status process_status) {
+	public void setProcessStatus(process_status_enum process_status) {
 		this.process_status_prev = this.process_status;
 		this.process_status = process_status;
 	}
@@ -187,7 +189,7 @@ public class Task {
 	 * I hate Java: can't just assign the enum from the int value
 	 */
 	public void setProcessStatus(long status) {
-		for (process_status e: process_status.values()) {
+		for (process_status_enum e: process_status_enum.values()) {
 			if (e.value() == status) {
 				process_status = e;
 				break;
@@ -195,12 +197,12 @@ public class Task {
 		}
 	}
 
-	public execution_mode getExecutionMode() {
+	public execution_mode_enum getExecutionMode() {
 		return execution_mode;
 	}
 
 	public void setExecutionMode(long mode) {
-		for (execution_mode e: execution_mode.values()) {
+		for (execution_mode_enum e: execution_mode_enum.values()) {
 			if (e.value() == mode) {
 				execution_mode = e;
 				break;
@@ -208,20 +210,20 @@ public class Task {
 		}
 	}
 
-	public void setExecutionMode(execution_mode execution_mode) {
+	public void setExecutionMode(execution_mode_enum execution_mode) {
 		this.execution_mode = execution_mode;
 	}
 
-	public execution_submode getExecutionSubmode() {
+	public execution_submode_enum getExecutionSubmode() {
 		return execution_submode;
 	}
 
-	public void setExecutionSubmode(execution_submode execution_submode) {
+	public void setExecutionSubmode(execution_submode_enum execution_submode) {
 		this.execution_submode = execution_submode;
 	}
 
 	public void setExecutionSubmode(long submode) {
-		for (execution_submode e: execution_submode.values()) {
+		for (execution_submode_enum e: execution_submode_enum.values()) {
 			if (e.value() == submode) {
 				execution_submode = e;
 				break;
@@ -229,16 +231,16 @@ public class Task {
 		}
 	}
 
-	public thread_type getThreadType() {
+	public thread_type_enum getThreadType() {
 		return thread_type;
 	}
 
-	public void setThreadType(thread_type thread_type) {
+	public void setThreadType(thread_type_enum thread_type) {
 		this.thread_type = thread_type;
 	}
 
 	public void setThreadType(long type) {
-		for (thread_type e: thread_type.values()) {
+		for (thread_type_enum e: thread_type_enum.values()) {
 			if (e.value() == type) {
 				thread_type = e;
 				break;

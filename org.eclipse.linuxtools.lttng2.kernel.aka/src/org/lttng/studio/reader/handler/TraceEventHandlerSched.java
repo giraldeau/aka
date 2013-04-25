@@ -8,8 +8,8 @@ import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.FDSet;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.model.kernel.Task.execution_mode;
-import org.lttng.studio.model.kernel.Task.process_status;
+import org.lttng.studio.model.kernel.Task.execution_mode_enum;
+import org.lttng.studio.model.kernel.Task.process_status_enum;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
 import org.lttng.studio.utils.AnalysisFilter;
@@ -72,7 +72,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		evHistory = new HashMap<Long, EventData>();
 	}
 
-	private void _update_task_state(long tid, process_status state) {
+	private void _update_task_state(long tid, process_status_enum state) {
 		Task task = system.getTask(tid);
 		if (task != null) {
 			task.setProcessStatus(state);
@@ -92,19 +92,19 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 		system.setCurrentTid(cpu, next);
 
-		_update_task_state(next, process_status.RUN);
+		_update_task_state(next, process_status_enum.RUN);
 
 		Task task = system.getTask(prev);
 		if (task != null) {
-			process_status status = task.getProcessStatus();
-			if (status != process_status.RUN && status != process_status.EXIT) {
+			process_status_enum status = task.getProcessStatus();
+			if (status != process_status_enum.RUN && status != process_status_enum.EXIT) {
 				log.warning("prev task was not running " + task + " " + task.getProcessStatus() + " " + event.getTimestamp());
 			}
 			// prev_state == 0 means runnable, thus waits for cpu
 			if (prev_state == 0) {
-				_update_task_state(prev, process_status.WAIT_CPU);
+				_update_task_state(prev, process_status_enum.WAIT_CPU);
 			} else {
-				_update_task_state(prev, process_status.WAIT_BLOCKED);
+				_update_task_state(prev, process_status_enum.WAIT_BLOCKED);
 			}
 		} else {
 			log.warning("prev task tid=" + prev + " is null");
@@ -150,8 +150,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		}
 		// FIXME: in some cases, sys_clone is not matched to exit_syscall
 		// thus let's make sure it returns in user mode
-		task.setExecutionMode(execution_mode.USER_MODE);
-		task.setProcessStatus(process_status.WAIT_FORK);
+		task.setExecutionMode(execution_mode_enum.USER_MODE);
+		task.setProcessStatus(process_status_enum.WAIT_FORK);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {
@@ -160,7 +160,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		if (task == null)
 			return;
 		task.setEnd(event.getTimestamp().getValue());
-		task.setProcessStatus(process_status.EXIT);
+		task.setProcessStatus(process_status_enum.EXIT);
 	}
 
 	public void handle_sched_process_exec(TraceReader reader, CtfTmfEvent event) {
@@ -185,7 +185,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 			Task curr = system.getTask(tid);
 			if (curr == null)
 				return;
-			curr.setExecutionMode(execution_mode.SYSCALL);
+			curr.setExecutionMode(execution_mode_enum.SYSCALL);
 		}
 	}
 
@@ -221,7 +221,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 			return;
 
 		// return to user-space
-		task.setExecutionMode(execution_mode.USER_MODE);
+		task.setExecutionMode(execution_mode_enum.USER_MODE);
 	}
 
 	@Override

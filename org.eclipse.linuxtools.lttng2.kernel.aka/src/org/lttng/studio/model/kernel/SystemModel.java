@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 
-import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.reader.TraceReader;
 
@@ -18,8 +17,8 @@ import com.google.common.collect.Multimap;
 
 public class SystemModel implements ITraceModel {
 
-	
-	
+
+
 	private Task[] swappers;
 	private HashMap<Long, Task> tasks; // (tid, task)
 	//private Table<Long, Long, FD> fdsTable; // (pid, id, fd)
@@ -295,7 +294,7 @@ public class SystemModel implements ITraceModel {
 	public Stack<InterruptContext> getInterruptContext(int cpu) {
 		return context.get(cpu);
 	}
-	
+
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();

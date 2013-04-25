@@ -75,7 +75,7 @@ public class Dot {
 	 * @param keys
 	 * @return
 	 */
-	public static String todot(Graph g, Collection<Object> keys) {
+	public static String todot(Graph g, Collection<? extends Object> keys) {
 		if (g == null || keys == null)
 			return "";
 		int i = 0;

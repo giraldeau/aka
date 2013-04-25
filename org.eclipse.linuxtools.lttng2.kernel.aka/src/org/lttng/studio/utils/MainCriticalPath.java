@@ -2,7 +2,9 @@ package org.lttng.studio.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
@@ -43,7 +45,7 @@ public class MainCriticalPath {
 
 	public class Opts {
 		public File traceDir;
-		public Long tid;
+		public List<Long> tids = new ArrayList<Long>();
 		public String comm;
 		public String op;
 		public String algo = ALGO_DEFAULT;
@@ -122,20 +124,27 @@ public class MainCriticalPath {
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Graph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, Graph.class);
 		Dot.setLabelProvider(Dot.pretty);
-		if (opts.tid == null) {
-			Dot.writeString(uuid.toString(), "graph.dot", Dot.todot(graph));
-		} else {
-			CriticalPath cp = new CriticalPath(graph);
-			Task task = model.getTask(opts.tid);
-			Graph path = null;
+		CriticalPath cp = new CriticalPath(graph);
+		Graph path = null;
+		List<Task> list = new ArrayList<Task>();
+		for (Long tid :opts.tids) {
+			Task task = model.getTask(tid);
+			if (task == null) {
+				System.err.println("unknown task " + tid);
+			}
+			list.add(task);
+			List<Task> sub = new ArrayList<Task>();
+			sub.add(task);
+			Dot.writeString(uuid.toString(), tid + "_graph.dot", Dot.todot(graph, sub));
 			try {
 				path = cp.criticalPathBounded(graph.getHead(task));
-				Dot.writeString(uuid.toString(), opts.tid + "_graph.dot", Dot.todot(path));
+				Dot.writeString(uuid.toString(), tid + "_path.dot", Dot.todot(path));
 			} catch (Exception e) {
 				System.err.println("Error processing graph " + opts.traceDir);
 				e.printStackTrace();
 			}
 		}
+		Dot.writeString(uuid.toString(), "overall_graph.dot", Dot.todot(graph, list));
 		spinner.done();
 	}
 
@@ -169,7 +178,7 @@ public class MainCriticalPath {
 		thread.setListener(new TimeLoadingListener("loading", phases.size(), new CliProgressMonitor()));
 		ALog log = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
 		log.setLevel(ALog.DEBUG);
-		log.setPath(opts.ctfTmfTrace.getCTFTrace().getUUID() + ".log");
+		log.setPath("results/" + opts.ctfTmfTrace.getCTFTrace().getUUID() + ".log");
 		thread.start();
 		try {
 			thread.join();
@@ -220,7 +229,10 @@ public class MainCriticalPath {
 			opts.traceDir = new File(trace);
 		}
 		if (cmd.hasOption("p")) {
-			opts.tid = new Long(cmd.getOptionValue("p"));
+			String tids = cmd.getOptionValue("p");
+			String[] split = tids.split(",");
+			for (String s: split)
+				opts.tids.add(new Long(s));
 		}
 		if (opts.traceDir == null) {
 			throw new ParseException("trace path is required");

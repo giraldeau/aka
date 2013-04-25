@@ -4,9 +4,10 @@ import java.util.Collection;
 
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.HRTimer;
+import org.lttng.studio.model.kernel.InterruptContext;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.model.kernel.Task.thread_type;
+import org.lttng.studio.model.kernel.Task.process_status_enum;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.Link;
 import org.lttng.studio.model.zgraph.LinkType;
@@ -26,7 +27,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	public TraceEventHandlerExecutionGraph() {
 		super();
 		hooks.add(new TraceHook("sched_switch"));
-		hooks.add(new TraceHook("sched_process_exit"));
 		hooks.add(new TraceHook("sched_wakeup"));
 		hooks.add(new TraceHook("sched_wakeup_new"));
 	}
@@ -48,9 +48,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
-		int cpu = event.getCPU();
 		long ts = event.getTimestamp().getValue();
-		long prev_state = EventField.getLong(event, "prev_state");
 		long next = EventField.getLong(event, "next_tid");
 		long prev = EventField.getLong(event, "prev_tid");
 
@@ -61,6 +59,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			log.warning("prevTask=" + prevTask + " nextTask=" + nextTask);
 			return;
 		}
+		log.debug(event.getTimestamp().toString());
 		log.debug(String.format("%5d %12s %12s",
 				prevTask.getTid(),
 				prevTask.getProcessStatusPrev(),
@@ -70,8 +69,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 				nextTask.getProcessStatusPrev(),
 				nextTask.getProcessStatus()));
 
-		//process_status s1 = prevTask.getProcessStatusPrev();
-		//process_status s2 = nextTask.getProcessStatusPrev();
 		appendTaskNode(prevTask, ts);
 		appendTaskNode(nextTask, ts);
 	}
@@ -79,13 +76,37 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	public void appendTaskNode(Task task, long ts) {
 		Link link = graph.append(task, new Node(ts));
 		if (link != null) {
-			link.type = LinkType.RUNNING;
+			process_status_enum status = task.getProcessStatusPrev();
+			switch(status) {
+			case DEAD:
+				break;
+			case EXIT:
+			case RUN:
+				link.type = LinkType.RUNNING;
+				break;
+			case UNNAMED:
+				link.type = LinkType.UNKNOWN;
+				break;
+			case WAIT_BLOCKED:
+				link.type = LinkType.BLOCKED;
+				break;
+			case WAIT_CPU:
+			case WAIT_FORK:
+				link.type = LinkType.PREEMPTED;
+				break;
+			case ZOMBIE:
+				link.type = LinkType.UNKNOWN;
+				break;
+			default:
+				break;
+
+			}
 		}
 	}
 
 	public void handle_sched_wakeup_new(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
-		long timestamps = event.getTimestamp().getValue();
+		long ts = event.getTimestamp().getValue();
 		long childTid = EventField.getLong(event, "tid");
 		Task parent = system.getTaskCpu(cpu);
 		Task child = system.getTask(childTid);
@@ -93,27 +114,31 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		if (parent == null || child == null) {
 			System.err.println("parent " + parent + " child " + child);
 		}
-
-		//createSplit(parent, child, timestamps);
+		Node n0 = new Node(ts);
+		Node n1 = new Node(ts);
+		Link l0 = graph.append(parent, n0);
+		if (l0 != null)
+			l0.type = LinkType.RUNNING;
+		graph.append(child, n1);
+		n0.linkVertical(n1).type = LinkType.DEFAULT;
 	}
 
-	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {
-		long timestamps = event.getTimestamp().getValue();
-		long tid = EventField.getLong(event, "tid");
-		Task task = system.getTask(tid);
 
-		if (task == null)
-			return;
-
-		// v0 ---> v1
-
-		//ExecVertex v0 = graph.getEndVertexOf(task);
-		//ExecVertex v1 = createVertex(task, timestamps);
-		//createEdge(v0, v1, EdgeType.RUNNING);
-	}
-
+	/*
+	0 HI: hi priority tasklet
+	1 TIMER
+	2 NET_TX
+	3 NET_RX
+	4 BLOCK
+	5 BLOCK_IOPOLL
+	6 TASKLET
+	7 SCHED
+	8 HRTIMER
+	9 RCU
+	 */
 	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
-		long timestamps = event.getTimestamp().getValue();
+		int cpu = event.getCPU();
+		long ts = event.getTimestamp().getValue();
 		long tid = EventField.getLong(event, "tid");
 		Task target = system.getTask(tid);
 		Task current = system.getTaskCpu(event.getCPU());
@@ -123,44 +148,40 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		}
 
 		// spurious wakeup
-		if (target.getProcessStatus() != Task.process_status.WAIT_BLOCKED) {
+		if (target.getProcessStatus() != Task.process_status_enum.WAIT_BLOCKED) {
 			log.debug("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
 			return;
 		}
 
-		Object source = null;
-
-		// 1 - hrtimer wakeup
-		HRTimer timer = hrtimerExpire[event.getCPU()];
-		if (timer != null) {
-			//System.out.println("timer wakeup " + target);
-			source = timer;
-		}
-
-		// 2 - softirq wakeup
-		CtfTmfEvent sirq = softirq[event.getCPU()];
-		if (sirq != null) {
-			// lookup the source of this SoftIRQ
-			return;
-		}
-
-		// 3 - waitpid wakeup
-		if (source == null) {
-			boolean isKernel = current.getThreadType() == thread_type.KERNEL_THREAD;
-			boolean isSyscall = current.getExecutionMode() == Task.execution_mode.SYSCALL;
-			boolean isExit = current.getProcessStatus() == Task.process_status.EXIT;
-			boolean isRun = current.getProcessStatus() == Task.process_status.RUN;
-			if ((isKernel && isRun) || (!isKernel && isSyscall && (isExit || isRun))){
-				source = current;
+		InterruptContext context = system.getInterruptContext(cpu).peek();
+		switch (context.getContext()) {
+		case HRTIMER:
+			Link l1 = graph.append(target, new Node(ts));
+			if (l1 != null) {
+				l1.type = LinkType.TIMER;
 			}
+			break;
+		case IRQ:
+			break;
+		case SOFTIRQ:
+			Link l2 = graph.append(target, new Node(ts));
+			if (l2 != null) {
+				CtfTmfEvent softirqEv = context.getEvent();
+				long vec = EventField.getLong(softirqEv, "vec");
+				if (vec == 1) {
+					l2.type = LinkType.TIMER;
+				} else {
+					l2.type = LinkType.UNKNOWN;
+				}
+			}
+			break;
+		case NONE:
+
+			break;
+		default:
+			break;
 		}
 
-		log.debug("sched_wakeup source=" + source + " target=" + target);
-		if (target == null || source == null) {
-			//System.err.println("WARNING: null wakeup endpoint: source:" + source + " target:" + target + " " + event.getTimestamp());
-			return;
-		}
-		//createMerge(source, target, timestamps);
 	}
 
 	@Override

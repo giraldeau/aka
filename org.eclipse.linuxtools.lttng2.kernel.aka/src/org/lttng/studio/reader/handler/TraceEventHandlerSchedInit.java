@@ -3,7 +3,7 @@ package org.lttng.studio.reader.handler;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.model.kernel.Task.process_status;
+import org.lttng.studio.model.kernel.Task.process_status_enum;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
 
@@ -32,7 +32,7 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 			cpus[i] = -1;
 	}
 
-	private void _update_task_state(long tid, process_status state) {
+	private void _update_task_state(long tid, process_status_enum state) {
 		Task task = system.getTask(tid);
 		if (task != null) {
 			task.setProcessStatus(state);
@@ -51,7 +51,7 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 		long prev = EventField.getLong(event, "prev_tid");
 		//System.out.println("initial state: " + event.getTimestamp() + " " + event.getCPU() + " " + prev);
 		system.setCurrentTid(cpu, prev);
-		_update_task_state(prev, process_status.RUN);
+		_update_task_state(prev, process_status_enum.RUN);
 
 		found++;
 		cpus[cpu] = prev;
