@@ -21,6 +21,7 @@ import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.zgraph.CriticalPath;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.GraphStats;
 import org.lttng.studio.model.zgraph.Ops;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
@@ -140,8 +141,15 @@ public class MainCriticalPath {
 			try {
 				path = cp.criticalPathBounded(graph.getHead(task));
 				Dot.writeString(uuid.toString(), tid + "_path.dot", Dot.todot(path));
+
+				GraphStats gstats = new GraphStats(path);
+				Dot.writeString(uuid.toString(), tid + "_path.stats", gstats.dump());
+
 				Ops.minimizeInPlace(path);
 				Dot.writeString(uuid.toString(), tid + "_path_min.dot", Dot.todot(path));
+
+				GraphStats gstatsMin = new GraphStats(path);
+				Dot.writeString(uuid.toString(), tid + "_path_min.stats", gstatsMin.dump());
 			} catch (Exception e) {
 				System.err.println("Error processing graph " + opts.traceDir);
 				e.printStackTrace();

@@ -402,23 +402,22 @@ public class Ops {
 	 */
 	public static int minimizeSequenceInPlace(Node node) {
 		int i = 0;
-		Node n = Ops.head(node);
-		while(n.hasNeighbor(Node.RIGHT)) {
+		while(node.hasNeighbor(Node.RIGHT)) {
 			i++;
-			Node right = n.right();
-			if (n.hasNeighbor(Node.LEFT)) {
-				Node left = n.left();
+			Node right = node.right();
+			if (node.hasNeighbor(Node.LEFT)) {
+				Node left = node.left();
 				if ((left.links[Node.RIGHT].type == right.links[Node.LEFT].type) &&
-						!(n.hasNeighbor(Node.UP) || n.hasNeighbor(Node.DOWN))) {
+						!(node.hasNeighbor(Node.UP) || node.hasNeighbor(Node.DOWN))) {
 					LinkType oldType = left.links[Node.RIGHT].type;
 					left.linkHorizontal(right).type = oldType;
-					n.links[Node.LEFT] = null;
-					n.links[Node.RIGHT] = null;
+					node.links[Node.LEFT] = null;
+					node.links[Node.RIGHT] = null;
 				}
 			}
-			n = right;
+			node = right;
 		}
-		return i;
+		return i + 1;
 	}
 
 	public static Node tail(Node node) {

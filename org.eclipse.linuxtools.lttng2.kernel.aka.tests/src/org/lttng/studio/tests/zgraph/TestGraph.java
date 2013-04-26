@@ -16,6 +16,7 @@ import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.GraphBuilder;
 import org.lttng.studio.model.zgraph.GraphBuilderData;
 import org.lttng.studio.model.zgraph.GraphFactory;
+import org.lttng.studio.model.zgraph.GraphStats;
 import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
@@ -505,4 +506,20 @@ public class TestGraph {
 		assertTrue(testCriticalPathOne(builder));
 	}
 
+	@Test
+	public void testGraphStats() {
+		Object obj1 = A;
+		Object obj2 = B;
+		Graph g = new Graph();
+		g.add(obj1, new Node(10));
+		g.append(obj1, new Node(20));
+		g.add(obj1, new Node(30));
+		g.append(obj1, new Node(40));
+		g.add(obj2, new Node(30));
+		g.append(obj2, new Node(40));
+		GraphStats gstats = new GraphStats(g);
+		Dot.writeString(this.getClass(), "graph.stats", gstats.dump());
+		assertEquals(2, gstats.getStat(obj1).getN());
+		assertEquals(20.0, gstats.getStat(obj1).getSum(), 0.001);
+	}
 }
