@@ -9,6 +9,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.linuxtools.tmf.core.timestamp.ITmfTimestamp;
+import org.eclipse.linuxtools.tmf.core.timestamp.TmfTimestamp;
+
 import com.google.common.collect.ArrayListMultimap;
 
 public class Dot {
@@ -33,15 +36,24 @@ public class Dot {
 	public static LabelProvider verbose = new VerboseLabelProvider();
 
 	private static class PrettyLabelProvider implements LabelProvider {
-		private static final String fmtNode = "    %d [ shape=box label=\"%d\" ];\n"; 		// id, id
+		private static final String fmtNode = "    %d [ shape=box label=\"%d\" ]; // %s\n"; 		// id, id, timestamps
 		private static final String fmtLink = "    %d -> %d [ label=\" %s, %.1f \" ];\n"; 	// id, id, type, duration
+		private static final String fmtLinkRelax = "    %d -> %d [ label=\" %s, %.1f \" constraint=false ];\n"; 	// id, id, type, duration
 		@Override
 		public String nodeLabel(Node node) {
-			return String.format(fmtNode, node.getID(), node.getID());
+			if (node.numberOfNeighbor() == 0)
+				return "";
+			TmfTimestamp ts = new TmfTimestamp(node.getTs(), ITmfTimestamp.NANOSECOND_SCALE);
+			return String.format(fmtNode, node.getID(), node.getID(), ts.toString());
 		}
 		@Override
 		public String linkLabel(Node n0, Node n1, Link link) {
-			return String.format(fmtLink, n0.getID(), n1.getID(), link.type, link.duration() / 1000000.0);
+			boolean isVertical = n0.neighbor(Node.DOWN) == n1 || n1.neighbor(Node.UP) == n1;
+			String fmt = fmtLink;
+			if (isVertical) {
+				fmt = fmtLinkRelax;
+			}
+			return String.format(fmt, n0.getID(), n1.getID(), link.type, link.duration() / 1000000.0);
 		}
 	}
 	public static LabelProvider pretty = new PrettyLabelProvider();
@@ -81,7 +93,8 @@ public class Dot {
 		int i = 0;
 		StringBuilder str = new StringBuilder();
 		str.append("digraph G {\n");
-		str.append("  rankdir=LR;\n");
+		//str.append("  rankdir=LR;\n");
+		str.append("  overlap=false;");
 		ArrayListMultimap<Object, Node> extra = ArrayListMultimap.create();
 		HashSet<Object> set = new HashSet<Object>();
 		set.addAll(keys);
@@ -135,7 +148,7 @@ public class Dot {
 
 	private static void subgraph(StringBuilder str, Object obj, List<Node> list, int i) {
 		str.append(String.format("  subgraph \"cluster_%d\" {\n", i));
-		str.append("    rankdir=LR\n");
+		str.append("    rank=same;\n");
 		str.append(String.format(
 				"    title%d [ label=\"%s\", shape=plaintext ];\n", i,
 				obj.toString()));

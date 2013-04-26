@@ -1,29 +1,25 @@
 package org.lttng.studio.reader.handler;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Stack;
 
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventField;
 import org.lttng.studio.model.kernel.InterruptContext;
+import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
 import org.lttng.studio.utils.AnalysisFilter;
-
-import com.google.common.collect.HashBasedTable;
 
 public class EventContextHandler extends TraceEventHandlerBase {
 
 	private SystemModel system;
 	private AnalysisFilter filter;
-	private HashSet<String> eventSet;
+	private final HashSet<String> eventSet;
 	private ALog log;
 	private HashMap<String, EnumMap<Context, Long>> contextStats;
 
@@ -43,7 +39,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		stack.push(new InterruptContext(event, ctx));
 	}
-	
+
 	private void popInterruptContext(CtfTmfEvent event, Context ctx) {
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		if (stack.isEmpty()) {
@@ -56,7 +52,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 			log.warning("popInterruptContext unexpected top stack context " + event);
 		}
 	}
-	
+
 	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
 		pushInterruptContext(event, Context.SOFTIRQ);
 	}
@@ -80,7 +76,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 	public void handle_hrtimer_expire_exit(TraceReader reader, CtfTmfEvent event) {
 		popInterruptContext(event, Context.HRTIMER);
 	}
-	
+
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		if (!eventSet.contains(event.getEventName())) {
 			return;
@@ -102,7 +98,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 				dumpEvent(event)));
 		}
 	}
-	
+
 	private static String dumpEvent(CtfTmfEvent event) {
 		StringBuilder str = new StringBuilder();
 		str.append("[");
@@ -119,7 +115,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 		str.append("}");
 		return str.toString();
 	}
-	
+
 	@Override
 	public void handleInit(TraceReader reader) {
 		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
@@ -135,7 +131,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 			}
 			contextStats.put(name, map);
 		}
-		
+
 	}
 
 	@Override

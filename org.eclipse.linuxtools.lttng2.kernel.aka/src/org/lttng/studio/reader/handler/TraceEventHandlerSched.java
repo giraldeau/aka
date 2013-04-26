@@ -54,6 +54,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	public TraceEventHandlerSched() {
 		super();
 		hooks.add(new TraceHook("sched_switch"));
+		hooks.add(new TraceHook("sched_wakeup"));
 		hooks.add(new TraceHook("sched_process_fork"));
 		hooks.add(new TraceHook("sched_process_exit"));
 		hooks.add(new TraceHook("sched_process_exec"));
@@ -152,6 +153,26 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		// thus let's make sure it returns in user mode
 		task.setExecutionMode(execution_mode_enum.USER_MODE);
 		task.setProcessStatus(process_status_enum.WAIT_FORK);
+	}
+
+	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
+		long tid = EventField.getLong(event, "tid");
+		Task target = system.getTask(tid);
+		Task current = system.getTaskCpu(event.getCPU());
+		if (target == null) {
+			log.warning("sched_wakeup target is null " + event.getTimestamp().toString());
+			return;
+		}
+		// spurious wakeup
+		if (target.getTid() == current.getTid()) {
+			log.warning("sched_wakeup SELF_WAKEUP " + target);
+			return;
+		}
+		if (target.getProcessStatus() != Task.process_status_enum.WAIT_BLOCKED) {
+			log.warning("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
+			return;
+		}
+		target.setProcessStatus(process_status_enum.WAIT_CPU);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {

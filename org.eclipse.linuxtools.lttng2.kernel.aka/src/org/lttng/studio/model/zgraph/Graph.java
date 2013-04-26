@@ -36,6 +36,8 @@ public class Graph {
 	 * @param node
 	 */
 	public void add(Object obj, Node node) {
+		if (obj == null)
+			throw new IllegalArgumentException("key must not be null");
 		List<Node> list = nodeMap.get(obj);
 		list.add(node);
 		reverse.put(node, obj);
@@ -48,6 +50,8 @@ public class Graph {
 	 * @return
 	 */
 	public Link append(Object obj, Node node) {
+		if (obj == null)
+			throw new IllegalArgumentException("key must not be null");
 		List<Node> list = nodeMap.get(obj);
 		Node tail = getTail(obj);
 		Link link = null;

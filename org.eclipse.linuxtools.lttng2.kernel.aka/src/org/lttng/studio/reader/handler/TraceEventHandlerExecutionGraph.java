@@ -3,8 +3,8 @@ package org.lttng.studio.reader.handler;
 import java.util.Collection;
 
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
-import org.lttng.studio.model.kernel.HRTimer;
 import org.lttng.studio.model.kernel.InterruptContext;
+import org.lttng.studio.model.kernel.Softirq;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.Task.process_status_enum;
@@ -19,8 +19,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	SystemModel system;
 	Graph graph;
-	HRTimer[] hrtimerExpire;
-	private CtfTmfEvent[] softirq;
 	CtfTmfEvent event;
 	private ALog log;
 
@@ -36,8 +34,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
 		system.init(reader);
 		graph = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, Graph.class);
-		hrtimerExpire = new HRTimer[reader.getNumCpus()];
-		softirq = new CtfTmfEvent[reader.getNumCpus()];
 		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
 		log.message("init TraceEventHandlerExecutionGraph");
 		// init graph
@@ -59,6 +55,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			log.warning("prevTask=" + prevTask + " nextTask=" + nextTask);
 			return;
 		}
+		/*
 		log.debug(event.getTimestamp().toString());
 		log.debug(String.format("%5d %12s %12s",
 				prevTask.getTid(),
@@ -68,74 +65,76 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 				nextTask.getTid(),
 				nextTask.getProcessStatusPrev(),
 				nextTask.getProcessStatus()));
-
-		appendTaskNode(prevTask, ts);
-		appendTaskNode(nextTask, ts);
+		 */
+		stateChange(prevTask, ts);
+		stateChange(nextTask, ts);
 	}
 
-	public void appendTaskNode(Task task, long ts) {
-		Link link = graph.append(task, new Node(ts));
+
+	public Node stateExtend(Task task, long ts) {
+		Node node = new Node(ts);
+		Link link = graph.append(task, node);
+		if (link != null) {
+			process_status_enum status = task.getProcessStatus();
+			link.type = resolveProcessStatus(status);
+		}
+		return node;
+	}
+
+	public Node stateChange(Task task, long ts) {
+		Node node = new Node(ts);
+		Link link = graph.append(task, node);
 		if (link != null) {
 			process_status_enum status = task.getProcessStatusPrev();
-			switch(status) {
-			case DEAD:
-				break;
-			case EXIT:
-			case RUN:
-				link.type = LinkType.RUNNING;
-				break;
-			case UNNAMED:
-				link.type = LinkType.UNKNOWN;
-				break;
-			case WAIT_BLOCKED:
-				link.type = LinkType.BLOCKED;
-				break;
-			case WAIT_CPU:
-			case WAIT_FORK:
-				link.type = LinkType.PREEMPTED;
-				break;
-			case ZOMBIE:
-				link.type = LinkType.UNKNOWN;
-				break;
-			default:
-				break;
-
-			}
+			link.type = resolveProcessStatus(status);
 		}
+		return node;
+	}
+
+	private LinkType resolveProcessStatus(process_status_enum status) {
+		LinkType ret = LinkType.UNKNOWN;
+		if (status == null)
+			return ret;
+		switch(status) {
+		case DEAD:
+			break;
+		case EXIT:
+		case RUN:
+			ret = LinkType.RUNNING;
+			break;
+		case UNNAMED:
+			ret = LinkType.UNKNOWN;
+			break;
+		case WAIT_BLOCKED:
+			ret = LinkType.BLOCKED;
+			break;
+		case WAIT_CPU:
+		case WAIT_FORK:
+			ret = LinkType.PREEMPTED;
+			break;
+		case ZOMBIE:
+			ret = LinkType.UNKNOWN;
+			break;
+		default:
+			break;
+		}
+		return ret;
 	}
 
 	public void handle_sched_wakeup_new(TraceReader reader, CtfTmfEvent event) {
-		int cpu = event.getCPU();
 		long ts = event.getTimestamp().getValue();
-		long childTid = EventField.getLong(event, "tid");
-		Task parent = system.getTaskCpu(cpu);
-		Task child = system.getTask(childTid);
-
-		if (parent == null || child == null) {
-			System.err.println("parent " + parent + " child " + child);
+		long tid = EventField.getLong(event, "tid");
+		Task child = system.getTask(tid);
+		Task parent = system.getTaskCpu(event.getCPU());
+		if (child == null || parent == null) {
+			log.warning("wakeup_new parent=" + parent + " child=" + child);
+			return;
 		}
-		Node n0 = new Node(ts);
-		Node n1 = new Node(ts);
-		Link l0 = graph.append(parent, n0);
-		if (l0 != null)
-			l0.type = LinkType.RUNNING;
-		graph.append(child, n1);
-		n0.linkVertical(n1).type = LinkType.DEFAULT;
+		Node n0 = stateExtend(parent, ts);
+		Node n1 = stateChange(child, ts);
+		n0.linkVertical(n1);
 	}
 
-
-	/*
-	0 HI: hi priority tasklet
-	1 TIMER
-	2 NET_TX
-	3 NET_RX
-	4 BLOCK
-	5 BLOCK_IOPOLL
-	6 TASKLET
-	7 SCHED
-	8 HRTIMER
-	9 RCU
-	 */
 	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
 		int cpu = event.getCPU();
 		long ts = event.getTimestamp().getValue();
@@ -148,14 +147,16 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		}
 
 		// spurious wakeup
-		if (target.getProcessStatus() != Task.process_status_enum.WAIT_BLOCKED) {
-			log.debug("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
+		process_status_enum status = target.getProcessStatusPrev();
+		if (status != process_status_enum.WAIT_BLOCKED) {
+			log.debug("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatusPrev());
 			return;
 		}
 
 		InterruptContext context = system.getInterruptContext(cpu).peek();
 		switch (context.getContext()) {
 		case HRTIMER:
+			// shortcut of appendTaskNode: resolve blocking source in situ
 			Link l1 = graph.append(target, new Node(ts));
 			if (l1 != null) {
 				l1.type = LinkType.TIMER;
@@ -166,22 +167,38 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		case SOFTIRQ:
 			Link l2 = graph.append(target, new Node(ts));
 			if (l2 != null) {
-				CtfTmfEvent softirqEv = context.getEvent();
-				long vec = EventField.getLong(softirqEv, "vec");
-				if (vec == 1) {
-					l2.type = LinkType.TIMER;
-				} else {
-					l2.type = LinkType.UNKNOWN;
-				}
+				l2.type = resolveSoftirq(context.getEvent());
 			}
 			break;
 		case NONE:
-
+			// task context wakeup
+			Node n0 = stateExtend(current, ts);
+			Node n1 = stateChange(target, ts);
+			n0.linkVertical(n1);
 			break;
 		default:
 			break;
 		}
 
+	}
+
+	private LinkType resolveSoftirq(CtfTmfEvent event) {
+		int vec = (int) EventField.getLong(event, "vec");
+		LinkType ret = LinkType.UNKNOWN;
+		switch(vec) {
+		case Softirq.HRTIMER:
+		case Softirq.TIMER:
+			ret = LinkType.TIMER;
+			break;
+		case Softirq.BLOCK:
+		case Softirq.BLOCK_IOPOLL:
+			ret = LinkType.TIMER;
+			break;
+		default:
+			ret = LinkType.UNKNOWN;
+			break;
+		}
+		return ret;
 	}
 
 	@Override

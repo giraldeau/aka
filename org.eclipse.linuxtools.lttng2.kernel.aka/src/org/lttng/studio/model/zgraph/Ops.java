@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.Stack;
 
 public class Ops {
@@ -389,23 +390,35 @@ public class Ops {
 			}
 		});
 		for (Node head: heads) {
-			Node curr = head;
-			while(curr.hasNeighbor(Node.RIGHT)) {
-				Node right = curr.right();
-				if (curr.hasNeighbor(Node.LEFT)) {
-					Node left = curr.left();
-					if ((left.links[Node.RIGHT].type == right.links[Node.LEFT].type) &&
-							!(curr.hasNeighbor(Node.UP) || curr.hasNeighbor(Node.DOWN))) {
-						LinkType oldType = left.links[Node.RIGHT].type;
-						left.linkHorizontal(right).type = oldType;
-						curr.links[Node.LEFT] = null;
-						curr.links[Node.RIGHT] = null;
-					}
-				}
-				curr = right;
-			}
+			minimizeSequenceInPlace(head);
 		}
 
+	}
+
+	/**
+	 * Merge consecutive nodes if possible, returns number of nodes processed
+	 * @param node
+	 * @return
+	 */
+	public static int minimizeSequenceInPlace(Node node) {
+		int i = 0;
+		Node n = Ops.head(node);
+		while(n.hasNeighbor(Node.RIGHT)) {
+			i++;
+			Node right = n.right();
+			if (n.hasNeighbor(Node.LEFT)) {
+				Node left = n.left();
+				if ((left.links[Node.RIGHT].type == right.links[Node.LEFT].type) &&
+						!(n.hasNeighbor(Node.UP) || n.hasNeighbor(Node.DOWN))) {
+					LinkType oldType = left.links[Node.RIGHT].type;
+					left.linkHorizontal(right).type = oldType;
+					n.links[Node.LEFT] = null;
+					n.links[Node.RIGHT] = null;
+				}
+			}
+			n = right;
+		}
+		return i;
 	}
 
 	public static Node tail(Node node) {
@@ -628,6 +641,15 @@ public class Ops {
 		return ok;
 	}
 
-
+	public static void minimizeInPlace(Graph g) {
+		Set<Object> keys = g.getNodesMap().keySet();
+		for (Object key: keys) {
+			int index = 0;
+			List<Node> list = g.getNodesOf(key);
+			while (index < list.size()) {
+				index += minimizeSequenceInPlace(list.get(index));
+			}
+		}
+	}
 
 }

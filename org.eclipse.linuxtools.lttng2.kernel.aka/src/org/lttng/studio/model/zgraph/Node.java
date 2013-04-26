@@ -116,6 +116,15 @@ public class Node implements Comparable<Node> {
 		return neighbor(dir) != null;
 	}
 
+	public int numberOfNeighbor() {
+		int i = 0;
+		for (int dir = 0; dir < links.length; dir++) {
+			if (links[dir] != null)
+				i++;
+		}
+		return i;
+	}
+
 	public Node up() {
 		if (links[UP] != null)
 			return links[UP].to;

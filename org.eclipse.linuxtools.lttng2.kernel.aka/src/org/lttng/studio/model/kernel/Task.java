@@ -191,7 +191,7 @@ public class Task {
 	public void setProcessStatus(long status) {
 		for (process_status_enum e: process_status_enum.values()) {
 			if (e.value() == status) {
-				process_status = e;
+				setProcessStatus(e);
 				break;
 			}
 		}

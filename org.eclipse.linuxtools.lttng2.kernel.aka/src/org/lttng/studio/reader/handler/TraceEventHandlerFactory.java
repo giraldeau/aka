@@ -38,6 +38,7 @@ public class TraceEventHandlerFactory {
 		ArrayList<ITraceEventHandler> list = new ArrayList<ITraceEventHandler>();
 		list.add(new TraceEventHandlerInvariant());
 		list.add(new TraceEventHandlerSched());
+		list.add(new EventContextHandler());
 		list.add(new TraceEventHandlerTaskHierarchy());
 		list.add(new TraceEventHandlerHRTimer());
 		list.add(new TraceEventHandlerFD());
