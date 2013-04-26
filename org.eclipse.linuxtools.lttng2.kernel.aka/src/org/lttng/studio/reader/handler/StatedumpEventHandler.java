@@ -60,6 +60,7 @@ public class StatedumpEventHandler extends TraceEventHandlerBase {
 		String name = EventField.getString(event, "name");
 
 		Task task = new Task(tid);
+		task.setStart(reader.getTimeRange().getStartTime().getValue());
 		task.setPid(pid);
 		task.setPpid(ppid);
 		task.setExecutionMode(mode);
