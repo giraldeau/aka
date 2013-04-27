@@ -92,6 +92,9 @@ public class Dot {
 			return "";
 		int i = 0;
 		StringBuilder str = new StringBuilder();
+		str.append("/* ");
+		str.append(g.toString());
+		str.append(" */\n");
 		str.append("digraph G {\n");
 		//str.append("  rankdir=LR;\n");
 		str.append("  overlap=false;");

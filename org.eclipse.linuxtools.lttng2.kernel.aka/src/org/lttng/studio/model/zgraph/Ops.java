@@ -1,11 +1,8 @@
 package org.lttng.studio.model.zgraph;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.Stack;
 
 public class Ops {
@@ -376,48 +373,28 @@ public class Ops {
 	}
 
 	public static void minimizeInPlace(Node node) {
-		final List<Node> heads = new ArrayList<Node>();
 		ScanLineTraverse.traverse(node, new Visitor() {
 			@Override
 			public void visitHead(Node node) {
-				heads.add(node);
 			}
 			@Override
 			public void visitNode(Node node) {
+				if (node.hasNeighbor(Node.LEFT) && node.hasNeighbor(Node.RIGHT)) {
+					Node left = node.left();
+					Node right = node.right();
+					if ((left.links[Node.RIGHT].type == right.links[Node.LEFT].type) &&
+							!(node.hasNeighbor(Node.UP) || node.hasNeighbor(Node.DOWN))) {
+						LinkType oldType = left.links[Node.RIGHT].type;
+						left.linkHorizontal(right).type = oldType;
+						node.links[Node.LEFT] = null;
+						node.links[Node.RIGHT] = null;
+					}
+				}
 			}
 			@Override
 			public void visitLink(Link link, boolean hori) {
 			}
 		});
-		for (Node head: heads) {
-			minimizeSequenceInPlace(head);
-		}
-
-	}
-
-	/**
-	 * Merge consecutive nodes if possible, returns number of nodes processed
-	 * @param node
-	 * @return
-	 */
-	public static int minimizeSequenceInPlace(Node node) {
-		int i = 0;
-		while(node.hasNeighbor(Node.RIGHT)) {
-			i++;
-			Node right = node.right();
-			if (node.hasNeighbor(Node.LEFT)) {
-				Node left = node.left();
-				if ((left.links[Node.RIGHT].type == right.links[Node.LEFT].type) &&
-						!(node.hasNeighbor(Node.UP) || node.hasNeighbor(Node.DOWN))) {
-					LinkType oldType = left.links[Node.RIGHT].type;
-					left.linkHorizontal(right).type = oldType;
-					node.links[Node.LEFT] = null;
-					node.links[Node.RIGHT] = null;
-				}
-			}
-			node = right;
-		}
-		return i + 1;
 	}
 
 	public static Node tail(Node node) {
@@ -638,17 +615,6 @@ public class Ops {
 			}
 		}
 		return ok;
-	}
-
-	public static void minimizeInPlace(Graph g) {
-		Set<Object> keys = g.getNodesMap().keySet();
-		for (Object key: keys) {
-			int index = 0;
-			List<Node> list = g.getNodesOf(key);
-			while (index < list.size()) {
-				index += minimizeSequenceInPlace(list.get(index));
-			}
-		}
 	}
 
 }

@@ -42,21 +42,11 @@ public class GraphStats {
 		stats.ref = obj;
 		statsTotal.put(obj, stats);
 		List<Node> nodes = graph.getNodesOf(obj);
-		int index = 0;
-		while (index < nodes.size()) {
-			index += computeSequence(nodes.get(index), stats);
+		for (Node node: nodes) {
+			if (node.hasNeighbor(Node.RIGHT)) {
+				stats.addValue(node.links[Node.RIGHT].duration());
+			}
 		}
-	}
-
-	private int computeSequence(Node node, SummaryStatisticsW stats) {
-		int i = 0;
-		Node n = Ops.head(node);
-		while(n.hasNeighbor(Node.RIGHT)) {
-			i++;
-			stats.addValue(n.links[Node.RIGHT].duration());
-			n = n.right();
-		}
-		return i + 1;
 	}
 
 	public String dump() {

@@ -145,7 +145,7 @@ public class MainCriticalPath {
 				GraphStats gstats = new GraphStats(path);
 				Dot.writeString(uuid.toString(), tid + "_path.stats", gstats.dump());
 
-				Ops.minimizeInPlace(path);
+				Ops.minimize(path.getHead(task));
 				Dot.writeString(uuid.toString(), tid + "_path_min.dot", Dot.todot(path));
 
 				GraphStats gstatsMin = new GraphStats(path);
