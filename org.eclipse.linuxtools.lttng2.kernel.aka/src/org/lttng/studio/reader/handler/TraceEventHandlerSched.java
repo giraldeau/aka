@@ -164,7 +164,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 			return;
 		}
 		// spurious wakeup
-		if (target.getTid() == current.getTid()) {
+		if (current != null && target.getTid() == current.getTid()) {
 			log.warning("sched_wakeup SELF_WAKEUP " + target);
 			return;
 		}

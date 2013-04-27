@@ -136,6 +136,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 
 	@Override
 	public void handleComplete(TraceReader reader) {
+/*
 		StringBuilder str = new StringBuilder();
 		str.append("Event;");
 		for (Context ctx: Context.values()) {
@@ -152,6 +153,7 @@ public class EventContextHandler extends TraceEventHandlerBase {
 			str.append("\n");
 		}
 		System.out.println(str.toString());
+*/
 	}
 
 	public void addEventName(String name) {

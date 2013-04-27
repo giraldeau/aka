@@ -1,9 +1,10 @@
 package org.lttng.studio.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,7 +16,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
-import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.zgraph.CriticalPath;
@@ -27,16 +27,19 @@ import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
 import org.lttng.studio.reader.CliProgressMonitor;
 import org.lttng.studio.reader.TimeLoadingListener;
+import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.handler.ALog;
 import org.lttng.studio.reader.handler.IModelKeys;
+import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 
 public class MainCriticalPath {
 
 	static final String OP_LIST = "list";
 	static final String OP_ANALYZE = "analyze";
+	static final String OP_ENEV = "enable-event";
 	static final String OP_DEFAULT = OP_ANALYZE;
-	static final String[] availOps = { OP_LIST, OP_ANALYZE };
+	static final String[] availOps = { OP_LIST, OP_ANALYZE, OP_ENEV };
 
 	static final String ALGO_BOUNDED = "bounded";
 	static final String ALGO_UNBOUNDED = "unbounded";
@@ -57,7 +60,7 @@ public class MainCriticalPath {
 	public static class CliSpinner extends Thread {
 		boolean done = false;
 		static final String[] items = { "-", "\\", "|", "/" };
-		String msg = "processing";
+		String msg = "Writing results... ";
 		@Override
 		public void run() {
 			int i = 0;
@@ -70,7 +73,7 @@ public class MainCriticalPath {
 				System.out.print("\r" + msg + " " + items[i]);
 				i = (i + 1) % items.length;
 			}
-			System.out.print("\r\n");
+			System.out.print("\r" + msg + " done\n");
 		}
 		public void done() {
 			done = true;
@@ -90,25 +93,13 @@ public class MainCriticalPath {
 			self.usage();
 			return;
 		}
-		opts.ctfTmfTrace = new CtfTmfTrace();
-		try {
-			opts.ctfTmfTrace.initTrace(null, opts.traceDir.getCanonicalPath(), CtfTmfEvent.class);
-		} catch (TmfTraceException e) {
-			System.err.println("Error loading trace " + opts.traceDir);
-			e.printStackTrace();
-			return;
-		} catch (IOException e) {
-			System.err.println("Error loading trace " + opts.traceDir);
-			e.printStackTrace();
-			return;
-		}
-
-		UUID uuid = opts.ctfTmfTrace.getCTFTrace().getUUID();
-		System.out.println("Processing trace " + uuid.toString());
+		new File("results").mkdirs();
 		if (opts.op.compareTo(OP_LIST) == 0) {
 			self.listTasks(opts);
 		} else if (opts.op.compareTo(OP_ANALYZE) == 0) {
 			self.analyze(opts);
+		} else if (opts.op.compareTo(OP_ENEV) == 0) {
+			self.enableEvent(opts);
 		} else {
 			System.err.println("unknown operation " + opts.op);
 			self.usage();
@@ -116,10 +107,47 @@ public class MainCriticalPath {
 		System.exit(0);
 	}
 
+	public void loadTrace(Opts opts) {
+		if (opts.traceDir == null) {
+			throw new RuntimeException("missing trace argument");
+		}
+		opts.ctfTmfTrace = new CtfTmfTrace();
+		try {
+			opts.ctfTmfTrace.initTrace(null, opts.traceDir.getCanonicalPath(), CtfTmfEvent.class);
+		} catch (Exception e) {
+			throw new RuntimeException("Error loading trace " + opts.traceDir);
+		}
+		UUID uuid = opts.ctfTmfTrace.getCTFTrace().getUUID();
+		System.out.println("Processing trace " + uuid.toString());
+	}
+
+	public void enableEvent(Opts opts) {
+		Collection<AnalysisPhase> phases = TraceEventHandlerFactory.makeStandardAnalysis();
+		HashSet<String> evNames = new HashSet<String>();
+		for (AnalysisPhase phase: phases) {
+			Collection<ITraceEventHandler> handlers = phase.getHandlers();
+			for (ITraceEventHandler handler: handlers) {
+				for (TraceHook hook: handler.getHooks()) {
+					if (hook.eventName != null) {
+						// skip syscalls
+						if (hook.eventName.matches("exit_syscall") ||
+								hook.eventName.matches("sys_.*"))
+							continue;
+						evNames.add(hook.eventName);
+					}
+				}
+			}
+		}
+		List<String> sorted = new ArrayList<String>(evNames);
+		Collections.sort(sorted);
+		for (String ev: sorted) {
+			System.out.println(ev);
+		}
+	}
+
 	public void analyze(Opts opts) {
+		loadTrace(opts);
 		AnalyzerThread thread = processTrace(opts);
-		if (thread == null)
-			return;
 		CliSpinner spinner = new CliSpinner();
 		spinner.start();
 		UUID uuid = opts.ctfTmfTrace.getCTFTrace().getUUID();
@@ -132,7 +160,8 @@ public class MainCriticalPath {
 		for (Long tid :opts.tids) {
 			Task task = model.getTask(tid);
 			if (task == null) {
-				System.err.println("unknown task " + tid);
+				System.err.println("task not found: " + tid);
+				continue;
 			}
 			list.add(task);
 			List<Task> sub = new ArrayList<Task>();
@@ -152,17 +181,19 @@ public class MainCriticalPath {
 				Dot.writeString(uuid.toString(), tid + "_path_min.stats", gstatsMin.dump());
 			} catch (Exception e) {
 				System.err.println("Error processing graph " + opts.traceDir);
-				e.printStackTrace();
 			}
 		}
 		Dot.writeString(uuid.toString(), "overall_graph.dot", Dot.todot(graph, list));
 		spinner.done();
+		try {
+			spinner.join();
+		} catch (InterruptedException e) {
+		}
 	}
 
 	public void listTasks(Opts opts) {
+		loadTrace(opts);
 		AnalyzerThread thread = processTrace(opts);
-		if (thread == null)
-			return;
 		String fmt = "%-5d %-5d %s\n";
 		String fmtHeader = "%-5s %-5s %s\n";
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
@@ -178,12 +209,8 @@ public class MainCriticalPath {
 		Collection<AnalysisPhase> phases = TraceEventHandlerFactory.makeStandardAnalysis();
 		try {
 			thread.setTrace(opts.traceDir);
-		} catch (TmfTraceException e) {
-			e.printStackTrace();
-			return null;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
+		} catch (Exception e) {
+			throw new RuntimeException("Error while loading trace");
 		}
 		thread.addAllPhases(phases);
 		thread.setListener(new TimeLoadingListener("loading", phases.size(), new CliProgressMonitor()));
@@ -194,8 +221,7 @@ public class MainCriticalPath {
 		try {
 			thread.join();
 		} catch (InterruptedException e) {
-			e.printStackTrace();
-			return null;
+			throw new RuntimeException("Interrupted");
 		}
 		System.out.print("\n");
 		return thread;
@@ -244,9 +270,6 @@ public class MainCriticalPath {
 			String[] split = tids.split(",");
 			for (String s: split)
 				opts.tids.add(new Long(s));
-		}
-		if (opts.traceDir == null) {
-			throw new ParseException("trace path is required");
 		}
 		return opts;
 	}
