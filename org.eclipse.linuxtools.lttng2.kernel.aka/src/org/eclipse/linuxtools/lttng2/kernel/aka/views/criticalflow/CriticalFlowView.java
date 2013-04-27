@@ -29,6 +29,7 @@ import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.linuxtools.lttng2.kernel.aka.views.AbstractAKAView;
+import org.eclipse.linuxtools.lttng2.kernel.aka.views.criticalflow.CriticalFlowPresentationProvider.State;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.signal.TmfRangeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
@@ -54,14 +55,15 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IEditorPart;
-import org.lttng.studio.model.graph.CriticalPathStats;
-import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
-import org.lttng.studio.model.graph.ExecEdge;
-import org.lttng.studio.model.graph.ExecGraph;
-import org.lttng.studio.model.graph.ExecVertex;
-import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.zgraph.CriticalPath;
+import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.Link;
+import org.lttng.studio.model.zgraph.LinkType;
+import org.lttng.studio.model.zgraph.Node;
+import org.lttng.studio.model.zgraph.Ops;
+import org.lttng.studio.model.zgraph.Ops.ScanLineTraverse;
 import org.lttng.studio.reader.handler.IModelKeys;
 
 /**
@@ -103,7 +105,7 @@ public class CriticalFlowView extends AbstractAKAView {
     /**
      * Redraw state enum
      */
-    private enum State { IDLE, BUSY, PENDING }
+    private enum RedrawState { IDLE, BUSY, PENDING }
 
     // ------------------------------------------------------------------------
     // Fields
@@ -140,7 +142,7 @@ public class CriticalFlowView extends AbstractAKAView {
     private Action fPreviousResourceAction;
 
     // The redraw state used to prevent unnecessary queuing of display runnables
-    private State fRedrawState = State.IDLE;
+    private RedrawState fRedrawState = RedrawState.IDLE;
 
     // The redraw synchronization object
     final private Object fSyncObj = new Object();
@@ -396,51 +398,68 @@ public class CriticalFlowView extends AbstractAKAView {
     // Internal
     // ------------------------------------------------------------------------
 
-	private void buildTreeList(final List<ExecEdge> path, ExecGraph graph) {
+	private void buildTreeList(final Graph path) {
 		fStartTime = Long.MAX_VALUE;
 		fEndTime = Long.MIN_VALUE;
 
-		Map<Object, CriticalFlowEntry> rootList = new LinkedHashMap<Object, CriticalFlowEntry>();
+		final Map<Object, CriticalFlowEntry> rootList = new LinkedHashMap<Object, CriticalFlowEntry>();
 
 		// FIXME: position may change according to sorting in the table view
-		int position = 0;
-		for (ExecEdge edge : path) {
-			ExecVertex source = graph.getGraph().getEdgeSource(edge);
-			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
-
-			/* Get start and end time */
-			long start = source.getTimestamp();
-			long end = target.getTimestamp();
-			fStartTime = Math.min(fStartTime, start);
-			fEndTime = Math.max(fEndTime, end);
-
-			Object sourceObject = source.getOwner();
-			Object targetObject = target.getOwner();
-
-			if (sourceObject == targetObject) {
-				CriticalFlowEntry entry = rootList.get(sourceObject);
-				if (entry == null) {
-					entry = new CriticalFlowEntry(sourceObject.toString(),
-							fStartTime, fEndTime);
-					entry.setPosition(position++);
-					rootList.put(sourceObject, entry);
+		Node node = path.getHead(fCurrentTask);
+		// create all interval entries and horizontal links
+		ScanLineTraverse.traverse(node, new Ops.Visitor() {
+			int position = 0;
+			@Override
+			public void visitHead(Node node) {
+				Object parent = path.getParentOf(node);
+				Node first = path.getHead(parent);
+				Node last = path.getHead(parent);
+				fStartTime = Math.min(fStartTime, first.getTs());
+				fEndTime = Math.max(fEndTime, last.getTs());
+				if (rootList.containsKey(parent))
+					return;
+				CriticalFlowEntry entry = new CriticalFlowEntry(parent.toString(), fStartTime, fEndTime);
+				entry.setPosition(position++);
+				rootList.put(parent, entry);
+			}
+			@Override
+			public void visitNode(Node node) {
+				fStartTime = Math.min(fStartTime, node.getTs());
+				fEndTime = Math.max(fEndTime, node.getTs());
+			}
+			@Override
+			public void visitLink(Link link, boolean horizontal) {
+				if (horizontal) {
+					Object parent = path.getParentOf(link.from);
+					CriticalFlowEntry entry = rootList.get(parent);
+					CriticalFlowEvent ev = new CriticalFlowEvent(entry, link.from.getTs(), link.duration(),
+							getMatchingState(link.type));
+					entry.addEvent(ev);
 				}
-				entry.addEvent(new CriticalFlowEvent(
-						rootList.get(sourceObject), start, end - start,
-						CriticalFlowPresentationProvider.State.CRITICAL));
 			}
-		}
+		});
 
-		for (ExecEdge edge : path) {
-			ExecVertex source = graph.getGraph().getEdgeSource(edge);
-			ExecVertex target = graph.getGraph().getEdgeTarget(edge);
-			if (source.getOwner() != target.getOwner()) {
-				CriticalFlowEntry entrySrc = rootList.get(source.getOwner());
-				CriticalFlowEntry entryDst = rootList.get(target.getOwner());
-				entrySrc.addEvent(new CriticalFlowLink(entrySrc, entryDst,
-						source.getTimestamp(), target.getTimestamp()));
+		// create all vertical links
+		ScanLineTraverse.traverse(node, new Ops.Visitor() {
+			@Override
+			public void visitHead(Node node) {
 			}
-		}
+			@Override
+			public void visitNode(Node node) {
+			}
+			@Override
+			public void visitLink(Link link, boolean horizontal) {
+				if (!horizontal) {
+					Object parentFrom = path.getParentOf(link.from);
+					Object parentTo = path.getParentOf(link.to);
+					CriticalFlowEntry entryFrom = rootList.get(parentFrom);
+					CriticalFlowEntry entryTo = rootList.get(parentTo);
+					CriticalFlowLink lk = new CriticalFlowLink(entryFrom, entryTo,
+							link.from.getTs(), link.to.getTs());
+					entryFrom.addEvent(lk);
+				}
+			}
+		});
 
 		fEntryList = new ArrayList<CriticalFlowEntry>();
 		fEntryList.addAll(rootList.values());
@@ -457,6 +476,35 @@ public class CriticalFlowView extends AbstractAKAView {
 		for (CriticalFlowEntry entry : fEntryList) {
 			buildStatusEvents(entry);
 		}
+	}
+
+	private static State getMatchingState(LinkType type) {
+		State state = State.OTHER;
+		switch (type) {
+		case RUNNING:
+			state = State.RUNNING;
+			break;
+		case PREEMPTED:
+			state = State.PREEMPTED;
+			break;
+		case TIMER:
+			state = State.TIMER;
+			break;
+		case BLOCK_DEVICE:
+			state = State.BLOCK_DEVICE;
+			break;
+		case EPS:
+		case UNKNOWN:
+		case DEFAULT:
+		case BLOCKED:
+		case INTERRUPTED:
+		case NETWORK:
+		case USER_INPUT:
+			break;
+		default:
+			break;
+		}
+		return state;
 	}
 
     private void buildStatusEvents( CriticalFlowEntry entry) {
@@ -542,10 +590,10 @@ public class CriticalFlowView extends AbstractAKAView {
 
     private void redraw() {
         synchronized (fSyncObj) {
-            if (fRedrawState == State.IDLE) {
-                fRedrawState = State.BUSY;
+            if (fRedrawState == RedrawState.IDLE) {
+                fRedrawState = RedrawState.BUSY;
             } else {
-                fRedrawState = State.PENDING;
+                fRedrawState = RedrawState.PENDING;
                 return;
             }
         }
@@ -558,11 +606,11 @@ public class CriticalFlowView extends AbstractAKAView {
                 fTimeGraphCombo.redraw();
                 fTimeGraphCombo.update();
                 synchronized (fSyncObj) {
-                    if (fRedrawState == State.PENDING) {
-                        fRedrawState = State.IDLE;
+                    if (fRedrawState == RedrawState.PENDING) {
+                        fRedrawState = RedrawState.IDLE;
                         redraw();
                     } else {
-                        fRedrawState = State.IDLE;
+                        fRedrawState = RedrawState.IDLE;
                     }
                 }
             }
@@ -605,19 +653,12 @@ public class CriticalFlowView extends AbstractAKAView {
         manager.add(new Separator());
     }
 
-	private void setSpanRoot(Span root, ExecGraph graph, List<ExecEdge> path) {
-
-		buildTreeList(path, graph);
-//		treeViewer.setInput(root);
-//		treeViewer.expandAll();
-	}
-
 	@Override
 	protected void updateDataSafe() {
 		if (registry == null)
 			return;
 		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
-		ExecGraph graph = registry.getModel(IModelKeys.SHARED, ExecGraph.class);
+		Graph graph = registry.getModel(IModelKeys.SHARED, Graph.class);
 		if (system == null || graph == null)
 			return;
 		Task task = system.getTask(currentTid);
@@ -628,17 +669,14 @@ public class CriticalFlowView extends AbstractAKAView {
 		}
 	}
 
-	private void computeCriticalPath(ExecGraph graph, Task task) {
-		ExecVertex head = graph.getStartVertexOf(task);
-		ExecVertex stop = graph.getEndVertexOf(task);
-		if (!graph.getGraph().containsVertex(head)) {
+	private void computeCriticalPath(Graph graph, Task task) {
+		Node head = graph.getHead(task);
+		if (head == null) {
 			System.err.println("WARNING: head vertex is null for task " + task);
 			return;
 		}
-
-		DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph);
-		List<ExecEdge> path = annotate.criticalPath(head, stop);
-		Span root = CriticalPathStats.compile(graph, path);
-		setSpanRoot(root, graph, path);
+		CriticalPath cp = new CriticalPath(graph);
+		Graph path = cp.criticalPathBounded(head);
+		buildTreeList(path);
 	}
 }

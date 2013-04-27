@@ -18,20 +18,21 @@ import java.util.Map;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.StateItem;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.TimeGraphPresentationProvider;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.widgets.Display;
 
 /**
  * Presentation provider for the control flow view
  */
 public class CriticalFlowPresentationProvider extends TimeGraphPresentationProvider {
 
-    public enum State {
-        CRITICAL      (new RGB(200, 0, 0)),
-        NOT_CRITICAL  (new RGB(0, 0,   200));
+    public static enum State {
+        RUNNING         (new RGB(0x33, 0x99, 0x00)),
+        PREEMPTED       (new RGB(0xfd, 0xca, 0x01)),
+        TIMER           (new RGB(0x66, 0x99, 0xcc)),
+        BLOCK_DEVICE    (new RGB(0x66, 0x00, 0xcc)),
+        OTHER           (new RGB(0x66, 0x66, 0x66));
 
         public final RGB rgb;
 
@@ -71,23 +72,6 @@ public class CriticalFlowPresentationProvider extends TimeGraphPresentationProvi
         }
         return Messages.CriticalFlowView_multipleStates;
     }
-
-//    private static State getMatchingState(int status) {
-//        switch (status) {
-//        case 1:
-//            return State.WAIT_BLOCKED;
-//        case StateValues.PROCESS_STATUS_WAIT_FOR_CPU:
-//            return State.WAIT_FOR_CPU;
-//        case StateValues.PROCESS_STATUS_RUN_USERMODE:
-//            return State.USERMODE;
-//        case StateValues.PROCESS_STATUS_RUN_SYSCALL:
-//            return State.SYSCALL;
-//        case StateValues.PROCESS_STATUS_INTERRUPTED:
-//            return State.INTERRUPTED;
-//        default:
-//            return State.UNKNOWN;
-//        }
-//    }
 
     @Override
     public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {

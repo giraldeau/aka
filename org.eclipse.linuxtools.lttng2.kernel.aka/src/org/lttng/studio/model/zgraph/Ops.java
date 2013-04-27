@@ -7,13 +7,13 @@ import java.util.Stack;
 
 public class Ops {
 
-	private interface Visitor {
+	public interface Visitor {
 		public void visitHead(Node node);
 		public void visitNode(Node node);
 		public void visitLink(Link link, boolean horizontal);
 	}
 
-	private static class ScanLineTraverse {
+	public static class ScanLineTraverse {
 		public static void traverse(Node start, Visitor visitor) {
 			if (start == null)
 				return;
