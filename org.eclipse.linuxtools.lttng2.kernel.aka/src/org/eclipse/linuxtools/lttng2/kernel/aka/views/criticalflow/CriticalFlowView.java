@@ -479,7 +479,7 @@ public class CriticalFlowView extends AbstractAKAView {
 	}
 
 	private static State getMatchingState(LinkType type) {
-		State state = State.OTHER;
+		State state = State.UNKNOWN;
 		switch (type) {
 		case RUNNING:
 			state = State.RUNNING;
@@ -493,13 +493,19 @@ public class CriticalFlowView extends AbstractAKAView {
 		case BLOCK_DEVICE:
 			state = State.BLOCK_DEVICE;
 			break;
+		case INTERRUPTED:
+			state = State.INTERRUPTED;
+			break;
+		case NETWORK:
+			state = State.NETWORK;
+			break;
+		case USER_INPUT:
+			state = State.USER_INPUT;
+			break;
 		case EPS:
 		case UNKNOWN:
 		case DEFAULT:
 		case BLOCKED:
-		case INTERRUPTED:
-		case NETWORK:
-		case USER_INPUT:
 			break;
 		default:
 			break;

@@ -55,7 +55,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			log.warning("prevTask=" + prevTask + " nextTask=" + nextTask);
 			return;
 		}
-		/*
 		log.debug(event.getTimestamp().toString());
 		log.debug(String.format("%5d %12s %12s",
 				prevTask.getTid(),
@@ -65,7 +64,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 				nextTask.getTid(),
 				nextTask.getProcessStatusPrev(),
 				nextTask.getProcessStatus()));
-		 */
 		stateChange(prevTask, ts);
 		stateChange(nextTask, ts);
 	}
@@ -141,7 +139,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		long tid = EventField.getLong(event, "tid");
 		Task target = system.getTask(tid);
 		Task current = system.getTaskCpu(event.getCPU());
-		if (current == null || target == null) {
+		if (target == null) {
 			log.warning("wakeup current=" + current  + " target=" + target);
 			return;
 		}
@@ -163,6 +161,10 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			}
 			break;
 		case IRQ:
+			Link l3 = graph.append(target, new Node(ts));
+			if (l3 != null) {
+				l3.type = resolveIRQ(context.getEvent());
+			}
 			break;
 		case SOFTIRQ:
 			Link l2 = graph.append(target, new Node(ts));
@@ -172,15 +174,34 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			break;
 		case NONE:
 			// task context wakeup
-			Node n0 = stateExtend(current, ts);
-			Node n1 = stateChange(target, ts);
-			n0.linkVertical(n1);
+			if (current != null) {
+				Node n0 = stateExtend(current, ts);
+				Node n1 = stateChange(target, ts);
+				n0.linkVertical(n1);
+			} else {
+				stateChange(target, ts);
+			}
 			break;
 		default:
 			break;
 		}
 
 	}
+
+	private LinkType resolveIRQ(CtfTmfEvent event) {
+		int vec = (int) EventField.getLong(event, "irq");
+		LinkType ret = LinkType.UNKNOWN;
+		switch(vec) {
+		case 0: // resched
+			ret = LinkType.INTERRUPTED;
+			break;
+		default:
+			ret = LinkType.UNKNOWN;
+			break;
+		}
+		return ret;
+	}
+
 
 	private LinkType resolveSoftirq(CtfTmfEvent event) {
 		int vec = (int) EventField.getLong(event, "vec");

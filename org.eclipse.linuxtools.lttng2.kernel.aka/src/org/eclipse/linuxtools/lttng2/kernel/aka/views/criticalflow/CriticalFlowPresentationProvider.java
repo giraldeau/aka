@@ -29,10 +29,13 @@ public class CriticalFlowPresentationProvider extends TimeGraphPresentationProvi
 
     public static enum State {
         RUNNING         (new RGB(0x33, 0x99, 0x00)),
-        PREEMPTED       (new RGB(0xfd, 0xca, 0x01)),
-        TIMER           (new RGB(0x66, 0x99, 0xcc)),
+        INTERRUPTED     (new RGB(0xff, 0xdc, 0x00)),
+        PREEMPTED       (new RGB(0xc8, 0x64, 0x00)),
+        TIMER           (new RGB(0x33, 0x66, 0x99)),
         BLOCK_DEVICE    (new RGB(0x66, 0x00, 0xcc)),
-        OTHER           (new RGB(0x66, 0x66, 0x66));
+        USER_INPUT      (new RGB(0x01, 0x5a, 0x01)),
+        NETWORK         (new RGB(0xff, 0x9b, 0xff)),
+        UNKNOWN         (new RGB(0x40, 0x3b, 0x33));
 
         public final RGB rgb;
 

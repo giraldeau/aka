@@ -73,13 +73,18 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		evHistory = new HashMap<Long, EventData>();
 	}
 
+	private Task createTask(long tid, long ts, String cmd) {
+		Task task = new Task();
+		task.setTid(tid);
+		task.setStart(ts);
+		task.setName(cmd);
+		system.putTask(task);
+		return task;
+	}
+
 	private void _update_task_state(long tid, process_status_enum state) {
 		Task task = system.getTask(tid);
-		if (task != null) {
-			task.setProcessStatus(state);
-		} else {
-			system.incrementSwitchUnkownTask();
-		};
+
 	}
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
@@ -93,22 +98,29 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 		system.setCurrentTid(cpu, next);
 
-		_update_task_state(next, process_status_enum.RUN);
+		Task nextTask = system.getTask(next);
+		if (nextTask == null) {
+			String name = EventField.getString(event, "next_comm");
+			nextTask = createTask(next, event.getTimestamp().getValue(), name);
+			log.warning("sched_switch next task was null " + nextTask);
+		}
+		nextTask.setProcessStatus(process_status_enum.RUN);
 
-		Task task = system.getTask(prev);
-		if (task != null) {
-			process_status_enum status = task.getProcessStatus();
-			if (status != process_status_enum.RUN && status != process_status_enum.EXIT) {
-				log.warning("prev task was not running " + task + " " + task.getProcessStatus() + " " + event.getTimestamp());
-			}
-			// prev_state == 0 means runnable, thus waits for cpu
-			if (prev_state == 0) {
-				_update_task_state(prev, process_status_enum.WAIT_CPU);
-			} else {
-				_update_task_state(prev, process_status_enum.WAIT_BLOCKED);
-			}
+		Task prevTask = system.getTask(prev);
+		if (prevTask == null) {
+			String name = EventField.getString(event, "prev_comm");
+			prevTask = createTask(next, event.getTimestamp().getValue(), name);
+			log.warning("sched_switch prev task was null " + prevTask);
+		}
+		process_status_enum status = prevTask.getProcessStatus();
+		if (status != process_status_enum.RUN && status != process_status_enum.EXIT) {
+			log.warning("prev task was not running " + prevTask + " " + event.getTimestamp());
+		}
+		// prev_state == 0 means runnable, thus waits for cpu
+		if (prev_state == 0) {
+			prevTask.setProcessStatus(process_status_enum.WAIT_CPU);
 		} else {
-			log.warning("prev task tid=" + prev + " is null");
+			prevTask.setProcessStatus(process_status_enum.WAIT_BLOCKED);
 		}
 	}
 
@@ -160,8 +172,10 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		Task target = system.getTask(tid);
 		Task current = system.getTaskCpu(event.getCPU());
 		if (target == null) {
-			log.warning("sched_wakeup target is null " + event.getTimestamp().toString());
-			return;
+			String name = EventField.getString(event, "comm");
+			target = createTask(tid, event.getTimestamp().getValue(), name);
+			target.setProcessStatus(process_status_enum.WAIT_BLOCKED);
+			log.warning("sched_wakeup target was null " + event.getTimestamp().toString());
 		}
 		// spurious wakeup
 		if (current != null && target.getTid() == current.getTid()) {
