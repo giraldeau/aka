@@ -574,6 +574,8 @@ public class Ops {
 	 * @return
 	 */
 	public static boolean match(Node n1, Node n2, int prop) {
+		if (n1 == null || n2 == null)
+			return false;
 		Stack<Node> stack = new Stack<Node>();
 		HashSet<Node> visited = new HashSet<Node>();
 		stack.push(n2);

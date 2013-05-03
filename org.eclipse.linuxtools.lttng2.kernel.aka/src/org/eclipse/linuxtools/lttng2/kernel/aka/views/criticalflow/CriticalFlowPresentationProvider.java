@@ -34,7 +34,7 @@ public class CriticalFlowPresentationProvider extends TimeGraphPresentationProvi
         TIMER           (new RGB(0x33, 0x66, 0x99)),
         BLOCK_DEVICE    (new RGB(0x66, 0x00, 0xcc)),
         USER_INPUT      (new RGB(0x01, 0x5a, 0x01)),
-        NETWORK         (new RGB(0xff, 0x9b, 0xff)),
+        NETWORK         (new RGB(0xd4, 0x00, 0xd4)),
         UNKNOWN         (new RGB(0x40, 0x3b, 0x33));
 
         public final RGB rgb;

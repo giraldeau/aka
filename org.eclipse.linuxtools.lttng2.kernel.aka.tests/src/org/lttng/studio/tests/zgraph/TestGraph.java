@@ -404,27 +404,37 @@ public class TestGraph {
 		for (GraphBuilderData data: params) {
 			String filePrefix = builder.getName() + "_" + data.id;
 			builder.build(data);
-			builder.criticalPath(data);
+			builder.criticalPathBounded(data);
+			builder.criticalPathUnbounded(data);
 			Graph main = Ops.toGraphInPlace(data.head);
 			CriticalPath cp = new CriticalPath(main);
-			Graph path = cp.criticalPathBounded(data.head);
-			Node act = path.getHead(0L);
+			Graph bounded = cp.criticalPathBounded(data.head);
+			Graph unbounded = cp.criticalPathUnbounded(data.head);
+			Node actBounded = bounded.getHead(0L);
+			Node actUnbounded = unbounded.getHead(0L);
 
 			StringBuilder str = new StringBuilder();
 			str.append("Main graph:\n");
 			str.append(main.toString());
 			str.append("\n");
 			str.append(main.dump());
-			str.append("Critical path:\n");
-			str.append(path.toString());
+			str.append("Bounded critical path:\n");
+			str.append(bounded.toString());
+			str.append(bounded.dump());
+			str.append("Unbounded critical path:\n");
+			str.append(unbounded.toString());
+			str.append(unbounded.dump());
 			str.append("\n");
-			str.append(path.dump());
 
 			Dot.writeString(this.getClass(), filePrefix + ".log", str.toString());
 			Dot.writeString(this.getClass(), filePrefix + "_all.dot", Dot.todot(main));
-			Dot.writeString(this.getClass(), filePrefix + "_exp.dot", Dot.todot(data.path));
-			Dot.writeString(this.getClass(), filePrefix + "_act.dot", Dot.todot(act));
-			boolean status = Ops.validate(act) && Ops.match(data.path, act);
+			Dot.writeString(this.getClass(), filePrefix + "_exp.dot", Dot.todot(data.bounded));
+			Dot.writeString(this.getClass(), filePrefix + "_act_bounded.dot", Dot.todot(actBounded));
+			Dot.writeString(this.getClass(), filePrefix + "_act_unbounded.dot", Dot.todot(actUnbounded));
+			boolean status =  Ops.validate(actBounded);
+			status = status & Ops.validate(actUnbounded);
+			status = status & Ops.match(data.bounded, actBounded);
+			status = status & Ops.match(data.unbounded, actUnbounded);
 			if (status)
 				System.out.println("PASS: " + filePrefix);
 			else
@@ -522,4 +532,5 @@ public class TestGraph {
 		assertEquals(2, gstats.getStat(obj1).getN());
 		assertEquals(20.0, gstats.getStat(obj1).getSum(), 0.001);
 	}
+
 }

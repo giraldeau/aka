@@ -215,6 +215,10 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		case Softirq.BLOCK_IOPOLL:
 			ret = LinkType.BLOCK_DEVICE;
 			break;
+		case Softirq.NET_RX:
+		case Softirq.NET_TX:
+			ret = LinkType.NETWORK;
+			break;
 		default:
 			ret = LinkType.UNKNOWN;
 			break;

@@ -12,6 +12,45 @@ public class CriticalPath {
 		this.main = main;
 	}
 
+	public Graph criticalPathUnbounded(Node start) {
+		Graph path = new Graph();
+		if (start == null)
+			return path;
+		Object parent = main.getParentOf(start);
+		path.add(parent, new Node(start));
+		Node curr = start;
+		while(curr.hasNeighbor(Node.RIGHT)) {
+			Node next = curr.neighbor(Node.RIGHT);
+			Link link = curr.links[Node.RIGHT];
+			switch(link.type) {
+			case USER_INPUT:
+			case BLOCK_DEVICE:
+			case TIMER:
+			case INTERRUPTED:
+			case PREEMPTED:
+			case RUNNING:
+				path.append(main.getParentOf(link.to), new Node(link.to)).type = link.type;
+				break;
+			case BLOCKED:
+				List<Link> links = resolveBlocking(link, link.from);
+				Collections.reverse(links);
+				glue(path, curr, links);
+				break;
+			case EPS:
+				if (link.duration() != 0)
+					throw new RuntimeException("epsilon duration is not zero " + link);
+				break;
+			case DEFAULT:
+			case NETWORK:
+				throw new RuntimeException("Illegal link type " + link.type);
+			default:
+				break;
+			}
+			curr = next;
+		}
+		return path;
+	}
+
 	public Graph criticalPathBounded(Node start) {
 		Graph path = new Graph();
 		if (start == null)

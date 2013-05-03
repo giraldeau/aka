@@ -175,7 +175,7 @@ public class Dot {
 		}
 	}
 	public static void writeString(Class<? extends Object> writer, String fname, String content) {
-		String folder = writer.getClass().getName();
+		String folder = writer.getName();
 		writeString(folder, fname, content);
 	}
 
