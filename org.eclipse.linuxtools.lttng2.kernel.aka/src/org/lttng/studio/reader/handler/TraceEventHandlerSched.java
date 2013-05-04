@@ -239,7 +239,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
 		if (tid == 0) {
-			System.err.println("WARNING: swapper clone cpu=" + cpu + " at " + event.getTimestamp().getValue());
+			//System.err.println("WARNING: swapper clone cpu=" + cpu + " at " + event.getTimestamp().getValue());
 		}
 		long flags = EventField.getLong(event, "clone_flags");
 		EventData data = new EventData();

@@ -195,6 +195,10 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		case 0: // resched
 			ret = LinkType.INTERRUPTED;
 			break;
+		case 19: // ehci_hcd:usb, well, at least on my machine
+		case 23:
+			ret = LinkType.USER_INPUT;
+			break;
 		default:
 			ret = LinkType.UNKNOWN;
 			break;
@@ -219,6 +223,9 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		case Softirq.NET_TX:
 			ret = LinkType.NETWORK;
 			break;
+		case Softirq.SCHED:
+			ret = LinkType.INTERRUPTED;
+			break;
 		default:
 			ret = LinkType.UNKNOWN;
 			break;
@@ -228,7 +235,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	@Override
 	public void handleComplete(TraceReader reader) {
-		log.message("init TraceEventHandlerExecutionGraph");
+		//log.message("init TraceEventHandlerExecutionGraph");
 	}
 
 }

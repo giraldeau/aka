@@ -234,8 +234,10 @@ public class TraceReader {
 			throw new RuntimeException("Error trying to retreive the number of CPUs of the trace");
 		}
 		for (StreamInputReader input: v) {
-			cpus = Math.max(cpus, input.getCPU() + 1);
+			int cpu = input.getCPU();
+			cpus = Math.max(cpus, cpu + 1);
 		}
+		cpus = Math.max(cpus, v.size());
 		return cpus;
 	}
 

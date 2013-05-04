@@ -34,7 +34,7 @@ public class TraceEventHandlerTaskHierarchy  extends TraceEventHandlerBase {
 		Task child = system.getTask(childTid);
 
 		if (parent == null || child == null) {
-			System.err.println("parent " + parent + " child " + child);
+			//System.err.println("parent " + parent + " child " + child);
 			return;
 		}
 

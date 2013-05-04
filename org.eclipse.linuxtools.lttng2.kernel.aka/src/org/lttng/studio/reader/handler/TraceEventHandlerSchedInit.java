@@ -37,7 +37,7 @@ public class TraceEventHandlerSchedInit extends TraceEventHandlerBase {
 		if (task != null) {
 			task.setProcessStatus(state);
 		} else {
-			System.err.println("WARNING: unknown task tid=" + tid);
+			//System.err.println("WARNING: unknown task tid=" + tid);
 		};
 	}
 
