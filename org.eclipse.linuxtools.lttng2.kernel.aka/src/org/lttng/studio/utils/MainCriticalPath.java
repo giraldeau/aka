@@ -1,11 +1,14 @@
 package org.lttng.studio.utils;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Stack;
 import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
@@ -16,6 +19,12 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
+import org.lttng.studio.model.graph.CriticalPathStats;
+import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
+import org.lttng.studio.model.graph.ExecEdge;
+import org.lttng.studio.model.graph.ExecGraph;
+import org.lttng.studio.model.graph.ExecVertex;
+import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.zgraph.CriticalPath;
@@ -96,8 +105,10 @@ public class MainCriticalPath {
 		new File("results").mkdirs();
 		if (opts.op.compareTo(OP_LIST) == 0) {
 			self.listTasks(opts);
-		} else if (opts.op.compareTo(OP_ANALYZE) == 0) {
-			self.analyze(opts);
+		} else if (opts.op.compareTo(OP_ANALYZE) == 0 && opts.algo.equals(ALGO_BOUNDED)) {
+			self.analyzeBounded(opts);
+		} else if (opts.op.compareTo(OP_ANALYZE) == 0 && opts.algo.equals(ALGO_UNBOUNDED)) {
+			self.analyzeUnbounded(opts);
 		} else if (opts.op.compareTo(OP_ENEV) == 0) {
 			self.enableEvent(opts);
 		} else {
@@ -145,9 +156,32 @@ public class MainCriticalPath {
 		}
 	}
 
-	public void analyze(Opts opts) {
+	public void analyzeUnbounded(Opts opts) {
 		loadTrace(opts);
-		AnalyzerThread thread = processTrace(opts);
+		AnalyzerThread thread = processTrace(opts, TraceEventHandlerFactory.makeStandardAnalysisLegacy());
+		CliSpinner spinner = new CliSpinner();
+		spinner.start();
+		UUID uuid = opts.ctfTmfTrace.getCTFTrace().getUUID();
+		ExecGraph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, ExecGraph.class);
+		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
+		for (Long tid : opts.tids) {
+			Task task = model.getTask(tid);
+			ExecVertex start = graph.getStartVertexOf(task);
+			ExecVertex stop = graph.getEndVertexOf(task);
+			DepthFirstCriticalPathBackward annotate = new DepthFirstCriticalPathBackward(graph, new ALog());
+			List<ExecEdge> path = annotate.criticalPath(start, stop);
+			saveStatsLegacy(graph, path, uuid.toString(), "" + task.getTid());
+		}
+		spinner.done();
+		try {
+			spinner.join();
+		} catch (InterruptedException e) {
+		}
+	}
+
+	public void analyzeBounded(Opts opts) {
+		loadTrace(opts);
+		AnalyzerThread thread = processTrace(opts, TraceEventHandlerFactory.makeStandardAnalysis());
 		CliSpinner spinner = new CliSpinner();
 		spinner.start();
 		UUID uuid = opts.ctfTmfTrace.getCTFTrace().getUUID();
@@ -173,6 +207,7 @@ public class MainCriticalPath {
 
 				GraphStats gstats = new GraphStats(path);
 				Dot.writeString(uuid.toString(), tid + "_path.stats", gstats.dump());
+				Dot.writeString(uuid.toString(), tid + "_path_grouped.stats", gstats.dumpGrouped());
 
 				Ops.minimize(path.getHead(task));
 				Dot.writeString(uuid.toString(), tid + "_path_min.dot", Dot.todot(path));
@@ -193,7 +228,7 @@ public class MainCriticalPath {
 
 	public void listTasks(Opts opts) {
 		loadTrace(opts);
-		AnalyzerThread thread = processTrace(opts);
+		AnalyzerThread thread = processTrace(opts, TraceEventHandlerFactory.makeStandardAnalysis());
 		String fmt = "%-5d %-5d %s\n";
 		String fmtHeader = "%-5s %-5s %s\n";
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
@@ -204,9 +239,8 @@ public class MainCriticalPath {
 		}
 	}
 
-	private AnalyzerThread processTrace(Opts opts) {
+	private AnalyzerThread processTrace(Opts opts, Collection<AnalysisPhase> phases) {
 		AnalyzerThread thread = new AnalyzerThread();
-		Collection<AnalysisPhase> phases = TraceEventHandlerFactory.makeStandardAnalysis();
 		try {
 			thread.setTrace(opts.traceDir);
 		} catch (Exception e) {
@@ -272,6 +306,39 @@ public class MainCriticalPath {
 				opts.tids.add(new Long(s));
 		}
 		return opts;
+	}
+
+	private void saveStatsLegacy(ExecGraph graph, List<ExecEdge> path, String uuid, String tid) {
+			Span oldroot = CriticalPathStats.compileFlat(graph, path);
+			Span realroot = new Span("realroot");
+			HashMap<Task, Span> taskSpan = new HashMap<Task, Span>();
+			Stack<Span> stack = new Stack<Span>();
+			stack.push(oldroot);
+			while(!stack.isEmpty()) {
+				Span curr = stack.pop();
+				for (Span child: curr.getChildren())
+					stack.push(child);
+				if (curr.getOwner() instanceof Task) {
+					Span stat = taskSpan.get(curr.getOwner());
+					if (stat == null) {
+						stat = new Span(curr.getOwner());
+						stat.setParentAndChild(realroot);
+						taskSpan.put((Task)curr.getOwner(), stat);
+					}
+					stat.addSelfTime(curr.getTotalTime());
+				}
+			}
+			String formatStats = CriticalPathStats.formatStats(realroot);
+		try {
+			File fout = new File("results/" + uuid, tid + "_unbounded.stats");
+			FileWriter writer = new FileWriter(fout);
+			writer.write(uuid + " " + "tid=" + tid + " " + "head=" + tid + "\n");
+			writer.write(formatStats);
+			writer.flush();
+			writer.close();
+		} catch (Exception e) {
+			throw new RuntimeException("Error writing legacy stats");
+		}
 	}
 
 	private void usage() {

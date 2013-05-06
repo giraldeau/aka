@@ -154,6 +154,7 @@ public class TraceEventHandlerExecutionGraphLegacy  extends TraceEventHandlerBas
 
 		if (parent == null || child == null) {
 			System.err.println("parent " + parent + " child " + child);
+			return;
 		}
 
 		//if (!filter.containsTaskTid(parent))
@@ -192,7 +193,7 @@ public class TraceEventHandlerExecutionGraphLegacy  extends TraceEventHandlerBas
 		//	return;
 
 		// spurious wakeup
-		if (target.getProcessStatus() != Task.process_status_enum.WAIT_BLOCKED) {
+		if (target.getProcessStatusPrev() != Task.process_status_enum.WAIT_BLOCKED) {
 			log.debug("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
 			return;
 		}

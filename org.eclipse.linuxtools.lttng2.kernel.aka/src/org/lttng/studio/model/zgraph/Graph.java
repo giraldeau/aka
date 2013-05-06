@@ -76,6 +76,16 @@ public class Graph {
 		return null;
 	}
 
+	public Node removeTail(Object obj) {
+		List<Node> list = nodeMap.get(obj);
+		if (!list.isEmpty()) {
+			Node last = list.remove(list.size() - 1);
+			reverse.remove(last);
+			return last;
+		}
+		return null;
+	}
+
 	/**
 	 * Returns head node of the provided object
 	 * @param obj

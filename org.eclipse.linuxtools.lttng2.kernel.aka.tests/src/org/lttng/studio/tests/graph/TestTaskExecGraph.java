@@ -166,7 +166,7 @@ public class TestTaskExecGraph {
 
 	@Test
 	public void testCPMOne() throws TmfTraceException, IOException, InterruptedException {
-		computeCriticalPathTest("dd-100M-k", "dd");
+		computeCriticalPathTest("wk-imbalance-k", "wk-imbalance");
 	}
 
 	private void computeCriticalPathTest(String name, String comm) throws TmfTraceException, IOException, InterruptedException {
@@ -177,7 +177,7 @@ public class TestTaskExecGraph {
 		File outDir = getGraphOutDir(name);
 		log.setPath(new File(outDir, name + ".log").getCanonicalPath());
 		log.setLevel(ALog.DEBUG);
-		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysis());
+		thread.addAllPhases(TraceEventHandlerFactory.makeStandardAnalysisLegacy());
 		thread.start();
 		thread.join();
 

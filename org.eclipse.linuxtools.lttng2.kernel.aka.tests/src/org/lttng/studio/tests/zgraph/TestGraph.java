@@ -428,7 +428,8 @@ public class TestGraph {
 
 			Dot.writeString(this.getClass(), filePrefix + ".log", str.toString());
 			Dot.writeString(this.getClass(), filePrefix + "_all.dot", Dot.todot(main));
-			Dot.writeString(this.getClass(), filePrefix + "_exp.dot", Dot.todot(data.bounded));
+			Dot.writeString(this.getClass(), filePrefix + "_exp_bounded.dot", Dot.todot(data.bounded));
+			Dot.writeString(this.getClass(), filePrefix + "_exp_unbounded.dot", Dot.todot(data.unbounded));
 			Dot.writeString(this.getClass(), filePrefix + "_act_bounded.dot", Dot.todot(actBounded));
 			Dot.writeString(this.getClass(), filePrefix + "_act_unbounded.dot", Dot.todot(actUnbounded));
 			boolean status =  Ops.validate(actBounded);
