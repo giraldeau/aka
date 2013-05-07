@@ -1,9 +1,11 @@
 package org.lttng.studio.reader.handler;
 
 import java.util.Collection;
+import java.util.Stack;
 
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.InterruptContext;
+import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.model.kernel.Softirq;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -18,6 +20,7 @@ import org.lttng.studio.reader.TraceReader;
 public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	SystemModel system;
+	Task[] kernel;
 	Graph graph;
 	CtfTmfEvent event;
 	private ALog log;
@@ -27,6 +30,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("sched_switch"));
 		hooks.add(new TraceHook("sched_wakeup"));
 		hooks.add(new TraceHook("sched_wakeup_new"));
+		hooks.add(new TraceHook("inet_sock_local_in"));
+		hooks.add(new TraceHook("inet_sock_local_out"));
 	}
 
 	@Override
@@ -36,6 +41,15 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		graph = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, Graph.class);
 		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
 		log.message("init TraceEventHandlerExecutionGraph");
+		kernel = new Task[reader.getNumCpus()];
+		for (int i = 0; i < reader.getNumCpus(); i++) {
+			Task k = new Task();
+			k.setName("kernel/" + i);
+			k.setPid(-1);
+			k.setTid(-1);
+			k.setPpid(-1);
+			kernel[i] = k;
+		}
 		// init graph
 		Collection<Task> tasks = system.getTasks();
 		for (Task task: tasks) {
@@ -231,6 +245,39 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			break;
 		}
 		return ret;
+	}
+
+	public void debugMySockInet(CtfTmfEvent event) {
+		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
+		Context context = stack.peek().getContext();
+		if (context == Context.NONE) {
+			log.debug(event.getEventName() + "  " + system.getTaskCpu(event.getCPU()));
+		} else {
+			log.debug(event.getEventName() + "  " + context);
+		}
+	}
+
+	public void handle_inet_sock_local_in(TraceReader reader, CtfTmfEvent event) {
+		debugMySockInet(event);
+		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
+		Context context = stack.peek().getContext();
+		if (context == Context.SOFTIRQ) {
+			Task k = kernel[event.getCPU()];
+			graph.add(k, new Node(event.getTimestamp().getValue()));
+		}
+	}
+
+	public void handle_inet_sock_local_out(TraceReader reader, CtfTmfEvent event) {
+		debugMySockInet(event);
+		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
+		Context context = stack.peek().getContext();
+		if (context == Context.NONE) {
+			Task current = system.getTaskCpu(event.getCPU());
+			stateExtend(current, event.getTimestamp().getValue());
+		} else if (context == Context.SOFTIRQ) {
+			Task k = kernel[event.getCPU()];
+			graph.add(k, new Node(event.getTimestamp().getValue()));
+		}
 	}
 
 	@Override

@@ -151,6 +151,7 @@ public class CriticalPath {
 			case RUNNING:
 				path.append(main.getParentOf(link.to), new Node(link.to)).type = link.type;
 				break;
+			case NETWORK:
 			case BLOCKED:
 				List<Link> links = resolveBlockingBounded(link, link.from);
 				Collections.reverse(links);
@@ -161,7 +162,6 @@ public class CriticalPath {
 					throw new RuntimeException("epsilon duration is not zero " + link);
 				break;
 			case DEFAULT:
-			case NETWORK:
 				throw new RuntimeException("Illegal link type " + link.type);
 			default:
 				break;
@@ -175,7 +175,7 @@ public class CriticalPath {
 		Object currentActor = main.getParentOf(curr);
 		if (links.isEmpty()) {
 			Node next = curr.neighbor(Node.RIGHT);
-			path.append(currentActor, new Node(next)).type = LinkType.UNKNOWN;
+			path.append(currentActor, new Node(next)).type = curr.links[Node.RIGHT].type;
 			return;
 		}
 		// FIXME: assert last link.to actor == currentActor

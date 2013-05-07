@@ -215,6 +215,7 @@ public class MainCriticalPath {
 				GraphStats gstatsMin = new GraphStats(path);
 				Dot.writeString(uuid.toString(), tid + "_path_min.stats", gstatsMin.dump());
 			} catch (Exception e) {
+				e.printStackTrace();
 				System.err.println("Error processing graph " + opts.traceDir);
 			}
 		}
