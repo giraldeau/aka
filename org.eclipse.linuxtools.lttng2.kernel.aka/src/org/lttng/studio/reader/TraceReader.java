@@ -268,6 +268,10 @@ public class TraceReader {
 		setTrace(ctfTrace);
 	}
 
+	public ITmfTrace getTrace() {
+		return this.trace;
+	}
+
 	public int getNumCpus() {
 		return nbCpus;
 	}

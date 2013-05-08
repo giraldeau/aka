@@ -3,7 +3,11 @@ package org.lttng.studio.reader.handler;
 import java.util.Collection;
 import java.util.Stack;
 
+import org.eclipse.linuxtools.lttng2.kernel.core.event.matching.TcpEventMatching;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.event.matching.IMatchProcessingUnit;
+import org.eclipse.linuxtools.tmf.core.event.matching.TmfEventDependency;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.lttng.studio.model.kernel.InterruptContext;
 import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.model.kernel.Softirq;
@@ -24,6 +28,9 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	Graph graph;
 	CtfTmfEvent event;
 	private ALog log;
+	IMatchProcessingUnit matchProcessing;
+
+	TcpEventMatching tcpMatching;
 
 	public TraceEventHandlerExecutionGraph() {
 		super();
@@ -55,6 +62,30 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		for (Task task: tasks) {
 			graph.add(task, new Node(task.getStart()));
 		}
+
+		matchProcessing = new IMatchProcessingUnit() {
+
+			@Override
+			public void matchingEnded() {
+			}
+
+			@Override
+			public void init(ITmfTrace[] fTraces) {
+			}
+
+			@Override
+			public int countMatches() {
+				return 0;
+			}
+
+			@Override
+			public void addMatch(TmfEventDependency match) {
+				log.debug("we got a match! " + match.getSourceEvent() + " " + match.getDestinationEvent());
+			}
+		};
+
+		tcpMatching = new TcpEventMatching(reader.getTrace(), matchProcessing);
+		tcpMatching.initMatching();
 	}
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
@@ -248,6 +279,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void debugMySockInet(CtfTmfEvent event) {
+		tcpMatching.matchEvent(event, 0);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
 		if (context == Context.NONE) {
