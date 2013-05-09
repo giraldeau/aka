@@ -3,6 +3,7 @@ package org.lttng.studio.model.zgraph;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 public class CriticalPath {
 
@@ -238,8 +239,10 @@ public class CriticalPath {
 		return tmp;
 	}
 
+	// FIXME: build a tree with partial subpath in order to return the best path,
+	// not the last one traversed
 	private List<Link> resolveBlockingBounded(Link blocking, Node bound) {
-		List<Link> subPath = new LinkedList<Link>();
+		LinkedList<Link> subPath = new LinkedList<Link>();
 		Node junction = findIncoming(blocking.to, Node.RIGHT);
 		// if wake-up source is not found, return empty list
 		if (junction == null) {
@@ -249,7 +252,9 @@ public class CriticalPath {
 		subPath.add(down);
 		Node node = down.from;
 		bound = bound.compareTo(blocking.from) < 0 ? blocking.from : bound;
+		Stack<Node> stack = new Stack<Node>();
 		while(node != null && node.compareTo(bound) > 0) {
+			// shortcut for down link that goes beyond the blocking
 			if (node.hasNeighbor(Node.DOWN) && node.down().compareTo(bound) <= 0) {
 				subPath.add(node.links[Node.DOWN]);
 				break;
@@ -260,6 +265,19 @@ public class CriticalPath {
 					subPath.addAll(resolveBlockingBounded(link, bound));
 				} else {
 					subPath.add(link);
+					if (node.hasNeighbor(Node.DOWN))
+						stack.push(node);
+				}
+			} else {
+				if (!stack.isEmpty()) {
+					Node n = stack.pop();
+					// rewind subpath
+					while(!subPath.isEmpty() && subPath.getLast().from != n) {
+						subPath.removeLast();
+					}
+					subPath.add(n.links[Node.DOWN]);
+					node = n.neighbor(Node.DOWN);
+					continue;
 				}
 			}
 			node = node.left();

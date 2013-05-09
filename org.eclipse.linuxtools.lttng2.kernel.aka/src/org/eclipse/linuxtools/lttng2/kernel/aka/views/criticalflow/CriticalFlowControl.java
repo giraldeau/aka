@@ -49,9 +49,9 @@ public class CriticalFlowControl extends TimeGraphControl {
 				if (event instanceof CriticalFlowLink) {
 					CriticalFlowLink link = (CriticalFlowLink) event;
 					int destIndex = ((CriticalFlowEntry) link.getDestEntry()).getPosition();
-					int x0 = rect.x + (int) ((event.getTime() - time0) * pixelsPerNanoSec);
+					int x0 = rect.x + (int) ((link.getTime() - time0) * pixelsPerNanoSec);
 					Rectangle dst = getStatesRect(bounds, destIndex, nameSpace);
-					int x1 = dst.x + (int) ((link.getTime() - time0) * pixelsPerNanoSec);
+					int x1 = dst.x + (int) ((link.getTime() + link.getDuration() - time0) * pixelsPerNanoSec);
 					int offset = rect.height >> 1;
 					int y0 = rect.y + offset;
 					int y1 = dst.y + offset;
@@ -69,21 +69,21 @@ public class CriticalFlowControl extends TimeGraphControl {
 	 */
 	private static void drawArrow(int x0, int y0, int x1, int y1, GC gc)
 	{
-		int factor = 10; 
+		int factor = 10;
 		double cos = 0.9510;
 		double sin = 0.3090;
 		int lenx = x1 - x0;
 		int leny = y1 - y0;
-		double len = Math.sqrt((double) (lenx * lenx  + leny * leny));
-		
+		double len = Math.sqrt(lenx * lenx  + leny * leny);
+
 		double dx = factor * lenx / len;
 		double dy = factor * leny / len;
-		int end1X = (int) Math.round((x1 + (dx * cos + dy * -sin)));
+		int end1X = (int) Math.round((x1 - (dx * cos + dy * -sin)));
 		int end1Y = (int) Math.round((y1 - (dx * sin + dy * cos)));
-		int end2X = (int) Math.round((x1 + (dx * cos + dy * sin)));
+		int end2X = (int) Math.round((x1 - (dx * cos + dy * sin)));
 		int end2Y = (int) Math.round((y1 - (dx * -sin + dy * cos)));
 		int[] arrow = new int[] { x1, y1, end1X, end1Y, end2X, end2Y, x1, y1 };
 		gc.fillPolygon(arrow);
 	}
-	
+
 }

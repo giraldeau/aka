@@ -116,7 +116,7 @@ public class GraphFactory {
 			@Override
 			public void criticalPathBounded(GraphBuilderData data) {
 				Node n1 = Ops.sequence(4, data.len, LinkType.RUNNING);
-				Ops.seek(n1, 1).links[Node.RIGHT].type = LinkType.UNKNOWN;
+				Ops.seek(n1, 1).links[Node.RIGHT].type = LinkType.BLOCKED;
 				data.bounded = n1;
 			}
 
@@ -499,6 +499,70 @@ public class GraphFactory {
 					Ops.tail(inner).linkVertical(t1);
 					inner = t1;
 				}
+			}
+
+			@Override
+			public void criticalPathUnbounded(GraphBuilderData data) {
+				if (data.bounded == null)
+					criticalPathBounded(data);
+				data.unbounded = data.bounded;
+			}
+		};
+
+	public static String GRAPH_NET1 = "wakeup_net1";
+	public static GraphBuilder wakeupNet1 =
+		new GraphBuilder(GRAPH_NET1) {
+			@Override
+			public void build(GraphBuilderData data) {
+				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
+				Node n2 = Ops.basic(data.len * 10, LinkType.BLOCKED);
+				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
+				Ops.concatInPlace(n1, n2);
+				Ops.concatInPlace(n1, n3);
+
+				Node n4 = Ops.sequence(3, data.len, LinkType.RUNNING);
+				Node n5 = Ops.sequence(3, data.len, LinkType.RUNNING);
+				Node n6 = Ops.sequence(3, data.len, LinkType.RUNNING);
+				Ops.offset(n4, data.len * 3);
+				Ops.offset(n5, data.len * 6);
+				Ops.offset(n6, data.len * 9);
+
+				Ops.seek(n4, 1).linkVertical(Ops.seek(n5, 1)).type = LinkType.NETWORK;
+				Ops.seek(n5, 2).linkVertical(Ops.seek(n6, 1)).type = LinkType.NETWORK;
+				Ops.seek(n6, 2).linkVertical(Ops.seek(n1, 2));
+				data.head = n1;
+			}
+
+			@Override
+			public GraphBuilderData[] params() {
+				int max = 1;
+				GraphBuilderData[] data = new GraphBuilderData[max];
+				for (int i = 0; i < max; i++) {
+					data[i] = new GraphBuilderData();
+					data[i].id = i;
+					data[i].len = 1;
+				}
+				return data;
+			}
+
+			@Override
+			public void criticalPathBounded(GraphBuilderData data) {
+				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
+				Node n2 = Ops.basic(data.len * 2, LinkType.UNKNOWN);
+				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
+				Node n4 = Ops.basic(data.len, LinkType.RUNNING);
+				Node n5 = Ops.basic(data.len, LinkType.RUNNING);
+				Node n6 = Ops.basic(data.len, LinkType.RUNNING);
+				Ops.concatInPlace(n2, n3);
+				Ops.offset(n2, data.len);
+				Ops.offset(n4, data.len * 7);
+				Ops.offset(n5, data.len * 10);
+				Ops.offset(n6, data.len * 11);
+				Ops.tail(n1).linkVertical(n2).type = LinkType.DEFAULT;
+				Ops.tail(n2).linkVertical(n4).type = LinkType.NETWORK;
+				Ops.tail(n4).linkVertical(n5).type = LinkType.NETWORK;
+				Ops.tail(n5).linkVertical(n6).type = LinkType.DEFAULT;
+				data.bounded = n1;
 			}
 
 			@Override

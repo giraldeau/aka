@@ -5,16 +5,16 @@ import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.TimeEvent;
 
 public class CriticalFlowLink extends TimeEvent {
 
-	
+
 	private ITimeGraphEntry destEntry;
 	private long endTime;
 
 	private CriticalFlowLink(ITimeGraphEntry entry, long startTime, long duration) {
-		super(entry, startTime, 0);
+		super(entry, startTime, duration);
 	}
-	
+
 	public CriticalFlowLink(ITimeGraphEntry src, ITimeGraphEntry dst, long startTime, long endTime) {
-		super(src, startTime, 0);
+		super(src, startTime, endTime - startTime);
 		this.destEntry = dst;
 		this.endTime = endTime;
 	}

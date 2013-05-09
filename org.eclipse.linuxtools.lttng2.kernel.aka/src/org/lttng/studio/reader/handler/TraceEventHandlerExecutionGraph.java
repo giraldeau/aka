@@ -1,6 +1,7 @@
 package org.lttng.studio.reader.handler;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Stack;
 
 import org.eclipse.linuxtools.lttng2.kernel.core.event.matching.TcpEventMatching;
@@ -29,7 +30,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	CtfTmfEvent event;
 	private ALog log;
 	IMatchProcessingUnit matchProcessing;
-
+	HashMap<CtfTmfEvent, Node> tcpNodes;
 	TcpEventMatching tcpMatching;
 
 	public TraceEventHandlerExecutionGraph() {
@@ -37,6 +38,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("sched_switch"));
 		hooks.add(new TraceHook("sched_wakeup"));
 		hooks.add(new TraceHook("sched_wakeup_new"));
+		hooks.add(new TraceHook("softirq_entry"));
 		hooks.add(new TraceHook("inet_sock_local_in"));
 		hooks.add(new TraceHook("inet_sock_local_out"));
 	}
@@ -52,6 +54,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		for (int i = 0; i < reader.getNumCpus(); i++) {
 			Task k = new Task();
 			k.setName("kernel/" + i);
+			k.setProcessStatus(process_status_enum.RUN);
+			k.setProcessStatus(process_status_enum.RUN);
 			k.setPid(-1);
 			k.setTid(-1);
 			k.setPpid(-1);
@@ -62,7 +66,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		for (Task task: tasks) {
 			graph.add(task, new Node(task.getStart()));
 		}
-
+		tcpNodes = new HashMap<CtfTmfEvent, Node>();
 		matchProcessing = new IMatchProcessingUnit() {
 
 			@Override
@@ -80,7 +84,14 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 			@Override
 			public void addMatch(TmfEventDependency match) {
-				log.debug("we got a match! " + match.getSourceEvent() + " " + match.getDestinationEvent());
+				log.debug("we got a tcp match! " + match.getSourceEvent().getContent() + " " + match.getDestinationEvent().getContent());
+				Node output = tcpNodes.remove(match.getSourceEvent());
+				Node input = tcpNodes.remove(match.getDestinationEvent());
+				if (output == null || input == null) {
+					log.warning("null tcp endpoint output=" + " input=" + input);
+				} else {
+					output.linkVertical(input).type = LinkType.NETWORK;
+				}
 			}
 		};
 
@@ -212,9 +223,17 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			}
 			break;
 		case SOFTIRQ:
-			Link l2 = graph.append(target, new Node(ts));
+			Node wup = new Node(ts);
+			Link l2 = graph.append(target, wup);
 			if (l2 != null) {
 				l2.type = resolveSoftirq(context.getEvent());
+			}
+			// special case for network related softirq
+			int vec = (int) EventField.getLong(context.getEvent(), "vec");
+			if (vec == Softirq.NET_RX || vec == Softirq.NET_TX) {
+				Task k = kernel[event.getCPU()];
+				Node kwup = stateExtend(k, event.getTimestamp().getValue());
+				kwup.linkVertical(wup);
 			}
 			break;
 		case NONE:
@@ -279,7 +298,6 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void debugMySockInet(CtfTmfEvent event) {
-		tcpMatching.matchEvent(event, 0);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
 		if (context == Context.NONE) {
@@ -290,23 +308,37 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void handle_inet_sock_local_in(TraceReader reader, CtfTmfEvent event) {
-		debugMySockInet(event);
+		//debugMySockInet(event);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
 		if (context == Context.SOFTIRQ) {
 			Task k = kernel[event.getCPU()];
-			graph.add(k, new Node(event.getTimestamp().getValue()));
+			Node endpoint = stateExtend(k, event.getTimestamp().getValue());
+			tcpNodes.put(event,  endpoint);
+			tcpMatching.matchEvent(event, 0);
 		}
 	}
 
 	public void handle_inet_sock_local_out(TraceReader reader, CtfTmfEvent event) {
-		debugMySockInet(event);
+		//debugMySockInet(event);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
+		Task sender = null;
 		if (context == Context.NONE) {
-			Task current = system.getTaskCpu(event.getCPU());
-			stateExtend(current, event.getTimestamp().getValue());
+			sender = system.getTaskCpu(event.getCPU());
 		} else if (context == Context.SOFTIRQ) {
+			sender = kernel[event.getCPU()];
+		}
+		if (sender == null)
+			return;
+		Node endpoint = stateExtend(sender, event.getTimestamp().getValue());
+		tcpNodes.put(event,  endpoint);
+		tcpMatching.matchEvent(event, 0);
+	}
+
+	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
+		int vec = (int) EventField.getLong(event, "vec");
+		if (vec == Softirq.NET_RX || vec == Softirq.NET_TX) {
 			Task k = kernel[event.getCPU()];
 			graph.add(k, new Node(event.getTimestamp().getValue()));
 		}
