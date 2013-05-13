@@ -259,14 +259,23 @@ public class CriticalPath {
 				subPath.add(node.links[Node.DOWN]);
 				break;
 			}
+
+			/*
+			 * Add DOWN links to explore stack in case dead-end occurs
+			 * Do not add if left is BLOCKED, because this link would be visited twice
+			 */
+			if (node.hasNeighbor(Node.DOWN) &&
+					(!node.hasNeighbor(Node.LEFT) || (node.hasNeighbor(Node.LEFT)
+					&& (node.links[Node.LEFT].type != LinkType.BLOCKED ||
+						node.links[Node.LEFT].type != LinkType.NETWORK)))) {
+				stack.push(node);
+			}
 			if (node.hasNeighbor(Node.LEFT)) {
 				Link link = node.links[Node.LEFT];
-				if (link.type == LinkType.BLOCKED) {
+				if (link.type == LinkType.BLOCKED || link.type == LinkType.NETWORK) {
 					subPath.addAll(resolveBlockingBounded(link, bound));
 				} else {
 					subPath.add(link);
-					if (node.hasNeighbor(Node.DOWN))
-						stack.push(node);
 				}
 			} else {
 				if (!stack.isEmpty()) {
