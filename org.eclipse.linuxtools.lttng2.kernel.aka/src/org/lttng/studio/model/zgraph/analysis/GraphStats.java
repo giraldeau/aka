@@ -1,4 +1,4 @@
-package org.lttng.studio.model.zgraph;
+package org.lttng.studio.model.zgraph.analysis;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -10,6 +10,8 @@ import java.util.List;
 import org.apache.commons.math.stat.descriptive.StatisticalSummary;
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.lttng.studio.model.kernel.Task;
+import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.Node;
 
 import com.google.common.collect.HashBiMap;
 

@@ -1,6 +1,7 @@
 package org.lttng.studio.tests.basic;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +18,7 @@ public class TestCtfImport {
 		CTFReaderException ex = new CTFReaderException();
 		assertTrue(ex.toString().contains("CTFReaderException"));
 	}
-	
+
 	@Test
 	public void testCtfImport() throws CTFReaderException, IOException {
 		File traceDir = TestTraceset.getKernelTrace("netcat-udp-k");
@@ -25,7 +26,7 @@ public class TestCtfImport {
 		CTFTraceReader reader = new CTFTraceReader(trace);
 		assertTrue(reader.getStartTime() > 0);
 	}
-	
+
 	@Test
 	public void testTraceNotFound() throws CTFReaderException {
 		Exception exception = null;
@@ -36,5 +37,5 @@ public class TestCtfImport {
 		}
 		assertNotNull(exception);
 	}
-	
+
 }

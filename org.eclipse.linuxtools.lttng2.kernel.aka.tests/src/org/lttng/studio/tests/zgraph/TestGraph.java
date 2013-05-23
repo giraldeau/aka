@@ -10,16 +10,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
-import org.lttng.studio.model.zgraph.CriticalPath;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.GraphBuilder;
 import org.lttng.studio.model.zgraph.GraphBuilderData;
 import org.lttng.studio.model.zgraph.GraphFactory;
-import org.lttng.studio.model.zgraph.GraphStats;
 import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
+import org.lttng.studio.model.zgraph.analysis.CriticalPath;
+import org.lttng.studio.model.zgraph.analysis.GraphStats;
 
 public class TestGraph {
 

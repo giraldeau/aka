@@ -1,9 +1,14 @@
-package org.lttng.studio.model.zgraph;
+package org.lttng.studio.model.zgraph.analysis;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
+
+import org.lttng.studio.model.zgraph.Graph;
+import org.lttng.studio.model.zgraph.Link;
+import org.lttng.studio.model.zgraph.LinkType;
+import org.lttng.studio.model.zgraph.Node;
 
 public class CriticalPath {
 

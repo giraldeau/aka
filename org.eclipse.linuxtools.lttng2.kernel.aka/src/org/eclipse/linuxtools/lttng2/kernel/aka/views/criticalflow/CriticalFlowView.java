@@ -57,13 +57,13 @@ import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IEditorPart;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.model.zgraph.CriticalPath;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.Link;
 import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
 import org.lttng.studio.model.zgraph.Ops.ScanLineTraverse;
+import org.lttng.studio.model.zgraph.analysis.CriticalPath;
 import org.lttng.studio.reader.handler.IModelKeys;
 
 /**
