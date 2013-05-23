@@ -63,7 +63,7 @@ import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
 import org.lttng.studio.model.zgraph.Ops.ScanLineTraverse;
-import org.lttng.studio.model.zgraph.analysis.CriticalPath;
+import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmBounded;
 import org.lttng.studio.reader.handler.IModelKeys;
 
 /**
@@ -681,8 +681,8 @@ public class CriticalFlowView extends AbstractAKAView {
 			System.err.println("WARNING: head vertex is null for task " + task);
 			return;
 		}
-		CriticalPath cp = new CriticalPath(graph);
-		Graph path = cp.criticalPathBounded(head);
+		CriticalPathAlgorithmBounded cp = new CriticalPathAlgorithmBounded(graph);
+		Graph path = cp.compute(head, null);
 		buildTreeList(path);
 	}
 }

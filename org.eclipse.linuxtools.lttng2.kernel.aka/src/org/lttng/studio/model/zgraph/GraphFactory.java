@@ -7,6 +7,10 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.HashMap;
 
+import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmBounded;
+import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmUnbounded;
+import org.lttng.studio.model.zgraph.analysis.ICriticalPathAlgorithm;
+
 public class GraphFactory {
 
 	private final HashMap<String, GraphBuilder> builders;
@@ -15,7 +19,7 @@ public class GraphFactory {
 	public static GraphBuilder basic =
 		new GraphBuilder(GRAPH_BASIC) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				data.head = Ops.basic(data.len, LinkType.RUNNING);
 			}
 
@@ -32,16 +36,16 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
-				data.bounded = makeit(data);
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
+				data.path = generic(data);
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				data.unbounded = makeit(data);
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				data.path = generic(data);
 			}
 
-			private Node makeit(GraphBuilderData data) {
+			private Node generic(GraphBuilderData data) {
 				return Ops.basic(data.len, LinkType.RUNNING);
 			}
 
@@ -51,7 +55,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupSelf =
 		new GraphBuilder(GRAPH_WAKEUP_SELF) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(5, data.len, LinkType.RUNNING);
 				Node t2 = Ops.seek(t1, 1);
 				Node t3 = Ops.seek(t1, 2);
@@ -74,20 +78,20 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.sequence(5, data.len, LinkType.RUNNING);
 				Ops.seek(n1, 2).links[Node.RIGHT].type = LinkType.TIMER;
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len * 2, LinkType.TIMER);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
 				Ops.concatInPlace(n1, n2);
 				Ops.concatInPlace(n2, n3);
-				data.unbounded = n1;
+				data.path = n1;
 			}
 		};
 
@@ -95,7 +99,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupMissing =
 		new GraphBuilder(GRAPH_WAKEUP_MISSING) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(4, data.len, LinkType.RUNNING);
 				Ops.seek(t1, 1).links[Node.RIGHT].type = LinkType.BLOCKED;
 				data.head = t1;
@@ -114,15 +118,15 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.sequence(4, data.len, LinkType.RUNNING);
 				Ops.seek(n1, 1).links[Node.RIGHT].type = LinkType.BLOCKED;
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				data.unbounded = new Node(0);
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				data.path = new Node(0);
 			}
 		};
 
@@ -131,7 +135,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupUnknown =
 		new GraphBuilder(GRAPH_WAKEUP_UNKNOWN) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(4, data.len, LinkType.RUNNING);
 				Ops.seek(t1, 1).links[Node.RIGHT].type = LinkType.BLOCKED;
 				Node t2 = new Node(data.len * 2 - data.delay);
@@ -153,7 +157,7 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				long duration = (data.len <= data.delay) ? 0 : data.len - data.delay;
 				Node n2 = Ops.basic(duration, LinkType.UNKNOWN);
@@ -162,18 +166,18 @@ public class GraphFactory {
 				Ops.offset(n3, data.len * 2);
 				Ops.tail(n1).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3).type = LinkType.NETWORK;
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len - data.delay, LinkType.UNKNOWN);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
 				Ops.concatInPlace(n1, n2);
 				Ops.offset(n3, data.len * 2);
 				Ops.tail(n2).linkVertical(n3).type = LinkType.NETWORK;
-				data.unbounded = n1;
+				data.path = n1;
 			}
 		};
 
@@ -181,7 +185,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupNew =
 		new GraphBuilder(GRAPH_WAKEUP_NEW) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(5, data.len, LinkType.RUNNING);
 				Ops.seek(t1, 2).links[Node.RIGHT].type = LinkType.BLOCKED;
 				Node t2 = Ops.basic(data.len * 2 - data.delay, LinkType.RUNNING);
@@ -205,7 +209,7 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.sequence(3, data.len, LinkType.RUNNING);
 
 				long duration = (data.delay < data.len) ? data.len : (data.len * 2) - data.delay;
@@ -216,11 +220,11 @@ public class GraphFactory {
 				Ops.offset(n3, data.len * 3);
 				Ops.seek(n1, 2).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3);
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len * 2 - data.delay, LinkType.RUNNING);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
@@ -228,7 +232,7 @@ public class GraphFactory {
 				Ops.offset(n3, data.len * 3);
 				Ops.tail(n1).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3);
-				data.unbounded = n1;
+				data.path = n1;
 			}
 		};
 
@@ -236,7 +240,7 @@ public class GraphFactory {
 	public static GraphBuilder opened =
 		new GraphBuilder(GRAPH_OPENED) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(3, data.len, LinkType.RUNNING);
 				t1.links[Node.RIGHT].to.links[Node.RIGHT].type = LinkType.BLOCKED;
 				Node t2 = Ops.basic(data.len * 2 - data.delay, LinkType.RUNNING);
@@ -262,7 +266,7 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				long duration = (data.len <= data.delay) ? 0 : data.len - data.delay;
 				Node n2 = new Node(0);
@@ -273,12 +277,12 @@ public class GraphFactory {
 				Ops.offset(n3, data.len * 2);
 				Ops.tail(n1).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3);
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				data.unbounded = new Node(0);
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				data.path = new Node(0);
 			}
 		};
 
@@ -286,7 +290,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupMutual =
 		new GraphBuilder(GRAPH_WAKEUP_MUTUAL) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(6, data.len, LinkType.RUNNING);
 				Node t2 = Ops.sequence(6, data.len, LinkType.RUNNING);
 				Ops.seek(t1, 3).links[Node.RIGHT].type = LinkType.BLOCKED;
@@ -309,7 +313,7 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.sequence(4, data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len, LinkType.RUNNING);
 				Ops.offset(n2, Ops.tail(n1).getTs());
@@ -317,11 +321,11 @@ public class GraphFactory {
 				Ops.offset(n3, Ops.tail(n2).getTs());
 				Ops.tail(n1).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3);
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
 				Node n1 = Ops.sequence(3, data.len, LinkType.RUNNING);
 				Node n2 = Ops.sequence(3, data.len, LinkType.RUNNING);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
@@ -329,7 +333,7 @@ public class GraphFactory {
 				Ops.offset(n3, Ops.tail(n2).getTs());
 				Ops.tail(n1).linkVertical(n2);
 				Ops.tail(n2).linkVertical(n3);
-				data.unbounded = n1;
+				data.path = n1;
 			}
 		};
 
@@ -337,7 +341,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupEmbeded =
 		new GraphBuilder(GRAPH_WAKEUP_EMBEDED) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(3, data.len, LinkType.RUNNING);
 				for (int i = 0; i < data.depth; i++) {
 					Ops.tail(t1).links[Node.LEFT].type = LinkType.BLOCKED;
@@ -367,7 +371,7 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				Node n1 = Ops.sequence(data.depth + 2, data.len, LinkType.RUNNING);
 				Node curr = n1;
 				for (int i = 0; i < data.depth; i++) {
@@ -379,12 +383,12 @@ public class GraphFactory {
 					curr = x;
 				}
 				Ops.concatInPlace(curr, Ops.basic(data.len, LinkType.RUNNING));
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				data.unbounded = new Node(0);
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				data.path = new Node(0);
 			}
 		};
 
@@ -392,7 +396,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupInterleave =
 		new GraphBuilder(GRAPH_WAKEUP_INTERLEAVE) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node t1 = Ops.sequence(3 + 2 * data.depth, data.len, LinkType.RUNNING);
 				for (int i = 0; i < data.depth; i++) {
 					Node x = Ops.seek(t1, i + 1);
@@ -421,7 +425,7 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
 				int n = data.depth == 0 ? 3 : 4;
 				Node n1 = Ops.sequence(n, data.len, LinkType.RUNNING);
 				Node curr = n1;
@@ -438,12 +442,12 @@ public class GraphFactory {
 				if (data.depth == 2) {
 					Ops.concatInPlace(curr, Ops.basic(data.len, LinkType.RUNNING));
 				}
-				data.bounded = n1;
+				data.path = n1;
 			}
 
 			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				data.unbounded = new Node(0);
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				data.path = new Node(0);
 			}
 		};
 
@@ -451,7 +455,7 @@ public class GraphFactory {
 	public static GraphBuilder wakeupNested =
 		new GraphBuilder(GRAPH_NESTED) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node inner = Ops.basic(data.len * 2, LinkType.RUNNING);
 				for (int i = 0; i < data.depth; i++) {
 					long duration = Ops.tail(inner).getTs() - Ops.head(inner).getTs();
@@ -482,7 +486,16 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
+				generic(data);
+			}
+
+			@Override
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				generic(data);
+			}
+
+			private void generic(GraphBuilderData data) {
 				Node inner = Ops.basic(data.len * 2, LinkType.RUNNING);
 				Node innerOrig = inner;
 				for (int i = 0; i < data.depth; i++) {
@@ -491,7 +504,7 @@ public class GraphFactory {
 					Ops.tail(t1).linkVertical(inner);
 					inner = t1;
 				}
-				data.bounded = inner;
+				data.path = inner;
 				inner = innerOrig;
 				for (int i = 0; i < data.depth; i++) {
 					Node t1 = Ops.basic(data.len, LinkType.RUNNING);
@@ -500,20 +513,13 @@ public class GraphFactory {
 					inner = t1;
 				}
 			}
-
-			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				if (data.bounded == null)
-					criticalPathBounded(data);
-				data.unbounded = data.bounded;
-			}
 		};
 
 	public static String GRAPH_NET1 = "wakeup_net1";
 	public static GraphBuilder wakeupNet1 =
 		new GraphBuilder(GRAPH_NET1) {
 			@Override
-			public void build(GraphBuilderData data) {
+			public void buildGraph(GraphBuilderData data) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len * 10, LinkType.BLOCKED);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
@@ -546,7 +552,16 @@ public class GraphFactory {
 			}
 
 			@Override
-			public void criticalPathBounded(GraphBuilderData data) {
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmBounded algo) {
+				generic(data);
+			}
+
+			@Override
+			public void criticalPath(GraphBuilderData data, CriticalPathAlgorithmUnbounded algo) {
+				generic(data);
+			}
+
+			private void generic(GraphBuilderData data) {
 				Node n1 = Ops.basic(data.len, LinkType.RUNNING);
 				Node n2 = Ops.basic(data.len * 2, LinkType.UNKNOWN);
 				Node n3 = Ops.basic(data.len, LinkType.RUNNING);
@@ -562,15 +577,9 @@ public class GraphFactory {
 				Ops.tail(n2).linkVertical(n4).type = LinkType.NETWORK;
 				Ops.tail(n4).linkVertical(n5).type = LinkType.NETWORK;
 				Ops.tail(n5).linkVertical(n6).type = LinkType.DEFAULT;
-				data.bounded = n1;
+				data.path = n1;
 			}
 
-			@Override
-			public void criticalPathUnbounded(GraphBuilderData data) {
-				if (data.bounded == null)
-					criticalPathBounded(data);
-				data.unbounded = data.bounded;
-			}
 		};
 
 	public GraphFactory() {
@@ -610,19 +619,25 @@ public class GraphFactory {
 		base.mkdirs();
 		GraphFactory factory = new GraphFactory();
 		Collection<GraphBuilder> kind = factory.getBuildersMap().values();
-		for (GraphBuilder builder: kind) {
-			System.out.println("processing " + builder.getName());
-			GraphBuilderData[] params = builder.params();
-			for (GraphBuilderData data: params) {
-				builder.build(data);
-				builder.criticalPathBounded(data);
-				builder.criticalPathUnbounded(data);
-				String graph = Dot.todot(Ops.head(data.head));
-				String bounded = Dot.todot(Ops.head(data.bounded));
-				String unbounded = Dot.todot(Ops.head(data.unbounded));
-				Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_graph.dot", graph);
-				Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_bounded.dot", bounded);
-				Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_unbounded.dot", unbounded);
+		ICriticalPathAlgorithm[] algos = new ICriticalPathAlgorithm[] { new CriticalPathAlgorithmBounded(null), new CriticalPathAlgorithmUnbounded(null) };
+		for (ICriticalPathAlgorithm algo: algos) {
+			String algoName = algo.getClass().getSimpleName();
+			for (GraphBuilder builder: kind) {
+				System.out.println("processing " + builder.getName() + " " + algoName);
+				GraphBuilderData[] params = builder.params();
+				for (GraphBuilderData data: params) {
+					builder.buildGraph(data);
+					// FIXME: find a better way to add a new algorithm
+					if (algo instanceof CriticalPathAlgorithmBounded)
+						builder.criticalPath(data, (CriticalPathAlgorithmBounded)algo);
+					else if (algo instanceof CriticalPathAlgorithmUnbounded) {
+						builder.criticalPath(data, (CriticalPathAlgorithmUnbounded)algo);
+					}
+					String graph = Dot.todot(Ops.head(data.head));
+					String bounded = Dot.todot(Ops.head(data.path));
+					Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_graph.dot", graph);
+					Dot.writeString(factory.getClass(), builder.getName() + "_" + data.id + "_" + algoName + ".dot", bounded);
+				}
 			}
 		}
 	}

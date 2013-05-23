@@ -30,7 +30,7 @@ import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.zgraph.Dot;
 import org.lttng.studio.model.zgraph.Graph;
 import org.lttng.studio.model.zgraph.Ops;
-import org.lttng.studio.model.zgraph.analysis.CriticalPath;
+import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmBounded;
 import org.lttng.studio.model.zgraph.analysis.GraphStats;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
@@ -188,7 +188,7 @@ public class MainCriticalPath {
 		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
 		Graph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, Graph.class);
 		Dot.setLabelProvider(Dot.pretty);
-		CriticalPath cp = new CriticalPath(graph);
+		CriticalPathAlgorithmBounded cp = new CriticalPathAlgorithmBounded(graph);
 		Graph path = null;
 		List<Task> list = new ArrayList<Task>();
 		for (Long tid :opts.tids) {
@@ -202,7 +202,7 @@ public class MainCriticalPath {
 			sub.add(task);
 			Dot.writeString(uuid.toString(), tid + "_graph.dot", Dot.todot(graph, sub));
 			try {
-				path = cp.criticalPathBounded(graph.getHead(task));
+				path = cp.compute(graph.getHead(task), null);
 				Dot.writeString(uuid.toString(), tid + "_path.dot", Dot.todot(path));
 
 				GraphStats gstats = new GraphStats(path);

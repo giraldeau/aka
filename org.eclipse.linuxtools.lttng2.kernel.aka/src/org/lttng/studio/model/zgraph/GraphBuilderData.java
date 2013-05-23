@@ -6,8 +6,7 @@ import java.util.List;
 public class GraphBuilderData {
 
 	public Node head;
-	public Node bounded;
-	public Node unbounded;
+	public Node path;
 	public int id = 0;
 	public int len = 0;
 	public int num = 0;

@@ -18,8 +18,10 @@ import org.lttng.studio.model.zgraph.GraphFactory;
 import org.lttng.studio.model.zgraph.LinkType;
 import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
-import org.lttng.studio.model.zgraph.analysis.CriticalPath;
+import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmBounded;
+import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmUnbounded;
 import org.lttng.studio.model.zgraph.analysis.GraphStats;
+import org.lttng.studio.model.zgraph.analysis.ICriticalPathAlgorithm;
 
 public class TestGraph {
 
@@ -401,46 +403,52 @@ public class TestGraph {
 	public boolean testCriticalPathOne(GraphBuilder builder) {
 		GraphBuilderData[] params = builder.params();
 		boolean ret = true;
-		for (GraphBuilderData data: params) {
-			String filePrefix = builder.getName() + "_" + data.id;
-			builder.build(data);
-			builder.criticalPathBounded(data);
-			//builder.criticalPathUnbounded(data);
-			Graph main = Ops.toGraphInPlace(data.head);
-			CriticalPath cp = new CriticalPath(main);
-			Graph bounded = cp.criticalPathBounded(data.head);
-			//Graph unbounded = cp.criticalPathUnbounded(data.head);
-			Node actBounded = bounded.getHead(0L);
-			//Node actUnbounded = unbounded.getHead(0L);
+		// FIXME: can't instantiate generic parameterized class array
+		//Class[] algos = new Class[] { CriticalPathAlgorithmBounded.class, CriticalPathAlgorithmUnbounded.class };
+		Class[] algos = new Class[] { CriticalPathAlgorithmBounded.class };
+		for (Class klass: algos) {
+			String algoName = klass.getSimpleName();
+			for (GraphBuilderData data: params) {
+				String filePrefix = builder.getName() + "_" + data.id;
+				builder.buildGraph(data);
+				Graph main = Ops.toGraphInPlace(data.head);
+				ICriticalPathAlgorithm algo;
+				try {
+					algo = (ICriticalPathAlgorithm) klass.getDeclaredConstructor(Graph.class).newInstance(main);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new RuntimeException("Error while instanciating ICriticalPathAlgorithm");
+				}
+				// FIXME: runtime klass.cast() is not valid to select overloaded function
+				if (algo instanceof CriticalPathAlgorithmBounded)
+					builder.criticalPath(data, (CriticalPathAlgorithmBounded)algo);
+				else if (algo instanceof CriticalPathAlgorithmUnbounded)
+					builder.criticalPath(data, (CriticalPathAlgorithmUnbounded)algo);
+				Graph actCriticalPathGraph = algo.compute(data.head, null);
+				Node actCriticalPathHead = actCriticalPathGraph.getHead(0L);
 
-			StringBuilder str = new StringBuilder();
-			str.append("Main graph:\n");
-			str.append(main.toString());
-			str.append("\n");
-			str.append(main.dump());
-			str.append("Bounded critical path:\n");
-			str.append(bounded.toString());
-			str.append(bounded.dump());
-			str.append("Unbounded critical path:\n");
-			//str.append(unbounded.toString());
-			//str.append(unbounded.dump());
-			str.append("\n");
+				StringBuilder str = new StringBuilder();
+				str.append("Main graph:\n");
+				str.append(main.toString());
+				str.append("\n");
+				str.append(main.dump());
+				str.append(algoName + ":\n");
+				str.append(actCriticalPathGraph.toString());
+				str.append(actCriticalPathGraph.dump());
+				str.append("\n");
 
-			Dot.writeString(this.getClass(), filePrefix + ".log", str.toString());
-			Dot.writeString(this.getClass(), filePrefix + "_all.dot", Dot.todot(main));
-			Dot.writeString(this.getClass(), filePrefix + "_exp_bounded.dot", Dot.todot(data.bounded));
-			Dot.writeString(this.getClass(), filePrefix + "_exp_unbounded.dot", Dot.todot(data.unbounded));
-			Dot.writeString(this.getClass(), filePrefix + "_act_bounded.dot", Dot.todot(actBounded));
-			//Dot.writeString(this.getClass(), filePrefix + "_act_unbounded.dot", Dot.todot(actUnbounded));
-			boolean status =  Ops.validate(actBounded);
-			//status = status & Ops.validate(actUnbounded);
-			status = status & Ops.match(data.bounded, actBounded);
-			//status = status & Ops.match(data.unbounded, actUnbounded);
-			if (status)
-				System.out.println("PASS: " + filePrefix);
-			else
-				System.out.println("FAIL: " + filePrefix);
-			ret = ret && status;
+				Dot.writeString(this.getClass(), filePrefix + ".log", str.toString());
+				Dot.writeString(this.getClass(), filePrefix + "_all.dot", Dot.todot(main));
+				Dot.writeString(this.getClass(), filePrefix + "_" + algoName + "_exp.dot", Dot.todot(data.path));
+				Dot.writeString(this.getClass(), filePrefix + "_" + algoName + "_act.dot", Dot.todot(actCriticalPathHead));
+				boolean status =  Ops.validate(actCriticalPathHead);
+				status = status & Ops.match(data.path, actCriticalPathHead);
+				if (status)
+					System.out.println("PASS: " + filePrefix + " " + algoName);
+				else
+					System.out.println("FAIL: " + filePrefix + " " + algoName);
+				ret = ret && status;
+			}
 		}
 		return ret;
 	}
