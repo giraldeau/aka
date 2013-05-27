@@ -95,7 +95,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			}
 		};
 
-		tcpMatching = new TcpEventMatching(reader.getTrace(), matchProcessing);
+		tcpMatching = new TcpEventMatching(reader.getTraceMain(), matchProcessing);
 		tcpMatching.initMatching();
 	}
 

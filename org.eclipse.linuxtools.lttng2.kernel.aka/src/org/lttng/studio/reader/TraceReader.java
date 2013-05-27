@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +24,7 @@ import org.eclipse.linuxtools.tmf.core.request.TmfDataRequest;
 import org.eclipse.linuxtools.tmf.core.timestamp.TmfTimeRange;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
+import org.lttng.studio.model.kernel.Host;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerBase;
@@ -45,7 +47,6 @@ public class TraceReader {
 	private ITmfTrace trace;
 	private long now;
 	private boolean cancel;
-	private int nbCpus;
 	private Exception exception;
 	private TmfDataRequest request;
 	private TmfTimeRange timeRange;
@@ -220,7 +221,7 @@ public class TraceReader {
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public int getNumCpuFromCtfTrace(CtfTmfTrace ctf) {
+	public static int getNumCpuFromCtfTrace(CtfTmfTrace ctf) {
 		int cpus = 0;
 		CTFTraceReader reader = new CTFTraceReader(ctf.getCTFTrace());
 		Field field;
@@ -241,20 +242,12 @@ public class TraceReader {
 		return cpus;
 	}
 
-	public void updateNbCpus() {
+	private void updateNbCpus() {
 		int max = 0;
-		if (trace instanceof CtfTmfTrace) {
-			CtfTmfTrace ctf = (CtfTmfTrace) trace;
-			max = getNumCpuFromCtfTrace(ctf);
-		} else if (trace instanceof TmfExperiment) {
-			TmfExperiment exp = (TmfExperiment) trace;
-			for (ITmfTrace t: exp.getTraces()) {
-				if (t instanceof CtfTmfTrace) {
-					max = Math.max(max, getNumCpuFromCtfTrace((CtfTmfTrace)t));
-				}
-			}
+		List<CtfTmfTrace> traceList = getTraceList();
+		for (CtfTmfTrace ctf: traceList) {
+			max = Math.max(max, getNumCpuFromCtfTrace(ctf));
 		}
-		setNbCpus(max);
 	}
 
 	public void setTrace(ITmfTrace trace) {
@@ -268,16 +261,33 @@ public class TraceReader {
 		setTrace(ctfTrace);
 	}
 
-	public ITmfTrace getTrace() {
+	public ITmfTrace getTraceMain() {
 		return this.trace;
 	}
 
-	public int getNumCpus() {
-		return nbCpus;
+	public List<CtfTmfTrace> getTraceList() {
+		List<CtfTmfTrace> traces = new LinkedList<CtfTmfTrace>();
+		if (trace instanceof CtfTmfTrace) {
+			// There is only one trace
+			CtfTmfTrace ctf = (CtfTmfTrace) trace;
+			traces.add(ctf);
+		} else if (trace instanceof TmfExperiment) {
+			// collection of traces
+			TmfExperiment exp = (TmfExperiment) trace;
+			for (ITmfTrace t: exp.getTraces()) {
+				if (t instanceof CtfTmfTrace) {
+					traces.add((CtfTmfTrace)t);
+				}
+			}
+		}
+		return traces;
 	}
 
-	public void setNbCpus(int nbCpus) {
-		this.nbCpus = nbCpus;
+	public List<Host> getHostList() {
+		List<CtfTmfTrace> traceList = getTraceList();
+		for (CtfTmfTrace ctf: traceList) {
+			Object obj = ctf.getCTFTrace().getClock().getProperty("uuid");
+		}
 	}
 
 	public void clearHandlers() {
