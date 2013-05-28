@@ -45,6 +45,8 @@ public class TraceReader {
 	private final ArrayListMultimap<String, TraceHook> eventHookCacheMap;
 	private static Class<?>[] argTypes = new Class<?>[] { TraceReader.class, CtfTmfEvent.class };
 	private ITmfTrace trace;
+	private final HashMap<CtfTmfTrace, Host> traceHostMap; // uuid, trace
+	private final HashMap<String, Host> uuidHost;
 	private long now;
 	private boolean cancel;
 	private Exception exception;
@@ -57,6 +59,8 @@ public class TraceReader {
 		registry = new ModelRegistry();
 		eventHookMap = ArrayListMultimap.create();
 		eventHookCacheMap = ArrayListMultimap.create();
+		traceHostMap = ArrayListMultimap.create();
+		uuidHost = new HashMap<String, Host>();
 	}
 
 	public void registerHook(ITraceEventHandler handler, TraceHook hook) {
@@ -242,6 +246,7 @@ public class TraceReader {
 		return cpus;
 	}
 
+	/*
 	private void updateNbCpus() {
 		int max = 0;
 		List<CtfTmfTrace> traceList = getTraceList();
@@ -249,10 +254,23 @@ public class TraceReader {
 			max = Math.max(max, getNumCpuFromCtfTrace(ctf));
 		}
 	}
+	*/
 
 	public void setTrace(ITmfTrace trace) {
 		this.trace = trace;
-		updateNbCpus();
+		updateUUIDTraceMap();
+	}
+
+	private void updateUUIDTraceMap() {
+		List<CtfTmfTrace> traceList = getTraceList();
+		for (CtfTmfTrace ctf: traceList) {
+			String uuid = (String) ctf.getCTFTrace().getClock().getProperty("uuid");
+			hostTraceMap.put(uuid, ctf);
+		}
+	}
+
+	public Host getTraceHost(CtfTmfTrace trace) {
+
 	}
 
 	public void setTrace(File file) throws TmfTraceException, IOException {
@@ -285,9 +303,13 @@ public class TraceReader {
 
 	public List<Host> getHostList() {
 		List<CtfTmfTrace> traceList = getTraceList();
+		List<Host> hostList = new LinkedList<Host>();
 		for (CtfTmfTrace ctf: traceList) {
-			Object obj = ctf.getCTFTrace().getClock().getProperty("uuid");
+
+			String hostname = ctf.getCTFTrace().getEnvironment().get("hostname");
+			hostList.add(new Host(uuid, hostname));
 		}
+		return hostList;
 	}
 
 	public void clearHandlers() {
