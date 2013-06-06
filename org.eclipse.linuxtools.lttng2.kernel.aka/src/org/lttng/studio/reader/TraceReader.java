@@ -219,6 +219,7 @@ public class TraceReader {
 		return this.cancel;
 	}
 
+	// FIXME: num CPUs is not constant between traces
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public int getNumCpuFromCtfTrace(CtfTmfTrace ctf) {
 		int cpus = 0;

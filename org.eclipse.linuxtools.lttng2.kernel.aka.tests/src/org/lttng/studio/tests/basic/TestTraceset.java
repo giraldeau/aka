@@ -37,6 +37,7 @@ public class TestTraceset {
 	}
 
 	// FIXME: returns all UST sub-directories
+	// FIXME: adapt to new directory structure
 	public static File getUSTTrace(String name) throws IOException {
 		File traceDir = findTraceDir(name, "ust");
 		File[] dirs = traceDir.listFiles();
