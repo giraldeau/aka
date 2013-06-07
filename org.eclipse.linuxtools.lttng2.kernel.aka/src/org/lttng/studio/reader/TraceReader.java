@@ -2,7 +2,6 @@ package org.lttng.studio.reader;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,10 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
-import org.eclipse.linuxtools.ctf.core.trace.CTFTraceReader;
-import org.eclipse.linuxtools.ctf.core.trace.StreamInputReader;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
@@ -22,12 +18,13 @@ import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.eclipse.linuxtools.tmf.core.request.TmfDataRequest;
 import org.eclipse.linuxtools.tmf.core.timestamp.TmfTimeRange;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
-import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerBase;
+import org.lttng.studio.utils.CTFUtils;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 
 public class TraceReader {
 
@@ -38,30 +35,37 @@ public class TraceReader {
 
 	private final ModelRegistry registry;
 	private final Map<Class<?>, ITraceEventHandler> handlers;
-	private final ArrayList<TraceHook> catchAllHook;
+	private final ArrayList<TraceHook> catchAllBeforeHook;
+	private final ArrayList<TraceHook> catchAllAfterHook;
 	private final ArrayListMultimap<String, TraceHook> eventHookMap;
 	private final ArrayListMultimap<String, TraceHook> eventHookCacheMap;
 	private static Class<?>[] argTypes = new Class<?>[] { TraceReader.class, CtfTmfEvent.class };
-	private ITmfTrace trace;
+	private final HashMap<CtfTmfTrace, Integer> traceCpus;
+	private final ArrayListMultimap<Host, CtfTmfTrace> hostTraces;
+	private final HashMap<String, Host> uuidStrToHost;
+	private ITmfTrace mainTrace;
 	private long now;
 	private boolean cancel;
-	private int nbCpus;
 	private Exception exception;
 	private TmfDataRequest request;
 	private TmfTimeRange timeRange;
 
 	public TraceReader() {
 		handlers = new HashMap<Class<?>, ITraceEventHandler>();
-		catchAllHook = new ArrayList<TraceHook>();
+		catchAllBeforeHook = new ArrayList<TraceHook>();
+		catchAllAfterHook = new ArrayList<TraceHook>();
 		registry = new ModelRegistry();
 		eventHookMap = ArrayListMultimap.create();
 		eventHookCacheMap = ArrayListMultimap.create();
+		hostTraces = ArrayListMultimap.create();
+		traceCpus = new HashMap<CtfTmfTrace, Integer>();
+		uuidStrToHost = new HashMap<String, Host>();
 	}
 
 	public void registerHook(ITraceEventHandler handler, TraceHook hook) {
 		String methodName;
 		if (hook.isAllEvent()) {
-			methodName = "handle_all_event";
+			methodName = "handle_all_event_after";
 		} else {
 			methodName = "handle_" + hook.eventName;
 		}
@@ -80,7 +84,7 @@ public class TraceReader {
 			return;
 
 		if(hook.isAllEvent()) {
-			catchAllHook.add(hook);
+			catchAllAfterHook.add(hook);
 		} else {
 			eventHookMap.put(hook.eventName, hook);
 		}
@@ -116,11 +120,11 @@ public class TraceReader {
 
 	public void process(final TimeListener listener) throws Exception {
 		cancel = false;
-		if (trace == null)
+		if (mainTrace == null)
 			throw new RuntimeException("Trace can't be null");
 
-		trace.seekEvent(Integer.MAX_VALUE);
-		timeRange = trace.getTimeRange();
+		mainTrace.seekEvent(Integer.MAX_VALUE);
+		timeRange = mainTrace.getTimeRange();
 		listener.begin(timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue());
 
 		for(ITraceEventHandler handler: handlers.values()) {
@@ -158,7 +162,7 @@ public class TraceReader {
 				cancel = true;
 			}
 		};
-		trace.sendRequest(request);
+		mainTrace.sendRequest(request);
 		request.waitForCompletion();
 
 		// Re-throw any handler exception
@@ -175,8 +179,9 @@ public class TraceReader {
 	private List<TraceHook> getEventHookSet(String evName) {
 		List<TraceHook> list = eventHookCacheMap.get(evName);
 		if (list.isEmpty()) {
+			list.addAll(catchAllBeforeHook);
 			list.addAll(eventHookMap.get(evName));
-			list.addAll(catchAllHook);
+			list.addAll(catchAllAfterHook);
 			Collections.sort(list);
 		}
 		return list;
@@ -219,108 +224,75 @@ public class TraceReader {
 		return this.cancel;
 	}
 
-	// FIXME: num CPUs is not constant between traces
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public int getNumCpuFromCtfTrace(CtfTmfTrace ctf) {
-		int cpus = 0;
-		CTFTraceReader reader = new CTFTraceReader(ctf.getCTFTrace());
-		Field field;
-		Vector<StreamInputReader> v;
-		try {
-			field = reader.getClass().getDeclaredField("streamInputReaders");
-			field.setAccessible(true);
-			v = (Vector) field.get(reader);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException("Error trying to retreive the number of CPUs of the trace");
-		}
-		for (StreamInputReader input: v) {
-			int cpu = input.getCPU();
-			cpus = Math.max(cpus, cpu + 1);
-		}
-		cpus = Math.max(cpus, v.size());
-		return cpus;
-	}
-
-	public void updateNbCpus() {
-		int max = 0;
-		if (trace instanceof CtfTmfTrace) {
-			CtfTmfTrace ctf = (CtfTmfTrace) trace;
-			max = getNumCpuFromCtfTrace(ctf);
-		} else if (trace instanceof TmfExperiment) {
-			TmfExperiment exp = (TmfExperiment) trace;
-			for (ITmfTrace t: exp.getTraces()) {
-				if (t instanceof CtfTmfTrace) {
-					max = Math.max(max, getNumCpuFromCtfTrace((CtfTmfTrace)t));
-				}
+	public void updateTraceInfoCache() {
+		traceCpus.clear();
+		hostTraces.clear();
+		uuidStrToHost.clear();
+		List<CtfTmfTrace> list = CTFUtils.getCtfTraceList(this.mainTrace);
+		for (CtfTmfTrace ctfTrace: list) {
+			int num = CTFUtils.getNumCpuFromCtfTrace(ctfTrace);
+			traceCpus.put(ctfTrace, num);
+			String uuidStr = CTFUtils.getTraceClockUUIDStringRaw(ctfTrace.getCTFTrace());
+			Host host = uuidStrToHost.get(uuidStr);
+			if (host == null) {
+				host = CTFUtils.hostFromTrace(ctfTrace);
+				uuidStrToHost.put(uuidStr, host);
 			}
+			hostTraces.put(host, ctfTrace);
 		}
-		setNbCpus(max);
 	}
 
 	public void setTrace(ITmfTrace trace) {
-		this.trace = trace;
-		updateNbCpus();
+		this.mainTrace = trace;
+		updateTraceInfoCache();
 	}
 
-	public void setTrace(File file) throws TmfTraceException, IOException {
-		CtfTmfTrace ctfTrace = new CtfTmfTrace();
-		ctfTrace.initTrace(null, file.getCanonicalPath(), ITmfEvent.class);
+	public Host getHost(CtfTmfTrace ctfTrace) {
+		return uuidStrToHost.get(ctfTrace.getCTFTrace().getClock().getProperty(CTFUtils.UUID_FIELD));
+	}
+
+	public Multimap<Host, CtfTmfTrace> getTraceHostMap() {
+		return hostTraces;
+	}
+
+	public void setMainTrace(File file) throws TmfTraceException, IOException {
+		CtfTmfTrace ctfTrace = CTFUtils.makeCtfTrace(file);
 		setTrace(ctfTrace);
 	}
 
-	public ITmfTrace getTrace() {
-		return this.trace;
+	public ITmfTrace getMainTrace() {
+		return this.mainTrace;
 	}
 
-	public int getNumCpus() {
-		return nbCpus;
-	}
-
-	public void setNbCpus(int nbCpus) {
-		this.nbCpus = nbCpus;
+	public int getNumCpus(ITmfTrace trace) {
+		return traceCpus.get(trace);
 	}
 
 	public void clearHandlers() {
 		this.handlers.clear();
 		this.eventHookCacheMap.clear();
 		this.eventHookMap.clear();
-		this.catchAllHook.clear();
+		this.catchAllAfterHook.clear();
+		this.catchAllBeforeHook.clear();
 	}
-
-	/* CtfTmfEvent already contains the offset
-	public static long clockTime(EventDefinition event) {
-		return (Long) event.getStreamInputReader()
-							.getParent()
-							.getTrace()
-							.getClock()
-							.getProperty("offset") + event.getTimestamp();
-	}
-	*/
 
 	public ModelRegistry getRegistry() {
 		return registry;
+	}
+
+	/*
+	 * FIXME: lookup num CPU must be done per trace
+	 */
+	public int getNumCpus() {
+		return 0;
 	}
 
 	public long getCurrentTime() {
 		return now;
 	}
 
-	public static TmfExperiment makeTmfExperiment(ITmfTrace[] traceSet) {
-		return new TmfExperiment(ITmfEvent.class, "none", traceSet);
-	}
-
-	public static TmfExperiment makeTmfExperiment(File[] files) throws TmfTraceException, IOException {
-		CtfTmfTrace[] ctf = new CtfTmfTrace[files.length];
-		for (int i = 0; i < files.length; i++) {
-			ctf[i] = new CtfTmfTrace();
-			ctf[i].initTrace(null, files[i].getCanonicalPath(), ITmfEvent.class);
-		}
-		return makeTmfExperiment(ctf);
-	}
-
-	public TmfTimeRange getTimeRange() {
-		return timeRange;
+	public List<CtfTmfTrace> getTraces() {
+		return CTFUtils.getCtfTraceList(mainTrace);
 	}
 
 }

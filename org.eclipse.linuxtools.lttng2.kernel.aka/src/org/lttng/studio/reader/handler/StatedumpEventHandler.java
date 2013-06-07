@@ -25,8 +25,6 @@ public class StatedumpEventHandler extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
-		system.init(reader);
 	}
 
 	@Override
@@ -60,7 +58,7 @@ public class StatedumpEventHandler extends TraceEventHandlerBase {
 		String name = EventField.getString(event, "name");
 
 		Task task = new Task(tid);
-		task.setStart(reader.getTimeRange().getStartTime().getValue());
+		task.setStart(event.getTrace().getStartTime().getValue());
 		task.setPid(pid);
 		task.setPpid(ppid);
 		task.setExecutionMode(mode);

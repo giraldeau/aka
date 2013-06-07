@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.junit.Test;
@@ -14,10 +15,10 @@ import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
 import org.lttng.studio.reader.TraceReader;
-import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerCounter;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
+import org.lttng.studio.utils.CTFUtils;
 
 /**
  * Test simple trace reader
@@ -30,21 +31,22 @@ public class TestTraceReader {
 	public void testSimpleTraceReaderLoad() throws Exception {
 		File trace = TestTraceset.getKernelTrace("burnP6-1x-1sec-k");
 		TraceReader reader = new TraceReader();
-		reader.setTrace(trace);
+		reader.setMainTrace(trace);
 		TraceEventHandlerCounter handler = new TraceEventHandlerCounter();
 		reader.register(handler);
 		reader.process();
-		EventCounter counter = reader.getRegistry().getModel(IModelKeys.SHARED, EventCounter.class);
+		EventCounter counter = reader
+				.getRegistry()
+				.getModelForTrace((CtfTmfTrace)reader.getMainTrace(), EventCounter.class);
 		assertTrue(counter.getCounter() > 0);
 	}
 
 	@Test
 	public void testGetNbCpus() throws IOException, TmfTraceException {
 		File trace = TestTraceset.getKernelTrace("burnP6-1x-1sec-k");
-		TraceReader reader = new TraceReader();
-		reader.setTrace(trace);
 		// assume traces comes from 8 cores CPU
-		assertEquals(8, reader.getNumCpus());
+		int num = CTFUtils.getNumCpuFromCtfTrace(CTFUtils.makeCtfTrace(trace));
+		assertEquals(8, num);
 	}
 
 	@Test
@@ -54,22 +56,22 @@ public class TestTraceReader {
 		File trace1 = TestTraceset.getKernelTrace("wk-heartbeat-k-u");
 		File trace2 = TestTraceset.getUSTTrace("wk-heartbeat-k-u");
 		TraceEventHandlerCounter handler = new TraceEventHandlerCounter();
-		TmfExperiment experiment = TraceReader.makeTmfExperiment(new File[] {trace1, trace2});
+		TmfExperiment experiment = CTFUtils.makeTmfExperiment(new File[] {trace1, trace2});
 
 		// trace 1
 		reader = new TraceReader();
 		reader.register(handler);
-		reader.setTrace(trace1);
+		reader.setMainTrace(trace1);
 		reader.process();
-		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
+		counter = reader.getRegistry().getModelForTrace((CtfTmfTrace)reader.getMainTrace(), EventCounter.class);
 		long cnt1 = counter.getCounter();
 
 		// trace 2
 		reader = new TraceReader();
 		reader.register(handler);
-		reader.setTrace(trace2);
+		reader.setMainTrace(trace2);
 		reader.process();
-		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
+		counter = reader.getRegistry().getModelForTrace((CtfTmfTrace)reader.getMainTrace(), EventCounter.class);
 		long cnt2 = counter.getCounter();
 
 		// trace 1 and 2
@@ -77,7 +79,7 @@ public class TestTraceReader {
 		reader.register(handler);
 		reader.setTrace(experiment);
 		reader.process();
-		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
+		counter = reader.getRegistry().getModelForTrace((CtfTmfTrace)reader.getMainTrace(), EventCounter.class);
 		long cnt3 = counter.getCounter();
 
 		assertEquals(cnt1 + cnt2, cnt3);
@@ -100,7 +102,7 @@ public class TestTraceReader {
 		File trace = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
 		Collection<ITraceEventHandler> handlers = TraceEventHandlerFactory.makeStatedump();
 		TraceReader reader = new TraceReader();
-		reader.setTrace(trace);
+		reader.setMainTrace(trace);
 		reader.registerAll(handlers);
 		reader.process();
 		assertTrue(true);
@@ -111,7 +113,7 @@ public class TestTraceReader {
 		File trace = TestTraceset.getKernelTrace("sleep-1x-1sec-k");
 		Collection<ITraceEventHandler> handlers = TraceEventHandlerFactory.makeMain();
 		TraceReader reader = new TraceReader();
-		reader.setTrace(trace);
+		reader.setMainTrace(trace);
 		reader.registerAll(handlers);
 		reader.process();
 		assertTrue(true);

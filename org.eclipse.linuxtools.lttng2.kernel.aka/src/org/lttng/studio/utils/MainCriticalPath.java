@@ -20,10 +20,8 @@ import org.apache.commons.cli.PosixParser;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.lttng.studio.model.graph.CriticalPathStats;
-import org.lttng.studio.model.graph.DepthFirstCriticalPathBackward;
 import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
-import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -37,8 +35,6 @@ import org.lttng.studio.reader.AnalyzerThread;
 import org.lttng.studio.reader.CliProgressMonitor;
 import org.lttng.studio.reader.TimeLoadingListener;
 import org.lttng.studio.reader.TraceHook;
-import org.lttng.studio.reader.handler.ALog;
-import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 
@@ -134,6 +130,8 @@ public class MainCriticalPath {
 	}
 
 	public void analyzeUnbounded(Opts opts) {
+		throw new UnsupportedOperationException();
+		/*
 		loadTrace(opts);
 		AnalyzerThread thread = processTrace(opts, TraceEventHandlerFactory.makeStandardAnalysisLegacy());
 		CliSpinner spinner = new CliSpinner();
@@ -154,6 +152,7 @@ public class MainCriticalPath {
 			spinner.join();
 		} catch (InterruptedException e) {
 		}
+		*/
 	}
 
 	public void analyzeBounded(Opts opts) {
@@ -162,8 +161,8 @@ public class MainCriticalPath {
 		CliSpinner spinner = new CliSpinner();
 		spinner.start();
 		UUID uuid = opts.ctfTmfTrace.getCTFTrace().getUUID();
-		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
-		Graph graph = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, Graph.class);
+		SystemModel model = thread.getReader().getRegistry().getModelForTrace(opts.ctfTmfTrace, SystemModel.class);
+		Graph graph = thread.getReader().getRegistry().getModelForTrace(null, Graph.class);
 		Dot.setLabelProvider(Dot.pretty);
 		CriticalPathAlgorithmBounded cp = new CriticalPathAlgorithmBounded(graph);
 		Graph path = null;
@@ -209,7 +208,7 @@ public class MainCriticalPath {
 		AnalyzerThread thread = processTrace(opts, TraceEventHandlerFactory.makeStandardAnalysis());
 		String fmt = "%-5d %-5d %s\n";
 		String fmtHeader = "%-5s %-5s %s\n";
-		SystemModel model = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, SystemModel.class);
+		SystemModel model = thread.getReader().getRegistry().getModelForTrace(opts.ctfTmfTrace, SystemModel.class);
 		Collection<Task> tasks = model.getTasks();
 		System.out.print(String.format(fmtHeader, "tid", "pid", "cmd"));
 		for (Task task: tasks) {
@@ -226,9 +225,6 @@ public class MainCriticalPath {
 		}
 		thread.addAllPhases(phases);
 		thread.setListener(new TimeLoadingListener("loading", phases.size(), new CliProgressMonitor()));
-		ALog log = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
-		log.setLevel(ALog.DEBUG);
-		log.setPath("results/" + opts.ctfTmfTrace.getCTFTrace().getUUID() + ".log");
 		thread.start();
 		try {
 			thread.join();

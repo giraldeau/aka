@@ -55,6 +55,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IEditorPart;
+import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.zgraph.Graph;
@@ -64,7 +65,7 @@ import org.lttng.studio.model.zgraph.Node;
 import org.lttng.studio.model.zgraph.Ops;
 import org.lttng.studio.model.zgraph.Ops.ScanLineTraverse;
 import org.lttng.studio.model.zgraph.analysis.CriticalPathAlgorithmBounded;
-import org.lttng.studio.reader.handler.IModelKeys;
+import org.lttng.studio.reader.AnalyzerThread;
 
 /**
  * The Control Flow view main object
@@ -661,10 +662,14 @@ public class CriticalFlowView extends AbstractAKAView {
 
 	@Override
 	protected void updateDataSafe() {
-		if (registry == null)
-			return;
-		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
-		Graph graph = registry.getModel(IModelKeys.SHARED, Graph.class);
+		// FIXME: change current displayed thread
+	}
+
+	@Override
+	protected void loadData(AnalyzerThread thread) {
+		ModelRegistry reg = thread.getReader().getRegistry();
+		SystemModel system = reg.getModelForTrace(thread.getReader().getTraces().get(0), SystemModel.class);
+		Graph graph = reg.getModelForTrace(null, Graph.class);
 		if (system == null || graph == null)
 			return;
 		Task task = system.getTask(currentTid);

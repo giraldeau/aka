@@ -18,6 +18,7 @@ import org.eclipse.zest.core.viewers.GraphViewer;
 import org.eclipse.zest.core.viewers.IZoomableWorkbenchPart;
 import org.eclipse.zest.core.viewers.ZoomContributionViewItem;
 import org.eclipse.zest.layouts.algorithms.SugiyamaLayoutAlgorithm;
+import org.lttng.studio.reader.AnalyzerThread;
 
 public class AbstractGraphView extends TmfView implements
 	IZoomableWorkbenchPart, JobListener {
@@ -107,7 +108,7 @@ public class AbstractGraphView extends TmfView implements
     }
 
     @Override
-    public void ready(ITmfTrace trace) {
+    public void ready(AnalyzerThread thread) {
     }
 
 }

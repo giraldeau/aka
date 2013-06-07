@@ -2,7 +2,6 @@ package org.eclipse.linuxtools.lttng2.kernel.aka;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -10,7 +9,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
-import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
 import org.lttng.studio.reader.TimeLoadingListener;
@@ -19,11 +17,9 @@ import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 public class JobManager {
 
 	private static JobManager instance;
-	private final HashMap<ITmfTrace, ModelRegistry> registryMap;
 	private final List<JobListener> listeners;
 
 	public JobManager() {
-		registryMap = new HashMap<ITmfTrace, ModelRegistry>();
 		listeners = new ArrayList<JobListener>();
 	}
 
@@ -56,10 +52,7 @@ public class JobManager {
 					e.printStackTrace();
 					return Status.CANCEL_STATUS;
 				}
-				synchronized (registryMap) {
-					registryMap.put(trace, thread.getReader().getRegistry());
-				}
-				fireJobReady(trace);
+				fireJobReady(thread);
 				return Status.OK_STATUS;
 			}
 		};
@@ -80,17 +73,11 @@ public class JobManager {
 		}
 	}
 
-	public void fireJobReady(ITmfTrace trace) {
+	public void fireJobReady(AnalyzerThread thread) {
 		synchronized (listeners) {
 			for (JobListener listener: listeners) {
-				listener.ready(trace);
+				listener.ready(thread);
 			}
-		}
-	}
-
-	public ModelRegistry getRegistry(ITmfTrace trace) {
-		synchronized (registryMap) {
-			return registryMap.get(trace);
 		}
 	}
 

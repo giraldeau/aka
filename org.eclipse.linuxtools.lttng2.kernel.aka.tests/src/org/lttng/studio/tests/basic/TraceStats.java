@@ -12,7 +12,6 @@ import org.eclipse.linuxtools.tmf.core.timestamp.ITmfTimestamp;
 import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
-import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 
@@ -58,7 +57,7 @@ public class TraceStats {
 		ITmfTimestamp endTime = ctfTmfTrace.getEndTime();
 		ITmfTimestamp delta = endTime.getDelta(startTime);
 
-		EventCounter counter = thread.getReader().getRegistry().getModel(IModelKeys.SHARED, EventCounter.class);
+		EventCounter counter = thread.getReader().getRegistry().getModelForTrace(ctfTmfTrace, EventCounter.class);
 		double rate = 1000000000.0 * counter.getCounter() / delta.getValue();
 
 		String[] split = traceDir.getCanonicalPath().split("/");

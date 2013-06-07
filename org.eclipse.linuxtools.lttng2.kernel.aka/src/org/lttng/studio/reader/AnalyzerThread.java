@@ -84,7 +84,7 @@ public class AnalyzerThread extends Thread {
 	}
 
 	public void setTrace(File trace) throws TmfTraceException, IOException {
-		reader.setTrace(trace);
+		reader.setMainTrace(trace);
 	}
 
 }

@@ -23,7 +23,6 @@ public class TraceEventHandlerFactory {
 		ArrayList<ITraceEventHandler> list = new ArrayList<ITraceEventHandler>();
 		list.add(new TraceEventHandlerInvariant());
 		list.add(new StatedumpEventHandler());
-		list.add(new StatedumpInetSockEventHandler());
 		return list;
 	}
 
@@ -39,30 +38,7 @@ public class TraceEventHandlerFactory {
 		list.add(new TraceEventHandlerInvariant());
 		list.add(new TraceEventHandlerSched());
 		list.add(new EventContextHandler());
-		list.add(new TraceEventHandlerTaskHierarchy());
-		list.add(new TraceEventHandlerHRTimer());
-		list.add(new TraceEventHandlerFD());
-		list.add(new TraceEventHandlerSock());
-		list.add(new TraceEventHandlerNetPacket());
-		list.add(new TraceEventHandlerBlocking());
-		//list.add(new TraceEventHandlerExecutionGraphLegacy());
 		list.add(new TraceEventHandlerExecutionGraph());
-		list.add(new TraceEventHandlerCounter());
-		return list;
-	}
-
-	public static Collection<ITraceEventHandler> makeLegacy() {
-		ArrayList<ITraceEventHandler> list = new ArrayList<ITraceEventHandler>();
-		list.add(new TraceEventHandlerInvariant());
-		list.add(new TraceEventHandlerSched());
-		list.add(new EventContextHandler());
-		list.add(new TraceEventHandlerTaskHierarchy());
-		list.add(new TraceEventHandlerHRTimer());
-		list.add(new TraceEventHandlerFD());
-		list.add(new TraceEventHandlerSock());
-		list.add(new TraceEventHandlerNetPacket());
-		list.add(new TraceEventHandlerBlocking());
-		list.add(new TraceEventHandlerExecutionGraphLegacy());
 		list.add(new TraceEventHandlerCounter());
 		return list;
 	}
@@ -72,14 +48,6 @@ public class TraceEventHandlerFactory {
 		list.add(new AnalysisPhase(1, "statedump", makeStatedump()));
 		list.add(new AnalysisPhase(2, "initial state", makeInitialState()));
 		list.add(new AnalysisPhase(3, "main analysis", makeMain()));
-		return list;
-	}
-
-	public static Collection<AnalysisPhase> makeStandardAnalysisLegacy() {
-		ArrayList<AnalysisPhase> list = new ArrayList<AnalysisPhase>();
-		list.add(new AnalysisPhase(1, "statedump", makeStatedump()));
-		list.add(new AnalysisPhase(2, "initial state", makeInitialState()));
-		list.add(new AnalysisPhase(3, "main legacy analysis", makeLegacy()));
 		return list;
 	}
 

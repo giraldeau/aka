@@ -20,6 +20,7 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IWorkbenchPart;
 import org.lttng.studio.model.kernel.ModelRegistry;
+import org.lttng.studio.reader.AnalyzerThread;
 
 @SuppressWarnings("restriction")
 public abstract class AbstractAKAView extends TmfView implements JobListener {
@@ -111,20 +112,21 @@ public abstract class AbstractAKAView extends TmfView implements JobListener {
 	}
 
 	@Override
-	public void ready(ITmfTrace trace) {
+	public void ready(AnalyzerThread thread) {
 		// Our trace is not ready
-		if (trace != fTrace) {
+		if (thread.getReader().getMainTrace() != fTrace) {
 			return;
 		}
-		synchronized (fSyncObj) {
-			registry = manager.getRegistry(fTrace);
-		}
+		loadData(thread);
 	}
 
 	private void updateData() {
 		synchronized (fSyncObj) {
 			updateDataSafe();
 		}
+	}
+
+	protected void loadData(AnalyzerThread thread) {
 	}
 
 	protected void updateDataSafe() {

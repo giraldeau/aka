@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.lttng.studio.model.kernel.InterruptContext.Context;
 import org.lttng.studio.reader.TraceReader;
 
@@ -16,8 +17,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 public class SystemModel implements ITraceModel {
-
-
 
 	private Task[] swappers;
 	private HashMap<Long, Task> tasks; // (tid, task)
@@ -38,12 +37,12 @@ public class SystemModel implements ITraceModel {
 	}
 
 	@Override
-	public void init(TraceReader reader) {
+	public void init(TraceReader reader, CtfTmfTrace trace) {
 		if (isInitialized == false){
 			// FIXME: should avoid the model coupling with tracing classes
 			switchUnkownTask = 0;
 			dupUnkownFD = 0;
-			numCpus = reader.getNumCpus();
+			numCpus = reader.getHost(trace).getNumCpus();
 			tasks = new HashMap<Long, Task>();
 			taskFdSet = new HashMap<Task, FDSet>();
 			sockPeer = HashBiMap.create();

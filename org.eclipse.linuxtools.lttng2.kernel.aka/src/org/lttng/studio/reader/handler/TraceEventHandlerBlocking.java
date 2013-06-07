@@ -11,7 +11,6 @@ import org.lttng.studio.model.kernel.WakeupInfo;
 import org.lttng.studio.model.kernel.WakeupInfo.Type;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
-import org.lttng.studio.utils.AnalysisFilter;
 
 /*
  * Detect blocking in a process
@@ -25,7 +24,6 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 	private HashMap<Task, TaskBlockingEntry> latestBlockingMap;
 
 	private SystemModel system;
-	private AnalysisFilter filter;
 
 	public TraceEventHandlerBlocking() {
 		super();
@@ -42,10 +40,8 @@ public class TraceEventHandlerBlocking extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
-		system.init(reader);
-		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
-		blockings = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, TaskBlockings.class);
+		reader.getRegistry().register(IModelKeys.PER_HOST, TaskBlockings.class);
+		// FIXME
 		wakeup = new WakeupInfo[reader.getNumCpus()];
 		syscall = new HashMap<Task, CtfTmfEvent>();
 		latestBlockingMap = new HashMap<Task, TaskBlockingEntry>();

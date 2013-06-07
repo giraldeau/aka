@@ -7,6 +7,7 @@ import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.FillLayout;
@@ -19,9 +20,10 @@ import org.lttng.studio.model.graph.ExecEdge;
 import org.lttng.studio.model.graph.ExecGraph;
 import org.lttng.studio.model.graph.ExecVertex;
 import org.lttng.studio.model.graph.Span;
+import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
-import org.lttng.studio.reader.handler.IModelKeys;
+import org.lttng.studio.reader.AnalyzerThread;
 
 public class CriticalPathView extends AbstractAKAView {
 
@@ -200,11 +202,17 @@ public class CriticalPathView extends AbstractAKAView {
 
 	@Override
 	protected void updateDataSafe() {
+	}
+
+	@Override
+	protected void loadData(AnalyzerThread thread) {
 		System.out.println("CriticalPathView updateData " + registry);
-		if (registry == null)
-			return;
-		SystemModel system = registry.getModel(IModelKeys.SHARED, SystemModel.class);
-		ExecGraph graph = registry.getModel(IModelKeys.SHARED, ExecGraph.class);
+		ModelRegistry reg = thread.getReader().getRegistry();
+		// FIXME: how to know the host of the currently selected task from the control flow view?
+		List<CtfTmfTrace> traces = thread.getReader().getTraces();
+
+		SystemModel system = reg.getModelForTrace(traces.get(0), SystemModel.class);
+		ExecGraph graph = reg.getModelForTrace(null, ExecGraph.class);
 		if (system == null || graph == null)
 			return;
 		Task task = system.getTask(currentTid);

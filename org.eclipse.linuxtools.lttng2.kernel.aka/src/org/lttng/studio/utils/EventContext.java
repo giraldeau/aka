@@ -16,13 +16,11 @@ import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.lttng.studio.reader.AnalysisPhase;
 import org.lttng.studio.reader.AnalyzerThread;
-import org.lttng.studio.reader.handler.ALog;
-import org.lttng.studio.reader.handler.IModelKeys;
+import org.lttng.studio.reader.handler.EventContextHandler;
 import org.lttng.studio.reader.handler.ITraceEventHandler;
 import org.lttng.studio.reader.handler.TraceEventHandlerFactory;
 import org.lttng.studio.reader.handler.TraceEventHandlerInvariant;
 import org.lttng.studio.reader.handler.TraceEventHandlerSched;
-import org.lttng.studio.reader.handler.EventContextHandler;
 
 public class EventContext {
 
@@ -81,27 +79,18 @@ public class EventContext {
 			e.printStackTrace();
 		}
 
-		AnalysisFilter filter = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
-		filter.addTid(opts.pid);
-		filter.addCommand(opts.comm);
-		filter.setFollowChild(opts.followChild);
-		
-		ALog log = thread.getReader().getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
-		log.setPath("wakeup.out");
-		log.setLevel(ALog.MESSAGE);
-		
 		EventContextHandler contextHandler = new EventContextHandler();
 		contextHandler.addEventName("sched_wakeup");
 		contextHandler.addEventName("block_rq_insert");
 		contextHandler.addEventName("block_rq_issue");
 		contextHandler.addEventName("block_rq_complete");
-		
+
 		Collection<ITraceEventHandler> phase1 = TraceEventHandlerFactory.makeStatedump();
 		Collection<ITraceEventHandler> phase2 = new HashSet<ITraceEventHandler>();
 		phase2.add(new TraceEventHandlerInvariant());
 		phase2.add(new TraceEventHandlerSched());
 		phase2.add(contextHandler);
-		
+
 		thread.setTrace(ctfTmfTrace);
 		thread.addPhase(new AnalysisPhase(1, "test", phase1));
 		thread.addPhase(new AnalysisPhase(2, "test", phase2));

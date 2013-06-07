@@ -2,15 +2,18 @@ package org.lttng.studio.reader.handler;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Stack;
 
 import org.eclipse.linuxtools.lttng2.kernel.core.event.matching.TcpEventMatching;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
+import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.event.matching.IMatchProcessingUnit;
 import org.eclipse.linuxtools.tmf.core.event.matching.TmfEventDependency;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.lttng.studio.model.kernel.InterruptContext;
 import org.lttng.studio.model.kernel.InterruptContext.Context;
+import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.Softirq;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
@@ -24,10 +27,8 @@ import org.lttng.studio.reader.TraceReader;
 
 public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
-	SystemModel system;
-	Task[] kernel;
+	HashMap<CtfTmfTrace, Task[]> kernel;
 	Graph graph;
-	CtfTmfEvent event;
 	private ALog log;
 	IMatchProcessingUnit matchProcessing;
 	HashMap<CtfTmfEvent, Node> tcpNodes;
@@ -43,15 +44,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		hooks.add(new TraceHook("inet_sock_local_out"));
 	}
 
-	@Override
-	public void handleInit(TraceReader reader) {
-		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
-		system.init(reader);
-		graph = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, Graph.class);
-		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
-		log.message("init TraceEventHandlerExecutionGraph");
-		kernel = new Task[reader.getNumCpus()];
-		for (int i = 0; i < reader.getNumCpus(); i++) {
+	public void initOneTrace(TraceReader reader, CtfTmfTrace trace) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(trace, SystemModel.class);
+		graph = reg.getModelForTrace(trace, Graph.class);
+		Task[] placeholder = new Task[reader.getNumCpus()];
+		for (int i = 0; i < reader.getHost(trace).getNumCpus(); i++) {
 			Task k = new Task();
 			k.setName("kernel/" + i);
 			k.setProcessStatus(process_status_enum.RUN);
@@ -59,12 +57,22 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			k.setPid(-1);
 			k.setTid(-1);
 			k.setPpid(-1);
-			kernel[i] = k;
+			placeholder[i] = k;
 		}
+		kernel.put(trace, placeholder);
 		// init graph
 		Collection<Task> tasks = system.getTasks();
 		for (Task task: tasks) {
 			graph.add(task, new Node(task.getStart()));
+		}
+	}
+
+	@Override
+	public void handleInit(TraceReader reader) {
+		ModelRegistry reg = reader.getRegistry();
+		List<CtfTmfTrace> traces = reader.getTraces();
+		for (CtfTmfTrace trace: traces) {
+			initOneTrace(reader, trace);
 		}
 		tcpNodes = new HashMap<CtfTmfEvent, Node>();
 		matchProcessing = new IMatchProcessingUnit() {
@@ -95,11 +103,13 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			}
 		};
 
-		tcpMatching = new TcpEventMatching(reader.getTrace(), matchProcessing);
+		tcpMatching = new TcpEventMatching(reader.getMainTrace(), matchProcessing);
 		tcpMatching.initMatching();
 	}
 
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		long ts = event.getTimestamp().getValue();
 		long next = EventField.getLong(event, "next_tid");
 		long prev = EventField.getLong(event, "prev_tid");
@@ -176,6 +186,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_wakeup_new(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		long ts = event.getTimestamp().getValue();
 		long tid = EventField.getLong(event, "tid");
 		Task child = system.getTask(tid);
@@ -190,6 +202,8 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		int cpu = event.getCPU();
 		long ts = event.getTimestamp().getValue();
 		long tid = EventField.getLong(event, "tid");
@@ -231,7 +245,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 			// special case for network related softirq
 			int vec = (int) EventField.getLong(context.getEvent(), "vec");
 			if (vec == Softirq.NET_RX || vec == Softirq.NET_TX) {
-				Task k = kernel[event.getCPU()];
+				Task k = kernel.get(event.getTrace())[event.getCPU()];
 				Node kwup = stateExtend(k, event.getTimestamp().getValue());
 				kwup.linkVertical(wup);
 			}
@@ -297,7 +311,9 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 		return ret;
 	}
 
-	public void debugMySockInet(CtfTmfEvent event) {
+	public void debugMySockInet(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
 		if (context == Context.NONE) {
@@ -309,10 +325,12 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	public void handle_inet_sock_local_in(TraceReader reader, CtfTmfEvent event) {
 		//debugMySockInet(event);
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
 		if (context == Context.SOFTIRQ) {
-			Task k = kernel[event.getCPU()];
+			Task k = kernel.get(event.getTrace())[event.getCPU()];
 			Node endpoint = stateExtend(k, event.getTimestamp().getValue());
 			tcpNodes.put(event,  endpoint);
 			tcpMatching.matchEvent(event, 0);
@@ -321,13 +339,15 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 
 	public void handle_inet_sock_local_out(TraceReader reader, CtfTmfEvent event) {
 		//debugMySockInet(event);
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		Stack<InterruptContext> stack = system.getInterruptContext(event.getCPU());
 		Context context = stack.peek().getContext();
 		Task sender = null;
 		if (context == Context.NONE) {
 			sender = system.getTaskCpu(event.getCPU());
 		} else if (context == Context.SOFTIRQ) {
-			sender = kernel[event.getCPU()];
+			sender = kernel.get(event.getTrace())[event.getCPU()];
 		}
 		if (sender == null)
 			return;
@@ -339,7 +359,7 @@ public class TraceEventHandlerExecutionGraph  extends TraceEventHandlerBase {
 	public void handle_softirq_entry(TraceReader reader, CtfTmfEvent event) {
 		int vec = (int) EventField.getLong(event, "vec");
 		if (vec == Softirq.NET_RX || vec == Softirq.NET_TX) {
-			Task k = kernel[event.getCPU()];
+			Task k = kernel.get(event.getTrace())[event.getCPU()];
 			graph.add(k, new Node(event.getTimestamp().getValue()));
 		}
 	}

@@ -16,11 +16,10 @@ public class TraceEventHandlerCounter extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		counter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, EventCounter.class);
-		counter.reset();
 	}
 
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
+		reader.getRegistry().getModelForTrace(event.getTrace(), EventCounter.class);
 		counter.increment();
 	}
 

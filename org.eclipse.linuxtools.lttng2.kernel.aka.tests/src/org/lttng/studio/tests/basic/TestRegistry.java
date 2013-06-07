@@ -21,8 +21,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.lttng.studio.model.kernel.EventCounter;
 import org.lttng.studio.model.kernel.ModelRegistry;
+import org.lttng.studio.reader.Host;
+import org.lttng.studio.reader.TraceReader;
 import org.lttng.studio.reader.handler.IModelKeys;
 import org.lttng.studio.utils.CTFUtils;
+
+import com.google.common.collect.Multimap;
 
 public class TestRegistry {
 
@@ -76,7 +80,7 @@ public class TestRegistry {
 		ModelRegistry reg = new ModelRegistry();
 		reg.register(key, EventCounter.class);
 		for (CtfTmfEvent ev: events) {
-			set.add(reg.getModelForEvent(ev, EventCounter.class));
+			set.add(reg.getModelForTrace(ev.getTrace(), EventCounter.class));
 		}
 		for (Object obj: set) {
 			assertNotNull(obj);
@@ -97,6 +101,15 @@ public class TestRegistry {
 	@Test
 	public void testPerHostModel() {
 		testModelArrity(IModelKeys.PER_HOST, numHosts);
+	}
+
+	@Test
+	public void testTraceHostMap() {
+		TraceReader reader = new TraceReader();
+		reader.setTrace(experiment);
+		Multimap<Host, CtfTmfTrace> traceHostMap = reader.getTraceHostMap();
+		assertEquals(numHosts, traceHostMap.keySet().size());
+		assertEquals(numTracesPerHost * numHosts, traceHostMap.keys().size());
 	}
 
 }

@@ -6,13 +6,13 @@ import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.lttng.studio.model.kernel.CloneFlags;
 import org.lttng.studio.model.kernel.FD;
 import org.lttng.studio.model.kernel.FDSet;
+import org.lttng.studio.model.kernel.ModelRegistry;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.kernel.Task.execution_mode_enum;
 import org.lttng.studio.model.kernel.Task.process_status_enum;
 import org.lttng.studio.reader.TraceHook;
 import org.lttng.studio.reader.TraceReader;
-import org.lttng.studio.utils.AnalysisFilter;
 import org.lttng.studio.utils.StringHelper;
 
 /*
@@ -30,12 +30,6 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	HashMap<Long, EventData> evHistory;
-
-	SystemModel system;
-
-	private AnalysisFilter filter;
-
-	private ALog log;
 
 	/*
 	 * sched_migrate_task:
@@ -66,14 +60,10 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	@Override
 	public void handleInit(TraceReader reader) {
-		filter = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, AnalysisFilter.class);
-		system = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, SystemModel.class);
-		system.init(reader);
-		log = reader.getRegistry().getOrCreateModel(IModelKeys.SHARED, ALog.class);
 		evHistory = new HashMap<Long, EventData>();
 	}
 
-	private Task createTask(long tid, long ts, String cmd) {
+	private Task createTask(SystemModel system, long tid, long ts, String cmd) {
 		Task task = new Task();
 		task.setTid(tid);
 		task.setStart(ts);
@@ -82,12 +72,9 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		return task;
 	}
 
-	private void _update_task_state(long tid, process_status_enum state) {
-		Task task = system.getTask(tid);
-
-	}
-
 	public void handle_sched_switch(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		int cpu = event.getCPU();
 		if (system.getCurrentCPU() != cpu) {
 			reader.cancel(new RuntimeException("ERROR: system.cpu != event.cpu"));
@@ -101,20 +88,20 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		Task nextTask = system.getTask(next);
 		if (nextTask == null) {
 			String name = EventField.getString(event, "next_comm");
-			nextTask = createTask(next, event.getTimestamp().getValue(), name);
-			log.warning("sched_switch next task was null " + nextTask);
+			nextTask = createTask(system, next, event.getTimestamp().getValue(), name);
+			//log.warning("sched_switch next task was null " + nextTask);
 		}
 		nextTask.setProcessStatus(process_status_enum.RUN);
 
 		Task prevTask = system.getTask(prev);
 		if (prevTask == null) {
 			String name = EventField.getString(event, "prev_comm");
-			prevTask = createTask(next, event.getTimestamp().getValue(), name);
-			log.warning("sched_switch prev task was null " + prevTask);
+			prevTask = createTask(system, next, event.getTimestamp().getValue(), name);
+			//log.warning("sched_switch prev task was null " + prevTask);
 		}
 		process_status_enum status = prevTask.getProcessStatus();
 		if (status != process_status_enum.RUN && status != process_status_enum.EXIT) {
-			log.warning("prev task was not running " + prevTask + " " + event.getTimestamp());
+			//log.warning("prev task was not running " + prevTask + " " + event.getTimestamp());
 		}
 		// prev_state == 0 means runnable, thus waits for cpu
 		if (prev_state == 0) {
@@ -126,6 +113,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 
 	public void handle_sched_process_fork(TraceReader reader, CtfTmfEvent event) {
 		// TODO: add child to parent's children list
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		long parent = EventField.getLong(event, "parent_tid");
 		long child = EventField.getLong(event, "child_tid");
 		String name = EventField.getString(event, "child_comm");
@@ -137,12 +126,7 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 		task.setStart(event.getTimestamp().getValue());
 		system.putTask(task);
 
-		// handle filtering
 		Task parentTask = system.getTask(parent);
-		if (parentTask != null && filter.isFollowChild() &&
-				filter.getTids().contains(parentTask.getTid())) {
-			filter.addTid(child);
-		}
 
 		// we know clone succeed, thus copy file descriptors according to flags
 		EventData data = evHistory.remove(parent);
@@ -168,28 +152,32 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_wakeup(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		long tid = EventField.getLong(event, "tid");
 		Task target = system.getTask(tid);
 		Task current = system.getTaskCpu(event.getCPU());
 		if (target == null) {
 			String name = EventField.getString(event, "comm");
-			target = createTask(tid, event.getTimestamp().getValue(), name);
+			target = createTask(system, tid, event.getTimestamp().getValue(), name);
 			target.setProcessStatus(process_status_enum.WAIT_BLOCKED);
-			log.warning("sched_wakeup target was null " + event.getTimestamp().toString());
+			//log.warning("sched_wakeup target was null " + event.getTimestamp().toString());
 		}
 		// spurious wakeup
 		if (current != null && target.getTid() == current.getTid()) {
-			log.warning("sched_wakeup SELF_WAKEUP " + target);
+			//log.warning("sched_wakeup SELF_WAKEUP " + target);
 			return;
 		}
 		if (target.getProcessStatus() != Task.process_status_enum.WAIT_BLOCKED) {
-			log.warning("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
+			//log.warning("sched_wakeup target " + target + " is not in WAIT_BLOCKED: " + target.getProcessStatus());
 			return;
 		}
 		target.setProcessStatus(process_status_enum.WAIT_CPU);
 	}
 
 	public void handle_sched_process_exit(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		long tid = EventField.getLong(event, "tid");
 		Task task = system.getTask(tid);
 		if (task == null)
@@ -199,21 +187,17 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	public void handle_sched_process_exec(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		String filename = EventField.getString(event, "filename");
 		Task task = system.getTaskCpu(event.getCPU());
 		task.setName(filename);
-
-		// check if this task needs to be monitored
-		for (String c: filter.getCommands()) {
-			if (filename.matches(c)) {
-				filter.addTid(task.getTid());
-				break;
-			}
-		}
 	}
 
 	public void handle_all_event(TraceReader reader, CtfTmfEvent event) {
 		// ugly event matching, may clash
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		if (event.getEventName().startsWith("sys_")) {
 			int cpu = event.getCPU();
 			long tid = system.getCurrentTid(cpu);
@@ -225,6 +209,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	public void handle_sys_execve(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
 		String filename = EventField.getString(event, "filename");
@@ -236,6 +222,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	public void handle_sys_clone(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
 		if (tid == 0) {
@@ -249,6 +237,8 @@ public class TraceEventHandlerSched extends TraceEventHandlerBase {
 	}
 
 	public void handle_exit_syscall(TraceReader reader, CtfTmfEvent event) {
+		ModelRegistry reg = reader.getRegistry();
+		SystemModel system = reg.getModelForTrace(event.getTrace(), SystemModel.class);
 		int cpu = event.getCPU();
 		long tid = system.getCurrentTid(cpu);
 		Task task = system.getTask(tid);
