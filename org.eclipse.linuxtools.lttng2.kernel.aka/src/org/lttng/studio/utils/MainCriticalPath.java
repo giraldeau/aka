@@ -1,14 +1,11 @@
 package org.lttng.studio.utils;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Stack;
 import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
@@ -19,10 +16,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
-import org.lttng.studio.model.graph.CriticalPathStats;
-import org.lttng.studio.model.graph.ExecEdge;
-import org.lttng.studio.model.graph.ExecGraph;
-import org.lttng.studio.model.graph.Span;
 import org.lttng.studio.model.kernel.SystemModel;
 import org.lttng.studio.model.kernel.Task;
 import org.lttng.studio.model.zgraph.Dot;
@@ -280,39 +273,6 @@ public class MainCriticalPath {
 				opts.tids.add(new Long(s));
 		}
 		return opts;
-	}
-
-	private void saveStatsLegacy(ExecGraph graph, List<ExecEdge> path, String uuid, String tid) {
-			Span oldroot = CriticalPathStats.compileFlat(graph, path);
-			Span realroot = new Span("realroot");
-			HashMap<Task, Span> taskSpan = new HashMap<Task, Span>();
-			Stack<Span> stack = new Stack<Span>();
-			stack.push(oldroot);
-			while(!stack.isEmpty()) {
-				Span curr = stack.pop();
-				for (Span child: curr.getChildren())
-					stack.push(child);
-				if (curr.getOwner() instanceof Task) {
-					Span stat = taskSpan.get(curr.getOwner());
-					if (stat == null) {
-						stat = new Span(curr.getOwner());
-						stat.setParentAndChild(realroot);
-						taskSpan.put((Task)curr.getOwner(), stat);
-					}
-					stat.addSelfTime(curr.getTotalTime());
-				}
-			}
-			String formatStats = CriticalPathStats.formatStats(realroot);
-		try {
-			File fout = new File("results/" + uuid, tid + "_unbounded.stats");
-			FileWriter writer = new FileWriter(fout);
-			writer.write(uuid + " " + "tid=" + tid + " " + "head=" + tid + "\n");
-			writer.write(formatStats);
-			writer.flush();
-			writer.close();
-		} catch (Exception e) {
-			throw new RuntimeException("Error writing legacy stats");
-		}
 	}
 
 	private void usage() {
